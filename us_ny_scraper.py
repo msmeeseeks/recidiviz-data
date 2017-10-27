@@ -46,6 +46,7 @@ import requests_toolbelt.adapters.appengine
 import string
 import random
 from lxml import html # Useful docs @ http://lxml.de/lxmlhtml.html
+import re
 
 import models
 
@@ -77,8 +78,8 @@ which has the following fields:
 
 See models.InmateListing for pre-populated fields. UsNyInmateListing extends 
 these by adding the following:
-    - us_ny_record_id: Same as record_id, but used as key for this entity type
-    - def: 
+    - us_ny_record_id: (string) Same as record_id, but used as key for this entity type
+        to force uniqueness / prevent collisions within the us_ny records
 
 Note the duplicated record ID - this allows us to use this field as a key,
 forcing uniqueness within the UsNy record space without forcing it across
@@ -89,22 +90,6 @@ class UsNyInmateListing(models.InmateListing):
     us_ny_record_id = ndb.StringProperty()
 
 """
-UsNyInmateFacilitySnapshot
-
-Datastore model for the facility an inmate was located in at the time of a 
-particular scraping. An inmate should have at least one of these records for
-each scraping performed.
-
-See models.InmateFacilitySnapshot for pre-populated fields. 
-UsNyInmateFacilitySnapshot extends these by adding the following:
-    - abc: Something something
-    - def: 
-
-"""
-class UsNyInmateFacilitySnapshot(models.InmateFacilitySnapshot):
-    phone_number = ndb.PhoneNumberProperty()
-
-"""
 UsNyRecordEntry
 
 Datastore model for historical violation records (e.g. 
@@ -113,12 +98,56 @@ to one inmate.
 
 See models.RecordEntry for pre-populated fields. UsNyRecordEntry extends 
 these by adding the following:
-    - abc: Something something
-    - def: 
+    - last_custody_date: (date) Most recent date inmate returned for this 
+        sentence (may not be the initial custody date - e.g., if parole
+        was violated, may be readmitted for remainder of prison term)
+    - admission_type: (string) 'New commitment' is beginning to serve a term,
+        other reasons are usually after term has started (e.g. parole issue)
+    - county_of_commit: (string) County the inmate was convicted/committed in
+    - custody_status: (string) Whether still in custody or released (and how)
+    - last_release_type: (string) If released from prison, the reason
+    - last_release_date: (date) If released from prison, the date of release
+    - earliest_release_date: (date) Earliest date to be released based on 
+        min_sentence. In certain circumstances, may be released before this.
+    - earliest_release_type: (string) The reason for the earliest possible
+        release date.
+    - parole_hearing_date: (date) Date of next hearing before Parole Board 
+    - parole_hearing_type: (string) Type of hearing for next PB appearance.
+    - parole_elig_date: (date) Date inmate will be eligible for parole
+    - cond_release_date: (date) Release date based on prison discretion for
+        'good time off' based on behavior. Releases prisoner on parole, but
+        bypasses PB review.
+    - max_expir_date: (date) Date of release if no PB or conditional release,
+        maximum obligation to the state.
+    - max_expir_date_parole: (date) Last possible date of ongoing parole
+        supervision. Doesn't apply to all inmates.
+    - max_expir_date_superv: (date) Last possible date of post-release 
+        supervision. Doesn't apply to all inmates.
+    - parole_discharge_date: (date) Final date of parole supervision, based on
+        the parole board's decision to end supervision before max expiration.
+    (Note: for the three 'max...'s, the latest date is considered controlling.)
+
+See 'DOCCS Data Definitions' for full descriptions:
+http://www.doccs.ny.gov/univinq/fpmsdoc.htm
 
 """
 class UsNyRecordEntry(models.RecordEntry):
-    phone_number = ndb.PhoneNumberProperty()
+    last_custody_date = ndb.DateProperty()
+    admission_type = ndb.StringProperty()
+    county_of_commit = ndb.StringProperty()
+    custody_status = ndb.StringProperty()
+    last_release_type = ndb.StringProperty()
+    last_release_date = ndb.DateProperty()
+    earliest_release_date = ndb.DateProperty()
+    earliest_release_type = ndb.StringProperty()
+    parole_hearing_date = ndb.DateProperty()
+    parole_hearing_type = ndb.StringProperty()
+    parole_elig_date = ndb.DateProperty()
+    cond_release_date = ndb.DateProperty()
+    max_expir_date = ndb.DateProperty()
+    max_expir_date_parole = ndb.DateProperty()
+    max_expir_date_superv = ndb.DateProperty()
+    parole_discharge_date = ndb.DateProperty()
 
 
 
@@ -721,7 +750,6 @@ def scrape_inmate_entry(params):
         return
 
 
-
 def scrape_disambiguation(page_tree, first_name, last_name):
     """
     scrape_disambiguation()
@@ -746,9 +774,7 @@ def scrape_disambiguation(page_tree, first_name, last_name):
     # Create an ID to group these entries with - DOCCS doesn't tell us how it 
     # groups these / give us a persistent ID for inmates, but we want to know
     # each of the entries scraped from this page were about the same person.
-    group_id = ''.join(random.choice(string.ascii_uppercase + 
-                    string.ascii_lowercase + 
-                    string.digits) for _ in range(10))
+    group_id = generate_id(UsNyInmateListing)
 
 
     # Parse the results list
@@ -815,92 +841,234 @@ def scrape_disambiguation(page_tree, first_name, last_name):
         else: pass
 
     return
-        
 
 
 def store_record(inmate_details):
 
     """
-    Looks like this:
+    store_record()
+    We've scraped a incarceration details page, and want to store the data we
+    found. This function does some post-processing on the scraped data, and
+    feeds it into the datastore in a way that can be indexed / queried in the
+    future.
 
-    {'Housing / Releasing Facility': u'', 'Parole Board Discharge Date': u'', 'Aggregate Maximum Sentence': 'Years,  Months,\r\n          Days', 
-    'Admission Type': u'', 'Inmate Name': u'AAKJAR, KELUIN', 'Maximum Expiration Date for Parole Supervision': u'', 'Parole Hearing Type': u'MINIMUM PERIOD OF IMPRISONMENT', 
-    'County of Commitment': u'DUTCHESS', 'Maximum Expiration Date': u'04/10/1985', 'Parole Eligibility Date': u'', 'Earliest Release Date': u'', 'Race / Ethnicity': u'WHITE', 
-    'Earliest Release Type': u'', 'Custody Status': u'DISCHARGED', 'Parole Hearing Date': u'07/1980', 'Post Release Supervision Maximum Expiration Date': u'', 
-    'Date Received (Original)': u'05/23/1980', 'Date of Birth': u'09/21/1959', 'Date Received (Current)': u'05/23/1980', 
-    'Latest Release Date / Type (Released Inmates Only)': u'04/10/83 DISCH - MAXIMUM EXPIRATION', 'DIN (Department Identification Number)': u'80B0876', 
-    'Sex': u'MALE', 'crimes': [{'crime': u'MANSLAUGHTER 2ND', 'class': u'C'}], 'Aggregate Minimum Sentence': 'Years,  Months,\r\n          Days', 
-    'Conditional Release Date': u'08/10/1983'}
+    Args:
+        inmate_details: the results of the scrape, stored in a dict object.
+
+
+    Returns:
+        Nothing if successful, -1 if fails.
     """
 
     
     # INMATE LISTING
 
-    # Some pre-work to massage values out of the data
-    listing_id = inmate_details['DIN (Department Identification Number)']
-    inmate_name = inmate_details['Inmate Name'].split(', ')
-    dob = inmate_details['Date of Birth']
-    if dob: dob = datetime.strptime(dob, '%m/%d/%Y')
-    released = (inmate_details['Custody Status'] != "IN CUSTODY") 
+    # NY doesn't provide an inmate ID to link records. If DOCCS linked records
+    # for us, we already generated an ID to tie them together - use that. If 
+    # not, generate one.
+    if 'group_id' in inmate_details:
+        inmate_id = inmate_details['group_id']
+    else:
+        inmate_id = generate_id(UsNyInmateListing)
 
-    listing = UsNyInmateListing()
+
+    listing = UsNyInmateListing.get_or_insert(inmate_id)
+
+
+    # Some pre-work to massage values out of the data
+    inmate_name = inmate_details['Inmate Name'].split(', ')
+    inmate_dob = inmate_details['Date of Birth']
+    if inmate_dob: inmate_dob = parse_date_string(inmate_dob)
+    inmate_sex = inmate_details['Sex'].capitalize()
+    inmate_race = inmate_details['Race / Ethnicity'].capitalize()
 
     # NY-specific fields
-    listing.custody_status = inmate_details['Custody Status']
-    listing.date_first_received = (
-        datetime.strptime(inmate_details['Date Received (Original)'], '%m/%d/%Y'))
-    listing.latest_date_received = (
-        datetime.strptime(inmate_details['Date Received (Current)'], '%m/%d/%Y'))
-    listing.admission_type = inmate_details['Admission Type']
-    listing.county = inmate_details['County of Commitment']
+    listing.us_ny_record_id = inmate_id
 
-    most_recent_release = (
-        inmate_details['Latest Release Date / Type (Released Inmates Only)'])
-    if most_recent_release:
-        release_info = most_recent_release.split(" ", 1)
-        listing.latest_release_date = datetime.strptime(release_info[0], '%m/%d/%y')
-        listing.latest_release_type = release_info[1]
-    
-
-    # General fields
-    listing.record_id = listing_id
-    listing.us_ny_record_id = listing_id
-    listing.record_id_is_fuzzy = False
+    # General InmateListing fields
+    listing.record_id = inmate_id
+    listing.record_id_is_fuzzy = True
     listing.last_name = inmate_name[0]
     listing.given_names = inmate_name[1]
-    listing.birthday = dob
+    listing.birthday = inmate_dob
     listing.birthday_is_fuzzy = False
     listing.region = REGION
-    listing.sex = inmate_details['Sex'].capitalize()
-    listing.race = inmate_details['Race / Ethnicity'].capitalize()
-    listing.is_released = released
+    listing.sex = inmate_sex
+    listing.race = inmate_race
+
+    listing_key = listing.put()
 
 
-    # FACILITY
+    # CRIMINAL RECORD ENTRY
 
-    facility_result = inmate_details['Housing / Releasing Facility']
-    if not facility_result: facility_result = "(not provided)"
+    record_id = inmate_details['DIN (Department Identification Number)']
 
-    facility = models.InmateFacilitySnapshot()
-    facility.facility = facility_result
-    facility.associated_listing = '1-503-555-9123'
+    record = UsNyRecordEntry.get_or_insert(record_id)
+
+    # Some pre-work to massage values out of the data
+    last_custody = inmate_details['Date Received (Current)']
+    if last_custody: 
+        last_custody = parse_date_string(last_custody)
+    first_custody = inmate_details['Date Received (Original)']
+    if first_custody: 
+        first_custody = parse_date_string(first_custody)
+    admission_type = inmate_details['Admission Type']
+    county_of_commit = inmate_details['County of Commitment']
+    custody_status = inmate_details['Custody Status']
+    released = (custody_status != "IN CUSTODY")
+    record_offenses = json.dumps(inmate_details['crimes'])
+    min_sentence = inmate_details['Aggregate Minimum Sentence']
+    if min_sentence: 
+        min_sentence = json.dumps(parse_term_string(min_sentence))
+    max_sentence = inmate_details['Aggregate Maximum Sentence']
+    if max_sentence:
+        max_sentence = json.dumps(parse_term_string(max_sentence))
+    earliest_release_date = inmate_details['Earliest Release Date']
+    if earliest_release_date: 
+        earliest_release_date = parse_date_string(earliest_release_date)
+    earliest_release_type = inmate_details['Earliest Release Type']
+    parole_hearing_date = inmate_details['Parole Hearing Date']
+    if parole_hearing_date: 
+        parole_hearing_date = parse_date_string(parole_hearing_date)
+    parole_hearing_type = inmate_details['Parole Hearing Type']
+    parole_elig_date = inmate_details['Parole Eligibility Date']
+    if parole_elig_date: 
+        parole_elig_date = parse_date_string(parole_elig_date)
+    cond_release_date = inmate_details['Conditional Release Date']
+    if cond_release_date: 
+        cond_release_date = parse_date_string(cond_release_date)
+    max_expir_date = inmate_details['Maximum Expiration Date']
+    if max_expir_date: 
+        max_expir_date = parse_date_string(max_expir_date)
+    max_expir_date_parole = (
+        inmate_details['Maximum Expiration Date for Parole Supervision'])
+    if max_expir_date_parole: 
+        max_expir_date_parole = parse_date_string(max_expir_date_parole)
+    max_expir_date_superv = (
+        inmate_details['Post Release Supervision Maximum Expiration Date'])
+    if max_expir_date_superv: 
+        max_expir_date_superv = parse_date_string(max_expir_date_superv)
+    parole_discharge_date = inmate_details['Parole Board Discharge Date']
+    if parole_discharge_date: 
+        parole_discharge_date = parse_date_string(parole_discharge_date)
+    last_release = (
+        inmate_details['Latest Release Date / Type (Released Inmates Only)'])
+    if last_release:
+        release_info = last_release.split(" ", 1)
+        last_release_date = parse_date_string(release_info[0])
+        last_release_type = release_info[1] 
+
+    # NY-specific record fields
+    if last_custody: record.last_custody_date = last_custody
+    if admission_type: record.admission_type = admission_type
+    if county_of_commit: record.county_of_commit = county_of_commit
+    if custody_status: record.custody_status = custody_status
+    if last_release: 
+        record.last_release_type = last_release_type
+        record.last_release_date = last_release_date
+    if min_sentence: record.min_sentence = min_sentence
+    if max_sentence: record.max_sentence = max_sentence
+    if earliest_release_date: record.earliest_release_date = earliest_release_date
+    if earliest_release_type: record.earliest_release_type = earliest_release_type
+    if parole_hearing_date: record.parole_hearing_date = parole_hearing_date
+    if parole_hearing_type: record.parole_hearing_type = parole_hearing_type
+    if parole_elig_date: record.parole_elig_date = parole_elig_date
+    if cond_release_date: record.cond_release_date = cond_release_date
+    if max_expir_date: record.max_expir_date = max_expir_date
+    if max_expir_date_parole: record.max_expir_date_parole = max_expir_date_parole
+    if max_expir_date_superv: record.max_expir_date_superv = max_expir_date_superv
+    if parole_discharge_date: record.parole_discharge_date = parole_discharge_date
+
+    # General RecordEntry fields
+    record.offense = record_offenses
+    record.record_id = record_id
+    record.custody_date = first_custody
+    record.min_sentence_length = min_sentence
+    record.max_sentence_length = max_sentence
+    record.is_released = released
+    record.associated_listing = listing_key
+
+    record_key = record.put()
 
 
-    # CRIMINAL RECORDS
+    # FACILITY SNAPSHOT
 
-    record = UsNyRecordEntry()
+    facility_snapshot = models.InmateFacilitySnapshot()
 
-    record.offense = '1-503-555-9123'
-    record.record_id = '1-503-555-9123'
-    record.sentence_length = '1-503-555-9123'
-    record.custody_date = '1-503-555-6622'
-    record.offense_date = '1-503-555-6622'
-    record.associated_listing = '1-503-555-6622'
+    facility = inmate_details['Housing / Releasing Facility']
 
-    c.put()
+    facility_snapshot.facility = facility
+    facility_snapshot.associated_listing = listing_key
+    facility_snapshot.associated_record = record_key
 
+    facility_snapshot.put()
 
-
-    logging.info("In process_results")
+    if 'group_id' in inmate_details:
+        logging.info(REGION + " //    Stored record for \n\n %s %s \n in group %s \n for record\n %s" % (inmate_name[1], inmate_name[0], inmate_details['group_id'], record_id))
+    else:
+        logging.info(REGION + " //    Stored record for \n\n %s %s \n no group \n for record\n %s" % (inmate_name[1], inmate_name[0], record_id))
 
     return 
+
+
+def parse_term_string(term_string):
+    if term_string.startswith("LIFE"):
+
+        result = {'Life': True,
+                  'Years': 0,
+                  'Months': 0,
+                  'Days': 0}
+
+    else:
+        parsed_nums = re.findall('\d+', term_string)
+
+        if not parsed_nums:
+            result = ""
+        else:
+
+            years = parsed_nums[0]
+            months = parsed_nums[1]
+            days = parsed_nums[2]
+
+            result = {'Life': False,
+                      'Years': years,
+                      'Months': months,
+                      'Days': days}
+
+    return result
+
+
+def parse_date_string(date_string):
+    try:
+        if len(date_string) == 7:
+            result = datetime.strptime(date_string, '%m/%Y')
+        elif len(date_string) == 8:
+            result = datetime.strptime(date_string, '%m/%d/%y')
+        else:
+            result = datetime.strptime(date_string, '%m/%d/%Y')
+    except ValueError:
+        logging.warning("Couldn't parse date string: %s" % date_string)
+        result = ""
+
+    return result
+
+
+def generate_id(entity_kind):
+
+    # Generate new key
+    new_key = ''.join(random.choice(string.ascii_uppercase + 
+                      string.ascii_lowercase + 
+                      string.digits) for _ in range(10))
+
+    # Double-check it isn't a collision
+    test_key = ndb.Key(entity_kind, new_key)
+    key_result = test_key.get()
+
+    if key_result is not None:
+
+        # Collision, try again
+        return generate_id(entity_kind)
+
+    else:
+
+        return new_key

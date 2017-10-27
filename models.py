@@ -29,7 +29,6 @@ Fields:
     - release_date: Projected or actual release date of inmate in listing
     - sex: Sex of inmate in listing, if provided ("Male" or "Female")
     - race:  Race of inmate in the listing, for now string provided by region
-    - is_released: Whether the inmate was released (at least, for this crime)
 
 
 Analytics tooling will use record_id + region to dedup if available, so it's
@@ -48,14 +47,56 @@ class InmateListing(polymodel.PolyModel):
     record_id_is_fuzzy = ndb.BooleanProperty()
     given_names = ndb.StringProperty()
     last_name = ndb.StringProperty()
-    birthday = ndb.DateProperty()             # CA and Federal don't have, just age
+    birthday = ndb.DateProperty()
     birthday_is_fuzzy = ndb.BooleanProperty()
     added_date = ndb.DateTimeProperty(auto_now_add=True)
     region = ndb.StringProperty()
-    last_update = ndb.DateProperty(auto_now=True)  # CA doesn't have
-    sex = ndb.StringProperty()   # CA doesn't have
-    race = ndb.StringProperty()  # CA doesn't have
+    last_update = ndb.DateProperty(auto_now=True)
+    sex = ndb.StringProperty()
+    race = ndb.StringProperty()
+
+
+"""
+RecordEntry
+
+Datastore model for historical violation records (e.g. 
+ROBB. WPN-NOT DEADLY, 04/21/1995, sentence: 20mo). Multiple records may map
+to one inmate.
+
+Individual region scrapers are expected to create their own subclasses which
+inherit these common properties, then add more if their region has more 
+available. See us_ny_scraper.py for an example.
+
+Fields:
+    - offense: JSON'ified dict. {'crime_string': 'class', ...} Contains
+        state-provided string describing the crimes and (if available) 
+        class of crimes. 
+    - record_id: The identifier the state site uses for this crime
+    - min_sentence: (json encoded dict) Minimum sentence to be served {Life: 
+        bool, years: int, months: int, days: int} - Life is always False.
+    - max_sentence: (json encoded dict) Maximum sentence to be served {Life: 
+        bool, years: int, months: int, days: int} - Life is whether it's a life
+        sentence.
+    - custody_date: Date the inmate's sentence started, if available
+    - offense_date: Date the offense was committed, if available
+    - is_released: Whether the inmate was released (at least, for this crime)
+    - associated_snapshot: The InmateSnapshot this record was scraped with
+
+Analytics tooling will use record_id for dedup, so it's important to update 
+records based on that key, rather than attempting to store them each time. 
+
+associated_snapshot is also a key field to include, as this enables dedup when
+no record ID is given, and race/age analytics by tying to inmate data.
+"""
+class RecordEntry(polymodel.PolyModel):
+    offense = ndb.JsonProperty()
+    record_id = ndb.StringProperty()
+    min_sentence_length = ndb.JsonProperty()
+    max_sentence_length = ndb.JsonProperty()
+    custody_date = ndb.DateProperty()
+    offense_date = ndb.DateProperty()
     is_released = ndb.BooleanProperty()
+    associated_listing = ndb.KeyProperty(kind=InmateListing)
 
 
 """
@@ -82,39 +123,6 @@ no record ID is given, and race/age analytics by tying to inmate data.
 """
 class InmateFacilitySnapshot(polymodel.PolyModel):
     snapshot_date = ndb.DateTimeProperty(auto_now_add=True)
-    associated_listing = ndb.ReferenceProperty(InmateListing)
     facility = ndb.StringProperty()
-
-
-"""
-RecordEntry
-
-Datastore model for historical violation records (e.g. 
-ROBB. WPN-NOT DEADLY, 04/21/1995, sentence: 20mo). Multiple records may map
-to one inmate.
-
-Individual region scrapers are expected to create their own subclasses which
-inherit these common properties, then add more if their region has more 
-available. See us_ny_scraper.py for an example.
-
-Fields:
-    - offense: The state-provided string describing the crime
-    - record_id: The identifier the state site uses for this crime
-    - sentence_length: The duration of the sentence, converted to days
-    - custody_date: Date the inmate's sentence started, if available
-    - offense_date: Date the offense was committed, if available
-    - associated_snapshot: The InmateSnapshot this record was scraped with
-
-Analytics tooling will use record_id for dedup, so it's important to update 
-records based on that key, rather than attempting to store them each time. 
-
-associated_snapshot is also a key field to include, as this enables dedup when
-no record ID is given, and race/age analytics by tying to inmate data.
-"""
-class RecordEntry(polymodel.PolyModel):
-    offense = ndb.StringProperty()
-    record_id = ndb.StringProperty()
-    sentence_length = ndb.IntegerProperty()
-    custody_date = ndb.DateProperty()
-    offense_date = ndb.DateProperty()
-    associated_listing = ndb.ReferenceProperty(InmateListing)
+    associated_listing = ndb.KeyProperty(kind=InmateListing)
+    associated_record = ndb.KeyProperty(kind=RecordEntry)
