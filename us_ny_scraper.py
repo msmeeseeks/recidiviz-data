@@ -1004,9 +1004,18 @@ def store_record(inmate_details):
     facility_snapshot.put()
 
     if 'group_id' in inmate_details:
-        logging.info(REGION + " //    Stored record for \n\n %s %s \n in group %s \n for record\n %s" % (inmate_name[1], inmate_name[0], inmate_details['group_id'], record_id))
+        logging.info(REGION + " //    Stored record for "
+            "%s %s,  in group %s, for record %s." % (
+                inmate_name[1], 
+                inmate_name[0], 
+                inmate_details['group_id'], 
+                record_id))
     else:
-        logging.info(REGION + " //    Stored record for \n\n %s %s \n no group \n for record\n %s" % (inmate_name[1], inmate_name[0], record_id))
+        logging.info(REGION + " //    Stored record for "
+            "%s %s,  (no group), for record %s." % (
+                inmate_name[1], 
+                inmate_name[0], 
+                record_id))
 
     return 
 
