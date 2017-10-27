@@ -76,6 +76,8 @@ def generate_tasks(region, name_list):
     scraper = __import__(module_name)
     scraper.setup()
 
+
+
     # Start a query for each name in the provided file
     for name in name_list:
 

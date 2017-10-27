@@ -38,6 +38,7 @@ General scraping procedure:
 """
 
 
+from datetime import datetime
 import json
 import logging
 import requests
@@ -46,8 +47,12 @@ import string
 import random
 from lxml import html # Useful docs @ http://lxml.de/lxmlhtml.html
 
+import models
+
 #from google.appengine.api import memcache  # See 'Session pages'
 from google.appengine.api import taskqueue
+from google.appengine.ext import ndb
+from google.appengine.ext.ndb import polymodel
 
 
 # Use the App Engine Requests adapter. This makes sure that Requests uses
@@ -59,6 +64,62 @@ BASE_RESULTS_URL = "http://nysdoccslookup.doccs.ny.gov"
 QUEUE_NAME = 'us-ny'
 REGION = 'us_ny'
 REQUEST_TIMEOUT = 5
+
+
+# DB MODELS
+
+"""
+UsNyInmateListing
+
+Datastore model for a snapshot of a record of a particular sentence being 
+served (a DIN, in NY's DOCCS system). This extends the general InmateListing,
+which has the following fields:
+
+See models.InmateListing for pre-populated fields. UsNyInmateListing extends 
+these by adding the following:
+    - us_ny_record_id: Same as record_id, but used as key for this entity type
+    - def: 
+
+Note the duplicated record ID - this allows us to use this field as a key,
+forcing uniqueness within the UsNy record space without forcing it across
+all regions (as there may be record ID collisions between states).
+
+"""
+class UsNyInmateListing(models.InmateListing):
+    us_ny_record_id = ndb.StringProperty()
+
+"""
+UsNyInmateFacilitySnapshot
+
+Datastore model for the facility an inmate was located in at the time of a 
+particular scraping. An inmate should have at least one of these records for
+each scraping performed.
+
+See models.InmateFacilitySnapshot for pre-populated fields. 
+UsNyInmateFacilitySnapshot extends these by adding the following:
+    - abc: Something something
+    - def: 
+
+"""
+class UsNyInmateFacilitySnapshot(models.InmateFacilitySnapshot):
+    phone_number = ndb.PhoneNumberProperty()
+
+"""
+UsNyRecordEntry
+
+Datastore model for historical violation records (e.g. 
+ROBB. WPN-NOT DEADLY, 04/21/1995, sentence: 20mo). Multiple records may map
+to one inmate.
+
+See models.RecordEntry for pre-populated fields. UsNyRecordEntry extends 
+these by adding the following:
+    - abc: Something something
+    - def: 
+
+"""
+class UsNyRecordEntry(models.RecordEntry):
+    phone_number = ndb.PhoneNumberProperty()
+
 
 
 # TODO(andrew) - Create class to surround this with, with requirements for 
@@ -602,8 +663,12 @@ def scrape_inmate_entry(params):
             # Capture table data from each details table
             for row in id_and_locale_rows:
                 row_data = row.xpath('./td')
-                inmate_details[row_data[0].text_content().strip()] = (
-                    row_data[1].text_content().strip())
+
+                # Get rid of weird internal, leading, and trailing whitespace
+                data0 = ' '.join(row_data[0].text_content().split()).strip()
+                data1 = ' '.join(row_data[1].text_content().split()).strip()
+
+                inmate_details[data0] = data1
 
             for row in crimes_rows:
                 row_data = row.xpath('./td')
@@ -612,8 +677,14 @@ def scrape_inmate_entry(params):
                 if not row_data: 
                     pass
                 else:
-                    crime_entry = {'crime': row_data[0].text_content().strip(),
-                                   'class': row_data[1].text_content().strip()}
+                    # Get rid of weird internal, leading, and trailing whitespace
+                    crime = ' '.join(row_data[0].text_content().split()).strip()
+                    crime_class = ' '.join(row_data[1].text_content().split()).strip()
+
+                    inmate_details[data0] = data1
+
+                    crime_entry = {'crime': crime,
+                                   'class': crime_class}
 
                     # Only add to the list if row is non-empty
                     if crime_entry['crime']:
@@ -621,8 +692,13 @@ def scrape_inmate_entry(params):
 
             for row in sentence_rows:
                 row_data = row.xpath('./td')
-                inmate_details[row_data[0].text_content().strip()] = (
-                    row_data[1].text_content().strip())
+
+                # Get rid of weird internal, leading, and trailing whitespace
+                data0 = ' '.join(row_data[0].text_content().split()).strip()
+                data1 = ' '.join(row_data[1].text_content().split()).strip()
+
+                inmate_details[data0] = data1
+
 
             inmate_details['crimes'] = crime_list
 
@@ -742,7 +818,7 @@ def scrape_disambiguation(page_tree, first_name, last_name):
         
 
 
-def store_record(results_tree):
+def store_record(inmate_details):
 
     """
     Looks like this:
@@ -756,6 +832,74 @@ def store_record(results_tree):
     'Sex': u'MALE', 'crimes': [{'crime': u'MANSLAUGHTER 2ND', 'class': u'C'}], 'Aggregate Minimum Sentence': 'Years,  Months,\r\n          Days', 
     'Conditional Release Date': u'08/10/1983'}
     """
+
+    
+    # INMATE LISTING
+
+    # Some pre-work to massage values out of the data
+    listing_id = inmate_details['DIN (Department Identification Number)']
+    inmate_name = inmate_details['Inmate Name'].split(', ')
+    dob = inmate_details['Date of Birth']
+    if dob: dob = datetime.strptime(dob, '%m/%d/%Y')
+    released = (inmate_details['Custody Status'] != "IN CUSTODY") 
+
+    listing = UsNyInmateListing()
+
+    # NY-specific fields
+    listing.custody_status = inmate_details['Custody Status']
+    listing.date_first_received = (
+        datetime.strptime(inmate_details['Date Received (Original)'], '%m/%d/%Y'))
+    listing.latest_date_received = (
+        datetime.strptime(inmate_details['Date Received (Current)'], '%m/%d/%Y'))
+    listing.admission_type = inmate_details['Admission Type']
+    listing.county = inmate_details['County of Commitment']
+
+    most_recent_release = (
+        inmate_details['Latest Release Date / Type (Released Inmates Only)'])
+    if most_recent_release:
+        release_info = most_recent_release.split(" ", 1)
+        listing.latest_release_date = datetime.strptime(release_info[0], '%m/%d/%y')
+        listing.latest_release_type = release_info[1]
+    
+
+    # General fields
+    listing.record_id = listing_id
+    listing.us_ny_record_id = listing_id
+    listing.record_id_is_fuzzy = False
+    listing.last_name = inmate_name[0]
+    listing.given_names = inmate_name[1]
+    listing.birthday = dob
+    listing.birthday_is_fuzzy = False
+    listing.region = REGION
+    listing.sex = inmate_details['Sex'].capitalize()
+    listing.race = inmate_details['Race / Ethnicity'].capitalize()
+    listing.is_released = released
+
+
+    # FACILITY
+
+    facility_result = inmate_details['Housing / Releasing Facility']
+    if not facility_result: facility_result = "(not provided)"
+
+    facility = models.InmateFacilitySnapshot()
+    facility.facility = facility_result
+    facility.associated_listing = '1-503-555-9123'
+
+
+    # CRIMINAL RECORDS
+
+    record = UsNyRecordEntry()
+
+    record.offense = '1-503-555-9123'
+    record.record_id = '1-503-555-9123'
+    record.sentence_length = '1-503-555-9123'
+    record.custody_date = '1-503-555-6622'
+    record.offense_date = '1-503-555-6622'
+    record.associated_listing = '1-503-555-6622'
+
+    c.put()
+
+
 
     logging.info("In process_results")
 
