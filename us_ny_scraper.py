@@ -159,15 +159,6 @@ class UsNyRecordEntry(models.RecordEntry):
 # scrapers
 
 def setup():
-    """ 
-    setup()
-
-    Required by Scraper class. Is run prior to any specific scraping tasks for
-    the region, and is allowed to trigger a small number of third-party network
-    requests synchronously (without queues) to allow for initial session info, 
-    etc. to be configured prior to scraping.
-
-    """
 
     """
     setup()
@@ -359,7 +350,7 @@ def scrape_search_page(params):
                  (params['first_name'], params['last_name']))
 
 
-    # Load the Search page on DOCCS, which will generate some tokens in the form
+    # Load the Search page on DOCCS, which will generate some tokens in the <form>
     search_page = requests.get(START_URL, timeout=REQUEST_TIMEOUT)
     search_tree = html.fromstring(search_page.content)
 
