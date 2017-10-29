@@ -608,6 +608,7 @@ def scrape_inmate_entry(params):
     if 'group_id' in params:
 
         inmate_details['group_id'] = params['group_id']
+        inmate_details['linked_records'] = params['linked_records']
 
         # Create a request using the provided params
         inmate_page = requests.post(url, data = {
@@ -766,6 +767,8 @@ def scrape_disambiguation(page_tree, first_name, last_name):
     # groups these / give us a persistent ID for inmates, but we want to know
     # each of the entries scraped from this page were about the same person.
     group_id = generate_id(UsNyInmateListing)
+    new_tasks = []
+    din_list = []
 
 
     # Parse the results list
@@ -801,6 +804,12 @@ def scrape_disambiguation(page_tree, first_name, last_name):
         result_params['dinx_val'] = row.xpath(
             './div/input[@type="submit"]/@value')[0]
 
+        din_list.append(result_params['dinx_val'])
+        new_tasks.append(result_params)
+
+
+    for task_params in new_tasks:
+
         """ 
         The disambig page has produces far more rows than are visible, each 
         with a form element you can click - programmatically, these look nearly
@@ -815,19 +824,20 @@ def scrape_disambiguation(page_tree, first_name, last_name):
         To avoid the latter mucking up our parsing, we test dinx_val to skip 
         these entries.
         """
-        if result_params['dinx_val']:
+        if task_params['dinx_val']:
 
             # Enqueue task to follow that link / get result
-            result_params['first_name'] = first_name
-            result_params['last_name'] = last_name
-            result_params = json.dumps(result_params)
+            task_params['first_name'] = first_name
+            task_params['last_name'] = last_name
+            task_params['linked_records'] = din_list
+            task_params = json.dumps(task_params)
 
             task = taskqueue.add(
             url='/scraper',
             queue_name=QUEUE_NAME,
             params={'region': REGION,
                     'task': "scrape_inmate_entry",
-                    'params': result_params})
+                    'params': task_params})
 
         else: pass
 
@@ -858,7 +868,25 @@ def store_record(inmate_details):
     # for us, we already generated an ID to tie them together - use that. If 
     # not, generate one.
     if 'group_id' in inmate_details:
+
+        # By default (if we find no prior records below), use the group_id 
+        # generated earlier in this scraping session as the inmate_id, so as
+        # to tie this record to the linked ones for the same inmate.
         inmate_id = inmate_details['group_id']
+
+        # Check if this or any of the linked records have a previously scraped 
+        # version in datastore, and if so tie this record to the same inmate_id.
+        for linked_record in inmate_details['linked_records']:
+            query = UsNyRecordEntry.query(UsNyRecordEntry.record_id == linked_record)
+            result = query.get()
+            if result:
+                # Set inmate_id to the inmate_id of the InmateListing referenced by that record
+                prior_inmate_key = result.associated_listing
+                prior_inmate_listing = prior_inmate_key.get()
+                inmate_id = prior_inmate_listing.record_id
+
+                logging.info("Found an earlier record with an inmate ID, using that.")
+        
     else:
         inmate_id = generate_id(UsNyInmateListing)
 
