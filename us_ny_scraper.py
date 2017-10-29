@@ -10,7 +10,7 @@ New York State - Dept of Corrections and Community Supervision (DOCCS)
  
 Search type: 
 - NYS-DOCCS allows for search by last name only
-- However, we use a custon name list for DOCCS instead of the standard 
+- However, we use a custom name list for DOCCS instead of the standard
     'last_names' list - see Notes.
 
 Region-specific notes: 
@@ -18,7 +18,7 @@ Region-specific notes:
         database - making it much easier to query than most prison systems. 
             - As a result, the us-ny names list is custom 'aaardvark', since this
             query should be enough to get all inmates in the entire system.
-            - Also as a result, we have a catch an exception in results parsing
+            - Also as a result, we have to catch an exception in results parsing
             to know when we ran out of names / it looped back to the search page.
     - DOCCS is based on incarceration events, not prisoners. As a result, each 
         record produced by the scraper is for one stay in prison for one prisoner.
@@ -37,16 +37,15 @@ General scraping procedure:
         (3b) A details page for the inmate, about a specific incarceration event
 """
 
-
 import json
 import logging
 import requests
 import requests_toolbelt.adapters.appengine
 import string
 import random
-from lxml import html # Useful docs @ http://lxml.de/lxmlhtml.html
+from lxml import html  # Useful docs @ http://lxml.de/lxmlhtml.html
 
-#from google.appengine.api import memcache  # See 'Session pages'
+# from google.appengine.api import memcache  # See 'Session pages'
 from google.appengine.api import taskqueue
 
 
@@ -69,7 +68,6 @@ REQUEST_TIMEOUT = 5
 # scrapers
 
 def setup():
-
     """
     setup()
     Required by Scraper class. Is run prior to any specific scraping tasks for
@@ -86,7 +84,7 @@ def setup():
 
     # Note: Since DOCCS creates a new form for every link to follow, it doesn't
     # look like we need to worry about session vars for the us-ny scraper.
-    #get_session_vars()
+    # get_session_vars()
 
     return
 
@@ -235,6 +233,7 @@ def get_session_vars():
 
 # SEARCH AND SEARCH RESULTS PAGES #
 
+
 def scrape_search_page(params):
     """
     scrape_search_page()
@@ -256,9 +255,8 @@ def scrape_search_page(params):
 
     params = json.loads(params)
 
-    logging.info(REGION + " //   Starting search for name in list: %s %s" % 
+    logging.info(REGION + " //   Starting search for name in list: %s %s" %
                  (params['first_name'], params['last_name']))
-
 
     # Load the Search page on DOCCS, which will generate some tokens in the <form>
     search_page = requests.get(START_URL, timeout=REQUEST_TIMEOUT)
@@ -271,8 +269,8 @@ def scrape_search_page(params):
 
     search_results_params = {
         'first_page': True,
-        'k01': session_K01, 
-        'token': session_token, 
+        'k01': session_K01,
+        'token': session_token,
         'action': session_action,
         'first_name': params['first_name'],
         'last_name': params['last_name']}
@@ -335,39 +333,38 @@ def scrape_search_results_page(params):
     if 'first_page' in params:
 
         # Create a request using the provided params
-        results_page = requests.post(url, data = {
-                            'K01': params['k01'],
-                            'DFH_STATE_TOKEN': params['token'],
-                            'DFH_MAP_STATE_TOKEN': '',
-                            'M00_LAST_NAMEI': params['last_name'],
-                            'M00_FIRST_NAMEI': params['first_name'],
-                            'M00_MID_NAMEI': '',
-                            'M00_NAME_SUFXI': '', 
-                            'M00_DOBCCYYI': '', 
-                            'M00_DIN_FLD1I': '', 
-                            'M00_DIN_FLD2I': '', 
-                            'M00_DIN_FLD3I': '', 
-                            'M00_NYSID_FLD1I': '', 
-                            'M00_NYSID_FLD2I': ''
-                            }, timeout=REQUEST_TIMEOUT)
+        results_page = requests.post(url, data={
+            'K01': params['k01'],
+            'DFH_STATE_TOKEN': params['token'],
+            'DFH_MAP_STATE_TOKEN': '',
+            'M00_LAST_NAMEI': params['last_name'],
+            'M00_FIRST_NAMEI': params['first_name'],
+            'M00_MID_NAMEI': '',
+            'M00_NAME_SUFXI': '',
+            'M00_DOBCCYYI': '',
+            'M00_DIN_FLD1I': '',
+            'M00_DIN_FLD2I': '',
+            'M00_DIN_FLD3I': '',
+            'M00_NYSID_FLD1I': '',
+            'M00_NYSID_FLD2I': ''
+        }, timeout=REQUEST_TIMEOUT)
 
     else:
 
         # Create a request using the provided params
-        results_page = requests.post(url, data = {
-                            'M13_PAGE_CLICKI': params['clicki'],
-                            'M13_SEL_DINI': params['dini'],
-                            'K01': params['k01'],
-                            'K02': params['k02'],
-                            'K03': params['k03'],
-                            'K04': params['k04'],
-                            'K05': params['k05'],
-                            'K06': params['k06'],
-                            'DFH_STATE_TOKEN': params['token'],
-                            'DFH_MAP_STATE_TOKEN': params['map_token'],
-                            'next': params['next'],
-                            }, timeout=REQUEST_TIMEOUT)
-
+        results_page = requests.post(url, data={
+            'M13_PAGE_CLICKI': params['clicki'],
+            'M13_SEL_DINI': params['dini'],
+            'K01': params['k01'],
+            'K02': params['k02'],
+            'K03': params['k03'],
+            'K04': params['k04'],
+            'K05': params['k05'],
+            'K06': params['k06'],
+            'DFH_STATE_TOKEN': params['token'],
+            'DFH_MAP_STATE_TOKEN': params['map_token'],
+            'next': params['next'],
+        }, timeout=REQUEST_TIMEOUT)
 
     results_tree = html.fromstring(results_page.content)
 
@@ -375,7 +372,6 @@ def scrape_search_results_page(params):
     result_list = results_tree.xpath('//table[@id="dinlist"]/tr/td/form')
 
     for row in result_list:
-
         result_params = {}
 
         # Parse result rows, pull form info to follow link
@@ -411,12 +407,11 @@ def scrape_search_results_page(params):
         result_params = json.dumps(result_params)
 
         task = taskqueue.add(
-        url='/scraper',
-        queue_name=QUEUE_NAME,
-        params={'region': REGION,
-                'task': "scrape_inmate_entry",
-                'params': result_params})
-
+            url='/scraper',
+            queue_name=QUEUE_NAME,
+            params={'region': REGION,
+                    'task': "scrape_inmate_entry",
+                    'params': result_params})
 
     # Parse the 'next' button's embedded form
     next_params = {}
@@ -452,18 +447,17 @@ def scrape_search_results_page(params):
         logging.info(REGION + " //   Looped. Ending scraping session.")
         return
 
-
     # Enqueue task to follow that link / get result
     next_params['first_name'] = params['first_name']
     next_params['last_name'] = params['last_name']
     next_params = json.dumps(next_params)
 
     task = taskqueue.add(
-    url='/scraper',
-    queue_name=QUEUE_NAME,
-    params={'region': REGION,
-            'task': "scrape_search_results_page",
-            'params': next_params})
+        url='/scraper',
+        queue_name=QUEUE_NAME,
+        params={'region': REGION,
+                'task': "scrape_search_results_page",
+                'params': next_params})
 
     return
 
@@ -476,7 +470,7 @@ def scrape_inmate_entry(params):
     Fetches inmate listing page. This sometimes turns out to be a
     disambiguation page, as there may be multiple incarceration records in
     DOCCS for the person you've selected. If so, shunts details over to
-    scrape_disambiguaton(). If actual results page, pulls details from page
+    scrape_disambiguation(). If actual results page, pulls details from page
     and sends to store_record.
 
     Args:
@@ -520,38 +514,38 @@ def scrape_inmate_entry(params):
         inmate_details['group_id'] = params['group_id']
 
         # Create a request using the provided params
-        inmate_page = requests.post(url, data = {
-                            'M12_SEL_DINI': params['dini'],
-                            'K01': params['k01'],
-                            'K02': params['k02'],
-                            'K03': params['k03'],
-                            'K04': params['k04'],
-                            'K05': params['k05'],
-                            'K06': params['k06'],
-                            'DFH_STATE_TOKEN': params['token'],
-                            'DFH_MAP_STATE_TOKEN': params['map_token'],
-                            params['dinx_name']: params['dinx_val'],
-                            }, timeout=REQUEST_TIMEOUT)
+        inmate_page = requests.post(url, data={
+            'M12_SEL_DINI': params['dini'],
+            'K01': params['k01'],
+            'K02': params['k02'],
+            'K03': params['k03'],
+            'K04': params['k04'],
+            'K05': params['k05'],
+            'K06': params['k06'],
+            'DFH_STATE_TOKEN': params['token'],
+            'DFH_MAP_STATE_TOKEN': params['map_token'],
+            params['dinx_name']: params['dinx_val'],
+        }, timeout=REQUEST_TIMEOUT)
 
     else:
 
         # Create a request using the provided params
-        inmate_page = requests.post(url, data = {
-                            'M13_PAGE_CLICKI': params['clicki'],
-                            'M13_SEL_DINI': params['dini'],
-                            'K01': params['k01'],
-                            'K02': params['k02'],
-                            'K03': params['k03'],
-                            'K04': params['k04'],
-                            'K05': params['k05'],
-                            'K06': params['k06'],
-                            'DFH_STATE_TOKEN': params['token'],
-                            'DFH_MAP_STATE_TOKEN': params['map_token'],
-                            params['dinx_name']: params['dinx_val'],
-                            }, timeout=REQUEST_TIMEOUT)
+        inmate_page = requests.post(url, data={
+            'M13_PAGE_CLICKI': params['clicki'],
+            'M13_SEL_DINI': params['dini'],
+            'K01': params['k01'],
+            'K02': params['k02'],
+            'K03': params['k03'],
+            'K04': params['k04'],
+            'K05': params['k05'],
+            'K06': params['k06'],
+            'DFH_STATE_TOKEN': params['token'],
+            'DFH_MAP_STATE_TOKEN': params['map_token'],
+            params['dinx_name']: params['dinx_val'],
+        }, timeout=REQUEST_TIMEOUT)
 
     page_tree = html.fromstring(inmate_page.content)
-    
+
     # First, test if we got a disambiguation page (inmate has had more than 
     # one stay in prison system, page wants to know which you want to see)
     details_page = page_tree.xpath('//div[@id="ii"]')
@@ -576,12 +570,12 @@ def scrape_inmate_entry(params):
             sentence_rows[0].xpath("./td")[0].text_content().strip())
 
         if (actual_first_row_id != expected_first_row_id or
-            actual_first_row_crimes != expected_first_row_crimes or
-            actual_first_row_sentences != expected_first_row_sentences):
+                    actual_first_row_crimes != expected_first_row_crimes or
+                    actual_first_row_sentences != expected_first_row_sentences):
 
             # This isn't the page we were expecting
             logging.warning("Did not find expected tables on inmates page. "
-                "Page received: \n" + html.tostring(page_tree, pretty_print=True))
+                            "Page received: \n" + html.tostring(page_tree, pretty_print=True))
             return -1
 
         else:
@@ -600,7 +594,7 @@ def scrape_inmate_entry(params):
                 row_data = row.xpath('./td')
 
                 # One row is the table headers / has no <td> elements
-                if not row_data: 
+                if not row_data:
                     pass
                 else:
                     crime_entry = {'crime': row_data[0].text_content().strip(),
@@ -617,24 +611,22 @@ def scrape_inmate_entry(params):
 
             inmate_details['crimes'] = crime_list
 
-        logging.info(REGION + " //     (%s %s) Scraped inmate: %s" % 
-             (params['first_name'], params['last_name'], inmate_details['Inmate Name']))
-
+        logging.info(REGION + " //     (%s %s) Scraped inmate: %s" %
+                     (params['first_name'], params['last_name'], inmate_details['Inmate Name']))
 
         return store_record(inmate_details)
 
     else:
-        # We're on a disambiguation page, not an actual details page. Scrape the disambig page 
+        # We're on a disambiguation page, not an actual details page. Scrape the disambig page
         # and follow each link.
 
         # We can call this one without creating a task, it doesn't need a new 
         # network call
-        scrape_disambiguation(page_tree, 
-                                params['first_name'], 
-                                params['last_name'])
+        scrape_disambiguation(page_tree,
+                              params['first_name'],
+                              params['last_name'])
 
         return
-
 
 
 def scrape_disambiguation(page_tree, first_name, last_name):
@@ -661,10 +653,9 @@ def scrape_disambiguation(page_tree, first_name, last_name):
     # Create an ID to group these entries with - DOCCS doesn't tell us how it 
     # groups these / give us a persistent ID for inmates, but we want to know
     # each of the entries scraped from this page were about the same person.
-    group_id = ''.join(random.choice(string.ascii_uppercase + 
-                    string.ascii_lowercase + 
-                    string.digits) for _ in range(10))
-
+    group_id = ''.join(random.choice(string.ascii_uppercase +
+                                     string.ascii_lowercase +
+                                     string.digits) for _ in range(10))
 
     # Parse the results list
     result_list = page_tree.xpath('//div[@id="content"]/table/tr/td/form')
@@ -700,8 +691,8 @@ def scrape_disambiguation(page_tree, first_name, last_name):
             './div/input[@type="submit"]/@value')[0]
 
         """ 
-        The disambig page has produces far more rows than are visible, each 
-        with a form element you can click - programmatically, these look nearly
+        The disambig page produces far more rows than are visible, each with
+        a form element you can click - programmatically, these look nearly
         identical to actual result rows. 
 
         The only differences are 
@@ -721,20 +712,19 @@ def scrape_disambiguation(page_tree, first_name, last_name):
             result_params = json.dumps(result_params)
 
             task = taskqueue.add(
-            url='/scraper',
-            queue_name=QUEUE_NAME,
-            params={'region': REGION,
-                    'task': "scrape_inmate_entry",
-                    'params': result_params})
+                url='/scraper',
+                queue_name=QUEUE_NAME,
+                params={'region': REGION,
+                        'task': "scrape_inmate_entry",
+                        'params': result_params})
 
-        else: pass
+        else:
+            pass
 
     return
-        
 
 
 def store_record(results_tree):
-
     """
     Looks like this:
 
