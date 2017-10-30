@@ -5,12 +5,11 @@ from google.appengine.ext import ndb
 from google.appengine.ext.ndb import polymodel
 
 """
-InmateListing
+Inmate
 
-Datastore model for a snapshot of a particular inmate listing. For some scrapers, 
-a listing is for a specific human being. For others, a listing is for a record
-of a particular sentence being served. In both cases, we don't want multiple 
-copies of the same inmate or record, so we update them when re-scraped.
+Datastore model for a snapshot of a particular inmate listing. This is intended
+to be a 1:1 mapping to human beings in the prison system. We don't want 
+multiple copies of the same inmate, so we update them when re-scraped.
 
 Individual region scrapers are expected to create their own subclasses which
 inherit these common properties, then add more if their region has more 
@@ -18,23 +17,23 @@ available. See us_ny_scraper.py for an example.
 
 Fields:
     - record_id: The identifier the state site uses for this listing
-    - record_id_is_fuzzy: Whether we generated this ID / it's not x-sess stable
-    - given_names: First and middle names, if provided
+    - record_id_is_fuzzy: Whether we generated this ID/it's not x-scrape stable
+    - given_names: First and middle names (space separated), if provided
     - last_name: Last name, if provided
-    - birthday: Birthdate or 1/1/<year of birth based on given age>
-    - birthday_is_fuzzy: Whether the state gives the inmate's age, not DOB
-    - added_date: Python datetime object of first time we added this record
-    - added_date: Python datetime object of last time we updated this record
+    - birthday: Birth date, if available
+    - age: Age, if birth date is not available.
     - region: The region code for the scraper that captured this
-    - release_date: Projected or actual release date of inmate in listing
     - sex: Sex of inmate in listing, if provided ("Male" or "Female")
+        >> This is due to classification in the systems scraped - if they 
+        shift to a less binary approach, we can improve this <<
     - race:  Race of inmate in the listing, for now string provided by region
+    - created_on: Python datetime object of first time we added this record
+    - updated_on: Python datetime object of last time we updated this record
 
 
 Analytics tooling will use record_id + region to dedup if available, so it's
 important to update the listing based on that field, rather than just write a 
-new one. If none are in the UI, try to find them in the request parameters that
-got to the listing page. If none can be found, generate a random 10-digit 
+new one. If none can be found, generate a random 10-digit 
 alphanumeric ID and set record_id_is_fuzzy to True. This will help in 
 analytics logic.
 
@@ -42,18 +41,18 @@ analytics logic.
 Separate records should be stored for facility snapshots (for which a unique 
 snapshot is generated with each scrape, to catch facility transfers).
 """
-class InmateListing(polymodel.PolyModel):
+class Inmate(polymodel.PolyModel):
     record_id = ndb.StringProperty()
     record_id_is_fuzzy = ndb.BooleanProperty()
     given_names = ndb.StringProperty()
     last_name = ndb.StringProperty()
     birthday = ndb.DateProperty()
-    birthday_is_fuzzy = ndb.BooleanProperty()
-    added_date = ndb.DateTimeProperty(auto_now_add=True)
+    age = ndb.IntegerProperty()
     region = ndb.StringProperty()
-    last_update = ndb.DateProperty(auto_now=True)
     sex = ndb.StringProperty()
     race = ndb.StringProperty()
+    created_on = ndb.DateTimeProperty(auto_now_add=True)
+    updated_on = ndb.DateProperty(auto_now=True)
 
 
 """
@@ -96,7 +95,7 @@ class RecordEntry(polymodel.PolyModel):
     custody_date = ndb.DateProperty()
     offense_date = ndb.DateProperty()
     is_released = ndb.BooleanProperty()
-    associated_listing = ndb.KeyProperty(kind=InmateListing)
+    associated_listing = ndb.KeyProperty(kind=Inmate)
 
 
 """
@@ -124,5 +123,5 @@ no record ID is given, and race/age analytics by tying to inmate data.
 class InmateFacilitySnapshot(polymodel.PolyModel):
     snapshot_date = ndb.DateTimeProperty(auto_now_add=True)
     facility = ndb.StringProperty()
-    associated_listing = ndb.KeyProperty(kind=InmateListing)
+    associated_listing = ndb.KeyProperty(kind=Inmate)
     associated_record = ndb.KeyProperty(kind=RecordEntry)

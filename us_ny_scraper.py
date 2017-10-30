@@ -70,13 +70,13 @@ REQUEST_TIMEOUT = 5
 # DB MODELS
 
 """
-UsNyInmateListing
+UsNyInmate
 
 Datastore model for a snapshot of a record of a particular sentence being 
-served (a DIN, in NY's DOCCS system). This extends the general InmateListing,
+served (a DIN, in NY's DOCCS system). This extends the general Inmate,
 which has the following fields:
 
-See models.InmateListing for pre-populated fields. UsNyInmateListing extends 
+See models.Inmate for pre-populated fields. UsNyInmate extends 
 these by adding the following:
     - us_ny_record_id: (string) Same as record_id, but used as key for this entity type
         to force uniqueness / prevent collisions within the us_ny records
@@ -86,7 +86,7 @@ forcing uniqueness within the UsNy record space without forcing it across
 all regions (as there may be record ID collisions between states).
 
 """
-class UsNyInmateListing(models.InmateListing):
+class UsNyInmate(models.Inmate):
     us_ny_record_id = ndb.StringProperty()
 
 """
@@ -766,7 +766,7 @@ def scrape_disambiguation(page_tree, first_name, last_name):
     # Create an ID to group these entries with - DOCCS doesn't tell us how it 
     # groups these / give us a persistent ID for inmates, but we want to know
     # each of the entries scraped from this page were about the same person.
-    group_id = generate_id(UsNyInmateListing)
+    group_id = generate_id(UsNyInmate)
     new_tasks = []
     din_list = []
 
@@ -880,7 +880,7 @@ def store_record(inmate_details):
             query = UsNyRecordEntry.query(UsNyRecordEntry.record_id == linked_record)
             result = query.get()
             if result:
-                # Set inmate_id to the inmate_id of the InmateListing referenced by that record
+                # Set inmate_id to the inmate_id of the Inmate referenced by that record
                 prior_inmate_key = result.associated_listing
                 prior_inmate_listing = prior_inmate_key.get()
                 inmate_id = prior_inmate_listing.record_id
@@ -888,10 +888,10 @@ def store_record(inmate_details):
                 logging.info("Found an earlier record with an inmate ID, using that.")
         
     else:
-        inmate_id = generate_id(UsNyInmateListing)
+        inmate_id = generate_id(UsNyInmate)
 
 
-    listing = UsNyInmateListing.get_or_insert(inmate_id)
+    listing = UsNyInmate.get_or_insert(inmate_id)
 
 
     # Some pre-work to massage values out of the data
@@ -904,13 +904,12 @@ def store_record(inmate_details):
     # NY-specific fields
     listing.us_ny_record_id = inmate_id
 
-    # General InmateListing fields
+    # General Inmate fields
     listing.record_id = inmate_id
     listing.record_id_is_fuzzy = True
     listing.last_name = inmate_name[0]
     listing.given_names = inmate_name[1]
     listing.birthday = inmate_dob
-    listing.birthday_is_fuzzy = False
     listing.region = REGION
     listing.sex = inmate_sex
     listing.race = inmate_race
