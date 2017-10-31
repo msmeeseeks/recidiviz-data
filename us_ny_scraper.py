@@ -39,21 +39,20 @@ General scraping procedure:
 
 
 from datetime import datetime
-import json
-import logging
-import requests
-import requests_toolbelt.adapters.appengine
-import string
-import random
-from lxml import html # Useful docs @ http://lxml.de/lxmlhtml.html
-import re
-
-import models
-
 #from google.appengine.api import memcache  # See 'Session pages'
 from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb import polymodel
+from lxml import html
+import dateutil.parser as parser
+import json
+import logging
+import models
+import requests
+import requests_toolbelt.adapters.appengine
+import string
+import random
+import re
 
 
 # Use the App Engine Requests adapter. This makes sure that Requests uses
@@ -72,13 +71,12 @@ REQUEST_TIMEOUT = 5
 """
 UsNyInmate
 
-Datastore model for a snapshot of a record of a particular sentence being 
-served (a DIN, in NY's DOCCS system). This extends the general Inmate,
-which has the following fields:
+Datastore model for a snapshot of a specific person in the prison system. This extends 
+the general Inmate, which has the following fields:
 
 See models.Inmate for pre-populated fields. UsNyInmate extends 
 these by adding the following:
-    - us_ny_record_id: (string) Same as record_id, but used as key for this entity type
+    - us_ny_inmate_id: (string) Same as inmate_id, but used as key for this entity type
         to force uniqueness / prevent collisions within the us_ny records
 
 Note the duplicated record ID - this allows us to use this field as a key,
@@ -87,16 +85,17 @@ all regions (as there may be record ID collisions between states).
 
 """
 class UsNyInmate(models.Inmate):
-    us_ny_record_id = ndb.StringProperty()
+    us_ny_inmate_id = ndb.StringProperty()
+
 
 """
-UsNyRecordEntry
+UsNyRecord
 
 Datastore model for historical violation records (e.g. 
 ROBB. WPN-NOT DEADLY, 04/21/1995, sentence: 20mo). Multiple records may map
 to one inmate.
 
-See models.RecordEntry for pre-populated fields. UsNyRecordEntry extends 
+See models.Record for pre-populated fields. UsNyRecord extends 
 these by adding the following:
     - last_custody_date: (date) Most recent date inmate returned for this 
         sentence (may not be the initial custody date - e.g., if parole
@@ -104,7 +103,8 @@ these by adding the following:
     - admission_type: (string) 'New commitment' is beginning to serve a term,
         other reasons are usually after term has started (e.g. parole issue)
     - county_of_commit: (string) County the inmate was convicted/committed in
-    - custody_status: (string) Whether still in custody or released (and how)
+    - custody_status: (string) Scraped string on custody status (more granular
+        than just 'released' / 'not-released')
     - last_release_type: (string) If released from prison, the reason
     - last_release_date: (date) If released from prison, the date of release
     - earliest_release_date: (date) Earliest date to be released based on 
@@ -125,13 +125,14 @@ these by adding the following:
         supervision. Doesn't apply to all inmates.
     - parole_discharge_date: (date) Final date of parole supervision, based on
         the parole board's decision to end supervision before max expiration.
-    (Note: for the three 'max...'s, the latest date is considered controlling.)
+    (Note: for the three 'max...'s, the latest date is considered controlling -
+    that is, the inmate will not get out before that last date.)
 
 See 'DOCCS Data Definitions' for full descriptions:
 http://www.doccs.ny.gov/univinq/fpmsdoc.htm
 
 """
-class UsNyRecordEntry(models.RecordEntry):
+class UsNyRecord(models.Record):
     last_custody_date = ndb.DateProperty()
     admission_type = ndb.StringProperty()
     county_of_commit = ndb.StringProperty()
@@ -150,14 +151,12 @@ class UsNyRecordEntry(models.RecordEntry):
     parole_discharge_date = ndb.DateProperty()
 
 
-
 # TODO(andrew) - Create class to surround this with, with requirements for 
 # the functions that will be called from recidiviz and worker such as setup()
 # and start_query.
 
 # TODO(andrew) - Move this into a scrapers/ subdir, with other regional 
 # scrapers
-
 def setup():
 
     """
@@ -323,6 +322,7 @@ def get_session_vars():
     return
 """
 
+
 # SEARCH AND SEARCH RESULTS PAGES #
 
 def scrape_search_page(params):
@@ -348,7 +348,6 @@ def scrape_search_page(params):
 
     logging.info(REGION + " //   Starting search for name in list: %s %s" % 
                  (params['first_name'], params['last_name']))
-
 
     # Load the Search page on DOCCS, which will generate some tokens in the <form>
     search_page = requests.get(START_URL, timeout=REQUEST_TIMEOUT)
@@ -408,7 +407,6 @@ def scrape_search_results_page(params):
                 from the form
             map_token: a request parameter for results, scraped from the form
             next: a request parameter for results, scraped from the form
-
 
     Returns:
         Nothing if successful, -1 if fails.
@@ -507,7 +505,6 @@ def scrape_search_results_page(params):
                 'task': "scrape_inmate_entry",
                 'params': result_params})
 
-
     # Parse the 'next' button's embedded form
     next_params = {}
     next_button = results_tree.xpath('//div[@id="content"]/form')[0]
@@ -541,7 +538,6 @@ def scrape_search_results_page(params):
         # back at the original search page. Log it, and end the query.
         logging.info(REGION + " //   Looped. Ending scraping session.")
         return
-
 
     # Enqueue task to follow that link / get result
     next_params['first_name'] = params['first_name']
@@ -589,7 +585,6 @@ def scrape_inmate_entry(params):
                 disambiguation page / this inmate only has one listing---
             clicki: a request parameter for results, scraped from the form
 
-
     Returns:
         Nothing if successful, -1 if fails.
 
@@ -606,7 +601,6 @@ def scrape_inmate_entry(params):
     # a bit depending on whether we got here from a results page or a 
     # disambiguation page.
     if 'group_id' in params:
-
         inmate_details['group_id'] = params['group_id']
         inmate_details['linked_records'] = params['linked_records']
 
@@ -625,7 +619,6 @@ def scrape_inmate_entry(params):
                             }, timeout=REQUEST_TIMEOUT)
 
     else:
-
         # Create a request using the provided params
         inmate_page = requests.post(url, data = {
                             'M13_PAGE_CLICKI': params['clicki'],
@@ -677,19 +670,13 @@ def scrape_inmate_entry(params):
 
         else:
 
-            # Make a list to store convictions in, since they're key:value 
-            # data and we don't know the number of them in advance
             crime_list = []
 
-            # Capture table data from each details table
+            # Capture table data from each details table on the page
             for row in id_and_locale_rows:
                 row_data = row.xpath('./td')
-
-                # Get rid of weird internal, leading, and trailing whitespace
-                data0 = ' '.join(row_data[0].text_content().split()).strip()
-                data1 = ' '.join(row_data[1].text_content().split()).strip()
-
-                inmate_details[data0] = data1
+                clean_row = normalize_key_value_row(row_data)
+                inmate_details[clean_row[0]] = clean_row[1]
 
             for row in crimes_rows:
                 row_data = row.xpath('./td')
@@ -698,14 +685,9 @@ def scrape_inmate_entry(params):
                 if not row_data: 
                     pass
                 else:
-                    # Get rid of weird internal, leading, and trailing whitespace
-                    crime = ' '.join(row_data[0].text_content().split()).strip()
-                    crime_class = ' '.join(row_data[1].text_content().split()).strip()
-
-                    inmate_details[data0] = data1
-
-                    crime_entry = {'crime': crime,
-                                   'class': crime_class}
+                    clean_row = normalize_key_value_row(row_data)
+                    crime_entry = {'crime': clean_row[0],
+                                   'class': clean_row[1]}
 
                     # Only add to the list if row is non-empty
                     if crime_entry['crime']:
@@ -713,13 +695,8 @@ def scrape_inmate_entry(params):
 
             for row in sentence_rows:
                 row_data = row.xpath('./td')
-
-                # Get rid of weird internal, leading, and trailing whitespace
-                data0 = ' '.join(row_data[0].text_content().split()).strip()
-                data1 = ' '.join(row_data[1].text_content().split()).strip()
-
-                inmate_details[data0] = data1
-
+                clean_row = normalize_key_value_row(row_data)
+                inmate_details[clean_row[0]] = clean_row[1]
 
             inmate_details['crimes'] = crime_list
 
@@ -756,7 +733,6 @@ def scrape_disambiguation(page_tree, first_name, last_name):
             last-name only search)
         last_name: string, last name for inmate query (required)
 
-
     Returns:
         Nothing if successful, -1 if fails.
 
@@ -769,7 +745,6 @@ def scrape_disambiguation(page_tree, first_name, last_name):
     group_id = generate_id(UsNyInmate)
     new_tasks = []
     din_list = []
-
 
     # Parse the results list
     result_list = page_tree.xpath('//div[@id="content"]/table/tr/td/form')
@@ -806,7 +781,6 @@ def scrape_disambiguation(page_tree, first_name, last_name):
 
         din_list.append(result_params['dinx_val'])
         new_tasks.append(result_params)
-
 
     for task_params in new_tasks:
 
@@ -848,7 +822,7 @@ def store_record(inmate_details):
 
     """
     store_record()
-    We've scraped a incarceration details page, and want to store the data we
+    We've scraped an incarceration details page, and want to store the data we
     found. This function does some post-processing on the scraped data, and
     feeds it into the datastore in a way that can be indexed / queried in the
     future.
@@ -860,68 +834,63 @@ def store_record(inmate_details):
     Returns:
         Nothing if successful, -1 if fails.
     """
-
     
     # INMATE LISTING
 
-    # NY doesn't provide an inmate ID to link records. If DOCCS linked records
-    # for us, we already generated an ID to tie them together - use that. If 
-    # not, generate one.
-    if 'group_id' in inmate_details:
-
-        # By default (if we find no prior records below), use the group_id 
-        # generated earlier in this scraping session as the inmate_id, so as
-        # to tie this record to the linked ones for the same inmate.
-        inmate_id = inmate_details['group_id']
-
-        # Check if this or any of the linked records have a previously scraped 
-        # version in datastore, and if so tie this record to the same inmate_id.
-        for linked_record in inmate_details['linked_records']:
-            query = UsNyRecordEntry.query(UsNyRecordEntry.record_id == linked_record)
-            result = query.get()
-            if result:
-                # Set inmate_id to the inmate_id of the Inmate referenced by that record
-                prior_inmate_key = result.associated_listing
-                prior_inmate_listing = prior_inmate_key.get()
-                inmate_id = prior_inmate_listing.record_id
-
-                logging.info("Found an earlier record with an inmate ID, using that.")
-        
+    din_list = []
+    if 'linked_records' in inmate_details:
+        din_list.extend(inmate_details['linked_records'])
     else:
-        inmate_id = generate_id(UsNyInmate)
+        din_list.append(inmate_details['DIN (Department Identification Number)'])
 
+    old_id = link_inmate(din_list)
+
+    if old_id:
+        # Found old entry for this inmate
+        inmate_id = old_id
+    else:
+        # Failed to find old entry, create new inmate_id
+        if 'group_id' in inmate_details:
+            # If we find no prior records, use the group_id generated earlier in 
+            # this scraping session as the inmate_id, so as to tie this record 
+            # to the linked ones for the same inmate.
+            inmate_id = inmate_details['group_id']
+        else:
+            inmate_id = generate_id(UsNyInmate)
 
     listing = UsNyInmate.get_or_insert(inmate_id)
-
 
     # Some pre-work to massage values out of the data
     inmate_name = inmate_details['Inmate Name'].split(', ')
     inmate_dob = inmate_details['Date of Birth']
-    if inmate_dob: inmate_dob = parse_date_string(inmate_dob)
-    inmate_sex = inmate_details['Sex'].capitalize()
-    inmate_race = inmate_details['Race / Ethnicity'].capitalize()
+    if inmate_dob: 
+        inmate_dob = parse_date_string(inmate_dob)
+    inmate_sex = inmate_details['Sex'].lower()
+    inmate_race = inmate_details['Race / Ethnicity'].lower()
 
     # NY-specific fields
-    listing.us_ny_record_id = inmate_id
+    listing.us_ny_inmate_id = inmate_id
 
     # General Inmate fields
-    listing.record_id = inmate_id
-    listing.record_id_is_fuzzy = True
+    if inmate_dob:
+        listing.birthday = inmate_dob
+    if inmate_sex:
+        listing.sex = inmate_sex
+    if inmate_race:
+        listing.race = inmate_race
+    listing.inmate_id = inmate_id
+    listing.inmate_id_is_fuzzy = True
     listing.last_name = inmate_name[0]
     listing.given_names = inmate_name[1]
-    listing.birthday = inmate_dob
     listing.region = REGION
-    listing.sex = inmate_sex
-    listing.race = inmate_race
 
     listing_key = listing.put()
-
 
     # CRIMINAL RECORD ENTRY
 
     record_id = inmate_details['DIN (Department Identification Number)']
 
-    record = UsNyRecordEntry.get_or_insert(record_id)
+    record = UsNyRecord.get_or_insert(record_id)
 
     # Some pre-work to massage values out of the data
     last_custody = inmate_details['Date Received (Current)']
@@ -934,13 +903,12 @@ def store_record(inmate_details):
     county_of_commit = inmate_details['County of Commitment']
     custody_status = inmate_details['Custody Status']
     released = (custody_status != "IN CUSTODY")
-    record_offenses = json.dumps(inmate_details['crimes'])
     min_sentence = inmate_details['Aggregate Minimum Sentence']
     if min_sentence: 
-        min_sentence = json.dumps(parse_term_string(min_sentence))
+        min_sentence = parse_term_string(min_sentence)
     max_sentence = inmate_details['Aggregate Maximum Sentence']
     if max_sentence:
-        max_sentence = json.dumps(parse_term_string(max_sentence))
+        max_sentence = parse_term_string(max_sentence)
     earliest_release_date = inmate_details['Earliest Release Date']
     if earliest_release_date: 
         earliest_release_date = parse_date_string(earliest_release_date)
@@ -976,50 +944,96 @@ def store_record(inmate_details):
         last_release_date = parse_date_string(release_info[0])
         last_release_type = release_info[1] 
 
+    record_offenses = []
+    for crime in inmate_details['crimes']:
+        crime_entry = models.Offense()
+        crime_entry.crime_description = crime['crime']
+        crime_entry.crime_class = crime['class']
+        record_offenses.append(crime_entry)
+
     # NY-specific record fields
-    if last_custody: record.last_custody_date = last_custody
-    if admission_type: record.admission_type = admission_type
-    if county_of_commit: record.county_of_commit = county_of_commit
-    if custody_status: record.custody_status = custody_status
+    if last_custody: 
+        record.last_custody_date = last_custody
+    if admission_type: 
+        record.admission_type = admission_type
+    if county_of_commit: 
+        record.county_of_commit = county_of_commit
+    if custody_status: 
+        record.custody_status = custody_status
     if last_release: 
         record.last_release_type = last_release_type
         record.last_release_date = last_release_date
-    if min_sentence: record.min_sentence = min_sentence
-    if max_sentence: record.max_sentence = max_sentence
-    if earliest_release_date: record.earliest_release_date = earliest_release_date
-    if earliest_release_type: record.earliest_release_type = earliest_release_type
-    if parole_hearing_date: record.parole_hearing_date = parole_hearing_date
-    if parole_hearing_type: record.parole_hearing_type = parole_hearing_type
-    if parole_elig_date: record.parole_elig_date = parole_elig_date
-    if cond_release_date: record.cond_release_date = cond_release_date
-    if max_expir_date: record.max_expir_date = max_expir_date
-    if max_expir_date_parole: record.max_expir_date_parole = max_expir_date_parole
-    if max_expir_date_superv: record.max_expir_date_superv = max_expir_date_superv
-    if parole_discharge_date: record.parole_discharge_date = parole_discharge_date
+    if min_sentence: 
+        min_sentence_duration = models.SentenceDuration()
+        min_sentence_duration.life_sentence = min_sentence['Life']
+        min_sentence_duration.years = min_sentence['Years']
+        min_sentence_duration.months = min_sentence['Months']
+        min_sentence_duration.days = min_sentence['Days']
+    else:
+        min_sentence_duration = None
+    if max_sentence: 
+        max_sentence_duration = models.SentenceDuration()
+        max_sentence_duration.life_sentence = max_sentence['Life']
+        max_sentence_duration.years = max_sentence['Years']
+        max_sentence_duration.months = max_sentence['Months']
+        max_sentence_duration.days = max_sentence['Days']
+    else:
+        max_sentence_duration = None
+    if earliest_release_date: 
+        record.earliest_release_date = earliest_release_date
+    if earliest_release_type: 
+        record.earliest_release_type = earliest_release_type
+    if parole_hearing_date: 
+        record.parole_hearing_date = parole_hearing_date
+    if parole_hearing_type: 
+        record.parole_hearing_type = parole_hearing_type
+    if parole_elig_date: 
+        record.parole_elig_date = parole_elig_date
+    if cond_release_date: 
+        record.cond_release_date = cond_release_date
+    if max_expir_date: 
+        record.max_expir_date = max_expir_date
+    if max_expir_date_parole: 
+        record.max_expir_date_parole = max_expir_date_parole
+    if max_expir_date_superv: 
+        record.max_expir_date_superv = max_expir_date_superv
+    if parole_discharge_date: 
+        record.parole_discharge_date = parole_discharge_date
 
-    # General RecordEntry fields
-    record.offense = record_offenses
+    # General Record fields
+    if record_offenses:
+        record.offense = record_offenses
+    if first_custody:
+        record.custody_date = first_custody
+    if min_sentence_duration:
+        record.min_sentence_length = min_sentence_duration
+    if max_sentence_duration:
+        record.max_sentence_length = max_sentence_duration
     record.record_id = record_id
-    record.custody_date = first_custody
-    record.min_sentence_length = min_sentence
-    record.max_sentence_length = max_sentence
     record.is_released = released
     record.associated_listing = listing_key
 
     record_key = record.put()
 
-
     # FACILITY SNAPSHOT
 
-    facility_snapshot = models.InmateFacilitySnapshot()
+    # Check if the most recent facility snapshot had the facility we see
+    last_facility_snapshot = models.InmateFacilitySnapshot.query(models.InmateFacilitySnapshot.associated_record == record_key).order(-models.InmateFacilitySnapshot.snapshot_date).get()
 
-    facility = inmate_details['Housing / Releasing Facility']
+    scraped_facility = inmate_details['Housing / Releasing Facility']
+    if not scraped_facility:
+        scraped_facility = None
+    if ((not last_facility_snapshot) or 
+        (last_facility_snapshot.facility != inmate_details['Housing / Releasing Facility'])):
 
-    facility_snapshot.facility = facility
-    facility_snapshot.associated_listing = listing_key
-    facility_snapshot.associated_record = record_key
+        facility_snapshot = models.InmateFacilitySnapshot()
+        facility = inmate_details['Housing / Releasing Facility']
 
-    facility_snapshot.put()
+        facility_snapshot.facility = facility
+        facility_snapshot.associated_listing = listing_key
+        facility_snapshot.associated_record = record_key
+
+        facility_snapshot.put()
 
     if 'group_id' in inmate_details:
         logging.info(REGION + " //    Stored record for "
@@ -1039,6 +1053,30 @@ def store_record(inmate_details):
 
 
 def parse_term_string(term_string):
+    """
+    parse_term_string()
+    For the 'Maximum Aggregate Sentence' and 'Minimum Aggregate Sentence'
+    results, the scraped string often looks like one of these:
+        "00 Years, 000 Months, 000 Days",
+        "04 Years, 002 Months, 000 Days",
+        "LIFE Years, 999 Months, 999 Days",
+    etc. There is a bit of inconsistency on number of digits or exact string.
+    This function takes the string, and turns it into a dictionary with
+    year/month/day values and a 'Life Sentence' boolean.
+
+    Args:
+        term_string: (str) Scraped string similar to in the description above
+
+    Returns:
+        dict of values - 
+            'Life' (bool) whether sentence is a life term,
+            'Years' (int) # years
+            'Months' (int) # months
+            'Days' (int) # days
+
+
+        Enqueues task for each incarceration event listed on the page.
+    """
     if term_string.startswith("LIFE"):
 
         result = {'Life': True,
@@ -1049,13 +1087,13 @@ def parse_term_string(term_string):
     else:
         parsed_nums = re.findall('\d+', term_string)
 
-        if not parsed_nums:
-            result = ""
+        if ((not parsed_nums) or (len(parsed_nums) < 3)):
+            logging.warning("Couldn't parse term string: %s" % term_string)
+            result = None
         else:
-
-            years = parsed_nums[0]
-            months = parsed_nums[1]
-            days = parsed_nums[2]
+            years = int(parsed_nums[0])
+            months = int(parsed_nums[1])
+            days = int(parsed_nums[2])
 
             result = {'Life': False,
                       'Years': years,
@@ -1066,29 +1104,82 @@ def parse_term_string(term_string):
 
 
 def parse_date_string(date_string):
+    """
+    parse_date_string()
+    Dates are expressed differently in different records, typically following
+    one of these patterns:
+        "07/2001",
+        "12/21/1991",
+        "06/14/13",
+    etc. This function parses several common variants and returns a datetime.
+
+    Args:
+        date_string: (str) Scraped string containing a date
+
+    Returns:
+        Python datetime object representing the date parsed from the string, or
+        None if string wasn't one of our expected values.
+    """
+
     try:
-        if len(date_string) == 7:
-            result = datetime.strptime(date_string, '%m/%Y')
-        elif len(date_string) == 8:
-            result = datetime.strptime(date_string, '%m/%d/%y')
-        else:
-            result = datetime.strptime(date_string, '%m/%d/%Y')
+        result = parser.parse(date_string)
     except ValueError:
         logging.warning("Couldn't parse date string: %s" % date_string)
-        result = ""
+        result = None
 
     return result
 
 
+def link_inmate(record_list):
+    """
+    link_inmate()
+    Matches DIN (record IDs) to previously scraped records, looks up associated 
+    inmates, then returns that inmate_id so we can update the same person rather
+    than duplicating the inmate.
+
+    Args:
+        record_list: (list of strings) List of DINs (record IDs) to check.
+
+    Returns:
+        The found inmate_id from prior instance, or None if none found.
+    """
+
+    for linked_record in record_list:
+        query = UsNyRecord.query(UsNyRecord.record_id == linked_record)
+        result = query.get()
+        if result:
+            # Set inmate_id to the inmate_id of the Inmate referenced by that record
+            prior_inmate_key = result.associated_listing
+            prior_inmate_listing = prior_inmate_key.get()
+            inmate_id = prior_inmate_listing.inmate_id
+
+            logging.info("Found an earlier record with an inmate ID, using that.")
+            return inmate_id
+
+    # Made it through the whole list without finding prior versions
+    return None
+
+
 def generate_id(entity_kind):
+    """
+    generate_id()
+    Generates a new, unique identifier for the entity kind provided.
+
+    Args:
+        entity_kind: (ndb entity) Entity kind to check uniqueness of generated
+            id.
+
+    Returns:
+        The new ID / key name.
+    """
 
     # Generate new key
-    new_key = ''.join(random.choice(string.ascii_uppercase + 
+    new_id = ''.join(random.choice(string.ascii_uppercase + 
                       string.ascii_lowercase + 
                       string.digits) for _ in range(10))
 
     # Double-check it isn't a collision
-    test_key = ndb.Key(entity_kind, new_key)
+    test_key = ndb.Key(entity_kind, new_id)
     key_result = test_key.get()
 
     if key_result is not None:
@@ -1097,5 +1188,21 @@ def generate_id(entity_kind):
         return generate_id(entity_kind)
 
     else:
+        return new_id
 
-        return new_key
+
+def normalize_key_value_row(row_data):
+    """
+    normalize_key_value_row()
+    Removes extraneous (leading, trailing, internal) whitespace from scraped
+    data. 
+
+    Args:
+        row_data: (list) One row of data in a list (key/value pair)
+
+    Returns:
+        List of cleaned strings, in the same order as provided.
+    """
+    key = ' '.join(row_data[0].text_content().split())
+    value = ' '.join(row_data[1].text_content().split())
+    return [key, value]

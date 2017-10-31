@@ -3,11 +3,9 @@
 
 
 from google.appengine.api import taskqueue
-import webapp2
-
 import csv
 import logging
-
+import webapp2
 
 
 # The URL handler which receives the 'start' command
@@ -75,8 +73,6 @@ def generate_tasks(region, name_list):
     module_name = region + "_scraper"
     scraper = __import__(module_name)
     scraper.setup()
-
-
 
     # Start a query for each name in the provided file
     for name in name_list:

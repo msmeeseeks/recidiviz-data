@@ -1,10 +1,11 @@
 # Copyright 2017 Andrew Corp <andrew@andrewland.co> 
 # All rights reserved.
 
-import webapp2
 
 from requests.packages.urllib3.contrib.appengine import TimeoutError
 import logging
+import webapp2
+
 
 """
 worker.py
