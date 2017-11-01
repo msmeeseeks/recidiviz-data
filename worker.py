@@ -59,8 +59,9 @@ class Scraper(webapp2.RequestHandler):
             (queue_name, task, region))
 
         # Import scraper and call task with params
-        module_name = region + "_scraper"
-        scraper_task = getattr(__import__(module_name), task)
+        module = __import__(region)
+        scraper = getattr(module, region + "_scraper")
+        scraper_task = getattr(scraper, task)
 
         # Run the task
         try:
@@ -76,11 +77,9 @@ class Scraper(webapp2.RequestHandler):
             logging.info("--- Request timed out, re-queuing task. ---")
             result = -1
         
-
         # Respond to the task queue to mark this task as done, or requeue if error result
         if result == -1:
             self.response.set_status(500)
-
         else:
             self.response.set_status(200)
 
