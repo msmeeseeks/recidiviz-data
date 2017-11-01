@@ -111,7 +111,7 @@ Fields:
     - custody_date: Date the inmate's sentence started, if available
     - offense_date: Date the offense was committed, if available
     - is_released: Whether the inmate was released (at least, for this crime)
-    - associated_listing: The InmateSnapshot this record was scraped with
+    - associated_inmate: The Inmate this record was tied to at time of scraping
 
 Analytics tooling will use record_id for dedup, so it's important to update 
 records based on that key, rather than attempting to store them each time. 
@@ -127,7 +127,7 @@ class Record(polymodel.PolyModel):
     custody_date = ndb.DateProperty()
     offense_date = ndb.DateProperty()
     is_released = ndb.BooleanProperty()
-    associated_listing = ndb.KeyProperty(kind=Inmate)
+    associated_inmate = ndb.KeyProperty(kind=Inmate)
 
 
 """
@@ -146,11 +146,11 @@ available. See us_ny_scraper.py for an example.
 Fields:
     - snapshot_date: Python datetime for time of snapshot
     - facility: State-provided facility name
-    - associated_listing: Inmate this data is about
+    - associated_inmate: Inmate this data is about
     - associated_record: Record that this is from
 """
 class InmateFacilitySnapshot(polymodel.PolyModel):
     snapshot_date = ndb.DateTimeProperty(auto_now_add=True)
     facility = ndb.StringProperty()
-    associated_listing = ndb.KeyProperty(kind=Inmate)
+    associated_inmate = ndb.KeyProperty(kind=Inmate)
     associated_record = ndb.KeyProperty(kind=Record)

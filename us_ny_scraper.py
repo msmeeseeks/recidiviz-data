@@ -43,6 +43,7 @@ from datetime import datetime
 from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb import polymodel
+from google.appengine.ext.db import Timeout, TransactionFailedError, InternalError
 from lxml import html
 import dateutil.parser as parser
 import json
@@ -502,7 +503,7 @@ def scrape_search_results_page(params):
         url='/scraper',
         queue_name=QUEUE_NAME,
         params={'region': REGION,
-                'task': "scrape_inmate_entry",
+                'task': "scrape_inmate",
                 'params': result_params})
 
     # Parse the 'next' button's embedded form
@@ -556,9 +557,9 @@ def scrape_search_results_page(params):
 
 # INMATE PAGES #
 
-def scrape_inmate_entry(params):
+def scrape_inmate(params):
     """
-    scrape_inmate_entry()
+    scrape_inmate()
     Fetches inmate listing page. This sometimes turns out to be a
     disambiguation page, as there may be multiple incarceration records in
     DOCCS for the person you've selected. If so, shunts details over to
@@ -670,13 +671,13 @@ def scrape_inmate_entry(params):
 
         else:
 
-            crime_list = []
+            crimes = []
 
             # Capture table data from each details table on the page
             for row in id_and_locale_rows:
                 row_data = row.xpath('./td')
-                clean_row = normalize_key_value_row(row_data)
-                inmate_details[clean_row[0]] = clean_row[1]
+                key, value = normalize_key_value_row(row_data)
+                inmate_details[key] = value
 
             for row in crimes_rows:
                 row_data = row.xpath('./td')
@@ -685,20 +686,20 @@ def scrape_inmate_entry(params):
                 if not row_data: 
                     pass
                 else:
-                    clean_row = normalize_key_value_row(row_data)
-                    crime_entry = {'crime': clean_row[0],
-                                   'class': clean_row[1]}
+                    crime_description, crime_class = normalize_key_value_row(row_data)
+                    crime = {'crime': crime_description,
+                             'class': crime_class}
 
                     # Only add to the list if row is non-empty
-                    if crime_entry['crime']:
-                        crime_list.append(crime_entry)
+                    if crime['crime']:
+                        crimes.append(crime)
 
             for row in sentence_rows:
                 row_data = row.xpath('./td')
-                clean_row = normalize_key_value_row(row_data)
-                inmate_details[clean_row[0]] = clean_row[1]
+                key, value = normalize_key_value_row(row_data)
+                inmate_details[key] = value
 
-            inmate_details['crimes'] = crime_list
+            inmate_details['crimes'] = crimes
 
         logging.info(REGION + " //     (%s %s) Scraped inmate: %s" % 
              (params['first_name'], params['last_name'], inmate_details['Inmate Name']))
@@ -722,7 +723,7 @@ def scrape_inmate_entry(params):
 def scrape_disambiguation(page_tree, first_name, last_name):
     """
     scrape_disambiguation()
-    In attempting to fetch an inmate, the scrape_inmate_entry received a 
+    In attempting to fetch an inmate, the scrape_inmate received a 
     disambig page - asking which incarceration event for that inmate they
     wanted. This function takes that result page, parses it, and enqueues a
     new task to scrape each entry from the disambig page.
@@ -744,7 +745,7 @@ def scrape_disambiguation(page_tree, first_name, last_name):
     # each of the entries scraped from this page were about the same person.
     group_id = generate_id(UsNyInmate)
     new_tasks = []
-    din_list = []
+    department_identification_numbers = []
 
     # Parse the results list
     result_list = page_tree.xpath('//div[@id="content"]/table/tr/td/form')
@@ -779,7 +780,7 @@ def scrape_disambiguation(page_tree, first_name, last_name):
         result_params['dinx_val'] = row.xpath(
             './div/input[@type="submit"]/@value')[0]
 
-        din_list.append(result_params['dinx_val'])
+        department_identification_numbers.append(result_params['dinx_val'])
         new_tasks.append(result_params)
 
     for task_params in new_tasks:
@@ -803,14 +804,14 @@ def scrape_disambiguation(page_tree, first_name, last_name):
             # Enqueue task to follow that link / get result
             task_params['first_name'] = first_name
             task_params['last_name'] = last_name
-            task_params['linked_records'] = din_list
+            task_params['linked_records'] = department_identification_numbers
             task_params = json.dumps(task_params)
 
             task = taskqueue.add(
             url='/scraper',
             queue_name=QUEUE_NAME,
             params={'region': REGION,
-                    'task': "scrape_inmate_entry",
+                    'task': "scrape_inmate",
                     'params': task_params})
 
         else: pass
@@ -837,13 +838,13 @@ def store_record(inmate_details):
     
     # INMATE LISTING
 
-    din_list = []
+    department_identification_numbers = []
     if 'linked_records' in inmate_details:
-        din_list.extend(inmate_details['linked_records'])
+        department_identification_numbers.extend(inmate_details['linked_records'])
     else:
-        din_list.append(inmate_details['DIN (Department Identification Number)'])
+        department_identification_numbers.append(inmate_details['DIN (Department Identification Number)'])
 
-    old_id = link_inmate(din_list)
+    old_id = link_inmate(department_identification_numbers)
 
     if old_id:
         # Found old entry for this inmate
@@ -858,7 +859,7 @@ def store_record(inmate_details):
         else:
             inmate_id = generate_id(UsNyInmate)
 
-    listing = UsNyInmate.get_or_insert(inmate_id)
+    inmate = UsNyInmate.get_or_insert(inmate_id)
 
     # Some pre-work to massage values out of the data
     inmate_name = inmate_details['Inmate Name'].split(', ')
@@ -869,28 +870,33 @@ def store_record(inmate_details):
     inmate_race = inmate_details['Race / Ethnicity'].lower()
 
     # NY-specific fields
-    listing.us_ny_inmate_id = inmate_id
+    inmate.us_ny_inmate_id = inmate_id
 
     # General Inmate fields
     if inmate_dob:
-        listing.birthday = inmate_dob
+        inmate.birthday = inmate_dob
     if inmate_sex:
-        listing.sex = inmate_sex
+        inmate.sex = inmate_sex
     if inmate_race:
-        listing.race = inmate_race
-    listing.inmate_id = inmate_id
-    listing.inmate_id_is_fuzzy = True
-    listing.last_name = inmate_name[0]
-    listing.given_names = inmate_name[1]
-    listing.region = REGION
+        inmate.race = inmate_race
+    inmate.inmate_id = inmate_id
+    inmate.inmate_id_is_fuzzy = True
+    inmate.last_name = inmate_name[0]
+    inmate.given_names = inmate_name[1]
+    inmate.region = REGION
 
-    listing_key = listing.put()
+    try:
+        inmate_key = inmate.put()
+    except (Timeout, TransactionFailedError, InternalError):
+        # Datastore error - fail task to trigger queue retry + backoff
+        logging.warning("Couldn't persist inmate: %s" % inmate_id)
+        return -1
 
     # CRIMINAL RECORD ENTRY
 
     record_id = inmate_details['DIN (Department Identification Number)']
 
-    record = UsNyRecord.get_or_insert(record_id)
+    record = UsNyRecord.get_or_insert(record_id, parent=inmate_key)
 
     # Some pre-work to massage values out of the data
     last_custody = inmate_details['Date Received (Current)']
@@ -905,10 +911,10 @@ def store_record(inmate_details):
     released = (custody_status != "IN CUSTODY")
     min_sentence = inmate_details['Aggregate Minimum Sentence']
     if min_sentence: 
-        min_sentence = parse_term_string(min_sentence)
+        min_sentence = parse_sentence_duration(min_sentence)
     max_sentence = inmate_details['Aggregate Maximum Sentence']
     if max_sentence:
-        max_sentence = parse_term_string(max_sentence)
+        max_sentence = parse_sentence_duration(max_sentence)
     earliest_release_date = inmate_details['Earliest Release Date']
     if earliest_release_date: 
         earliest_release_date = parse_date_string(earliest_release_date)
@@ -946,10 +952,10 @@ def store_record(inmate_details):
 
     record_offenses = []
     for crime in inmate_details['crimes']:
-        crime_entry = models.Offense()
-        crime_entry.crime_description = crime['crime']
-        crime_entry.crime_class = crime['class']
-        record_offenses.append(crime_entry)
+        crime = models.Offense(
+            crime_description = crime['crime'],
+            crime_class = crime['class'])
+        record_offenses.append(crime)
 
     # NY-specific record fields
     if last_custody: 
@@ -964,19 +970,19 @@ def store_record(inmate_details):
         record.last_release_type = last_release_type
         record.last_release_date = last_release_date
     if min_sentence: 
-        min_sentence_duration = models.SentenceDuration()
-        min_sentence_duration.life_sentence = min_sentence['Life']
-        min_sentence_duration.years = min_sentence['Years']
-        min_sentence_duration.months = min_sentence['Months']
-        min_sentence_duration.days = min_sentence['Days']
+        min_sentence_duration = models.SentenceDuration(
+            life_sentence = min_sentence['Life'],
+            years = min_sentence['Years'],
+            months = min_sentence['Months'],
+            days = min_sentence['Days'])
     else:
         min_sentence_duration = None
     if max_sentence: 
-        max_sentence_duration = models.SentenceDuration()
-        max_sentence_duration.life_sentence = max_sentence['Life']
-        max_sentence_duration.years = max_sentence['Years']
-        max_sentence_duration.months = max_sentence['Months']
-        max_sentence_duration.days = max_sentence['Days']
+        max_sentence_duration = models.SentenceDuration(
+            life_sentence = max_sentence['Life'],
+            years = max_sentence['Years'],
+            months = max_sentence['Months'],
+            days = max_sentence['Days'])
     else:
         max_sentence_duration = None
     if earliest_release_date: 
@@ -1011,9 +1017,13 @@ def store_record(inmate_details):
         record.max_sentence_length = max_sentence_duration
     record.record_id = record_id
     record.is_released = released
-    record.associated_listing = listing_key
+    record.associated_inmate = inmate_key
 
-    record_key = record.put()
+    try:
+        record_key = record.put()
+    except (Timeout, TransactionFailedError, InternalError):
+        logging.warning("Couldn't persist record: %s" % record_id)
+        return -1
 
     # FACILITY SNAPSHOT
 
@@ -1024,16 +1034,24 @@ def store_record(inmate_details):
     if not scraped_facility:
         scraped_facility = None
     if ((not last_facility_snapshot) or 
-        (last_facility_snapshot.facility != inmate_details['Housing / Releasing Facility'])):
+        (last_facility_snapshot.facility != 
+            inmate_details['Housing / Releasing Facility'])):
 
-        facility_snapshot = models.InmateFacilitySnapshot()
+        # The facility doesn't match last snapshot, or there was no last
+        # snapshot. Record a new one.
         facility = inmate_details['Housing / Releasing Facility']
+        facility_snapshot = models.InmateFacilitySnapshot(
+            parent = record_key,
+            facility = facility,
+            associated_inmate = inmate_key,
+            associated_record = record_key)
 
-        facility_snapshot.facility = facility
-        facility_snapshot.associated_listing = listing_key
-        facility_snapshot.associated_record = record_key
-
-        facility_snapshot.put()
+        try:
+            facility_snapshot.put()
+        except (Timeout, TransactionFailedError, InternalError):
+            logging.warning("Couldn't persist facility snapshot for record: %s" % 
+                record_id)
+            return -1
 
     if 'group_id' in inmate_details:
         logging.info(REGION + " //    Stored record for "
@@ -1052,9 +1070,9 @@ def store_record(inmate_details):
     return 
 
 
-def parse_term_string(term_string):
+def parse_sentence_duration(term_string):
     """
-    parse_term_string()
+    parse_sentence_duration()
     For the 'Maximum Aggregate Sentence' and 'Minimum Aggregate Sentence'
     results, the scraped string often looks like one of these:
         "00 Years, 000 Months, 000 Days",
@@ -1120,7 +1138,6 @@ def parse_date_string(date_string):
         Python datetime object representing the date parsed from the string, or
         None if string wasn't one of our expected values.
     """
-
     try:
         result = parser.parse(date_string)
     except ValueError:
@@ -1149,9 +1166,9 @@ def link_inmate(record_list):
         result = query.get()
         if result:
             # Set inmate_id to the inmate_id of the Inmate referenced by that record
-            prior_inmate_key = result.associated_listing
-            prior_inmate_listing = prior_inmate_key.get()
-            inmate_id = prior_inmate_listing.inmate_id
+            prior_inmate_key = result.key.parent()
+            prior_inmate = prior_inmate_key.get()
+            inmate_id = prior_inmate.inmate_id
 
             logging.info("Found an earlier record with an inmate ID, using that.")
             return inmate_id
@@ -1205,4 +1222,4 @@ def normalize_key_value_row(row_data):
     """
     key = ' '.join(row_data[0].text_content().split())
     value = ' '.join(row_data[1].text_content().split())
-    return [key, value]
+    return (key, value)
