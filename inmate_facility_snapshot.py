@@ -30,5 +30,3 @@ Fields:
 class InmateFacilitySnapshot(polymodel.PolyModel):
     snapshot_date = ndb.DateTimeProperty(auto_now_add=True)
     facility = ndb.StringProperty()
-    associated_inmate = ndb.KeyProperty(kind=Inmate)
-    associated_record = ndb.KeyProperty(kind=Record)

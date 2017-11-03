@@ -15,3 +15,9 @@ indexes:
   - name: associated_record
   - name: snapshot_date
     direction: desc
+
+- kind: InmateFacilitySnapshot
+  ancestor: yes
+  properties:
+  - name: snapshot_date
+    direction: desc

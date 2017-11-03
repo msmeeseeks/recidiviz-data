@@ -82,4 +82,3 @@ class Record(polymodel.PolyModel):
     custody_date = ndb.DateProperty()
     offense_date = ndb.DateProperty()
     is_released = ndb.BooleanProperty()
-    associated_inmate = ndb.KeyProperty(kind=Inmate)

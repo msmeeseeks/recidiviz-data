@@ -37,7 +37,7 @@ General scraping procedure:
         (3b) A details page for the inmate, about a specific incarceration event
 """
 
-from datetime import datetime
+from datetime import datetime, date
 #from google.appengine.api import memcache  # See 'Session pages'
 from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
@@ -46,12 +46,12 @@ from google.appengine.ext.db import Timeout, TransactionFailedError, InternalErr
 from inmate import Inmate
 from inmate_facility_snapshot import InmateFacilitySnapshot
 from lxml import html
+from record import Offense, SentenceDuration, Record
 from us_ny_inmate import UsNyInmate
 from us_ny_record import UsNyRecord
 import dateutil.parser as parser
 import json
 import logging
-from record import Offense, SentenceDuration, Record
 import requests
 import requests_toolbelt.adapters.appengine
 import string
@@ -778,8 +778,13 @@ def store_record(inmate_details):
     # Some pre-work to massage values out of the data
     inmate_name = inmate_details['Inmate Name'].split(', ')
     inmate_dob = inmate_details['Date of Birth']
+    inmate_age = None
     if inmate_dob: 
+        # We received a string for the birth date
         inmate_dob = parse_date_string(inmate_dob)
+        if inmate_dob:
+            # The string was successfully converted to datetime
+            inmate_age = calculate_age(inmate_dob)
     inmate_sex = inmate_details['Sex'].lower()
     inmate_race = inmate_details['Race / Ethnicity'].lower()
 
@@ -789,6 +794,8 @@ def store_record(inmate_details):
     # General Inmate fields
     if inmate_dob:
         inmate.birthday = inmate_dob
+    if inmate_age:
+        inmate.age = inmate_age
     if inmate_sex:
         inmate.sex = inmate_sex
     if inmate_race:
@@ -931,7 +938,6 @@ def store_record(inmate_details):
         record.max_sentence_length = max_sentence_duration
     record.record_id = record_id
     record.is_released = released
-    record.associated_inmate = inmate_key
 
     try:
         record_key = record.put()
@@ -942,7 +948,7 @@ def store_record(inmate_details):
     # FACILITY SNAPSHOT
 
     # Check if the most recent facility snapshot had the facility we see
-    last_facility_snapshot = InmateFacilitySnapshot.query(InmateFacilitySnapshot.associated_record == record_key).order(-InmateFacilitySnapshot.snapshot_date).get()
+    last_facility_snapshot = InmateFacilitySnapshot.query(ancestor=record_key).order(-InmateFacilitySnapshot.snapshot_date).get()
 
     scraped_facility = inmate_details['Housing / Releasing Facility']
     if not scraped_facility:
@@ -956,9 +962,7 @@ def store_record(inmate_details):
         facility = inmate_details['Housing / Releasing Facility']
         facility_snapshot = InmateFacilitySnapshot(
             parent = record_key,
-            facility = facility,
-            associated_inmate = inmate_key,
-            associated_record = record_key)
+            facility = facility)
 
         try:
             facility_snapshot.put()
@@ -1137,3 +1141,23 @@ def normalize_key_value_row(row_data):
     key = ' '.join(row_data[0].text_content().split())
     value = ' '.join(row_data[1].text_content().split())
     return (key, value)
+
+
+def calculate_age(birth_date):
+    """
+    calculate_age()
+    Determines age of inmate based on her or his birth date. Note: We don't
+    know the timezone of birth, so we use local time for us. Result may be 
+    off by up to a day.
+
+    Args:
+        birth_date: (datetime) Date of birth as reported by prison system
+
+    Returns:
+        (int) Age of inmate 
+    """
+    today = date.today()
+    age = today.year - birth_date.year - ((today.month, today.day) < 
+        (birth_date.month, birth_date.day))
+
+    return age
