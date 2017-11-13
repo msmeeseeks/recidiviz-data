@@ -38,7 +38,7 @@ General scraping procedure:
 """
 
 from datetime import datetime, date
-#from google.appengine.api import memcache  # See 'Session pages'
+from google.appengine.api import memcache
 from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb import polymodel
@@ -581,7 +581,7 @@ def scrape_inmate(params):
                     actual_first_row_sentences != expected_first_row_sentences):
 
             # This isn't the page we were expecting
-            logging.warning("Did not find expected tables on inmates page. "
+            logging.warning(REGION + " //    Did not find expected tables on inmates page. "
                             "Page received: \n" + html.tostring(page_tree, pretty_print=True))
             return -1
 
@@ -715,7 +715,37 @@ def scrape_disambiguation(page_tree, first_name, last_name):
         """
         if task_params['dinx_val']:
 
-            # Enqueue task to follow that link / get result
+            dept_id_number = task_params['dinx_val']
+
+            # Double-check that we haven't already processed this entry while
+            # scraping another disambig page for this same inmate
+            is_duplicate = False
+
+            client = memcache.Client()
+            cache_name = REGION + "_" + dept_id_number
+            retry_counter = 1
+
+            while True:
+                cache_result = client.gets(cache_name)
+                if cache_result:
+                    # Already scraped, skip this inmate
+                    is_duplicate = True
+                    break
+                else:
+                    if client.cas(key=cache_name, value="1", time=360):
+                        # Not scraped, set memcache to prevent re-scraping later
+                        break
+                retry_counter += 1
+                if retry_counter >= 20:
+                    # Safest option if memcache difficulty is to re-scrape; de-dup 
+                    # logic later will catch it
+                    break
+
+            if is_duplicate:
+                # Skip this inmate, move to next task to enqueue
+                continue
+
+            # Enqueue task to follow that link / scrape record
             task_params['first_name'] = first_name
             task_params['last_name'] = last_name
             task_params['linked_records'] = department_identification_numbers
@@ -744,7 +774,6 @@ def store_record(inmate_details):
 
     Args:
         inmate_details: the results of the scrape, stored in a dict object.
-
 
     Returns:
         Nothing if successful, -1 if fails.
@@ -781,7 +810,7 @@ def store_record(inmate_details):
     inmate_age = None
     if inmate_dob: 
         # We received a string for the birth date
-        inmate_dob = parse_date_string(inmate_dob)
+        inmate_dob = parse_date_string(inmate_dob, inmate_id)
         if inmate_dob:
             # The string was successfully converted to datetime
             inmate_age = calculate_age(inmate_dob)
@@ -810,7 +839,7 @@ def store_record(inmate_details):
         inmate_key = inmate.put()
     except (Timeout, TransactionFailedError, InternalError):
         # Datastore error - fail task to trigger queue retry + backoff
-        logging.warning("Couldn't persist inmate: %s" % inmate_id)
+        logging.warning(REGION + " //    Couldn't persist inmate: %s" % inmate_id)
         return -1
 
     # CRIMINAL RECORD ENTRY
@@ -822,53 +851,53 @@ def store_record(inmate_details):
     # Some pre-work to massage values out of the data
     last_custody = inmate_details['Date Received (Current)']
     if last_custody: 
-        last_custody = parse_date_string(last_custody)
+        last_custody = parse_date_string(last_custody, inmate_id)
     first_custody = inmate_details['Date Received (Original)']
     if first_custody: 
-        first_custody = parse_date_string(first_custody)
+        first_custody = parse_date_string(first_custody, inmate_id)
     admission_type = inmate_details['Admission Type']
     county_of_commit = inmate_details['County of Commitment']
     custody_status = inmate_details['Custody Status']
     released = (custody_status != "IN CUSTODY")
     min_sentence = inmate_details['Aggregate Minimum Sentence']
     if min_sentence: 
-        min_sentence = parse_sentence_duration(min_sentence)
+        min_sentence = parse_sentence_duration(min_sentence, inmate_id)
     max_sentence = inmate_details['Aggregate Maximum Sentence']
     if max_sentence:
-        max_sentence = parse_sentence_duration(max_sentence)
+        max_sentence = parse_sentence_duration(max_sentence, inmate_id)
     earliest_release_date = inmate_details['Earliest Release Date']
     if earliest_release_date: 
-        earliest_release_date = parse_date_string(earliest_release_date)
+        earliest_release_date = parse_date_string(earliest_release_date, inmate_id)
     earliest_release_type = inmate_details['Earliest Release Type']
     parole_hearing_date = inmate_details['Parole Hearing Date']
     if parole_hearing_date: 
-        parole_hearing_date = parse_date_string(parole_hearing_date)
+        parole_hearing_date = parse_date_string(parole_hearing_date, inmate_id)
     parole_hearing_type = inmate_details['Parole Hearing Type']
     parole_elig_date = inmate_details['Parole Eligibility Date']
     if parole_elig_date: 
-        parole_elig_date = parse_date_string(parole_elig_date)
+        parole_elig_date = parse_date_string(parole_elig_date, inmate_id)
     cond_release_date = inmate_details['Conditional Release Date']
     if cond_release_date: 
-        cond_release_date = parse_date_string(cond_release_date)
+        cond_release_date = parse_date_string(cond_release_date, inmate_id)
     max_expir_date = inmate_details['Maximum Expiration Date']
     if max_expir_date: 
-        max_expir_date = parse_date_string(max_expir_date)
+        max_expir_date = parse_date_string(max_expir_date, inmate_id)
     max_expir_date_parole = (
         inmate_details['Maximum Expiration Date for Parole Supervision'])
     if max_expir_date_parole: 
-        max_expir_date_parole = parse_date_string(max_expir_date_parole)
+        max_expir_date_parole = parse_date_string(max_expir_date_parole, inmate_id)
     max_expir_date_superv = (
         inmate_details['Post Release Supervision Maximum Expiration Date'])
     if max_expir_date_superv: 
-        max_expir_date_superv = parse_date_string(max_expir_date_superv)
+        max_expir_date_superv = parse_date_string(max_expir_date_superv, inmate_id)
     parole_discharge_date = inmate_details['Parole Board Discharge Date']
     if parole_discharge_date: 
-        parole_discharge_date = parse_date_string(parole_discharge_date)
+        parole_discharge_date = parse_date_string(parole_discharge_date, inmate_id)
     last_release = (
         inmate_details['Latest Release Date / Type (Released Inmates Only)'])
     if last_release:
         release_info = last_release.split(" ", 1)
-        last_release_date = parse_date_string(release_info[0])
+        last_release_date = parse_date_string(release_info[0], inmate_id)
         last_release_type = release_info[1] 
 
     record_offenses = []
@@ -942,7 +971,7 @@ def store_record(inmate_details):
     try:
         record_key = record.put()
     except (Timeout, TransactionFailedError, InternalError):
-        logging.warning("Couldn't persist record: %s" % record_id)
+        logging.warning(REGION + " //    Couldn't persist record: %s" % record_id)
         return -1
 
     # FACILITY SNAPSHOT
@@ -967,28 +996,30 @@ def store_record(inmate_details):
         try:
             facility_snapshot.put()
         except (Timeout, TransactionFailedError, InternalError):
-            logging.warning("Couldn't persist facility snapshot for record: %s" % 
-                record_id)
+            logging.warning(REGION + " //    Couldn't persist facility snapshot "
+                "for record: %s" % record_id)
             return -1
 
     if 'group_id' in inmate_details:
         logging.info(REGION + " //    Stored record for "
-            "%s %s,  in group %s, for record %s." % (
+            "%s %s, inmate %s, in group %s, for record %s." % (
                 inmate_name[1], 
                 inmate_name[0], 
+                inmate_id,
                 inmate_details['group_id'], 
                 record_id))
     else:
         logging.info(REGION + " //    Stored record for "
-            "%s %s,  (no group), for record %s." % (
+            "%s %s, inmate %s, (no group), for record %s." % (
                 inmate_name[1], 
                 inmate_name[0], 
+                inmate_id,
                 record_id))
 
     return 
 
 
-def parse_sentence_duration(term_string):
+def parse_sentence_duration(term_string, inmate_id):
     """
     parse_sentence_duration()
     For the 'Maximum Aggregate Sentence' and 'Minimum Aggregate Sentence'
@@ -1002,6 +1033,7 @@ def parse_sentence_duration(term_string):
 
     Args:
         term_string: (str) Scraped string similar to in the description above
+        inmate_id: (str) Inmate ID this date is for, for logging if parse fails
 
     Returns:
         dict of values - 
@@ -1024,7 +1056,8 @@ def parse_sentence_duration(term_string):
         parsed_nums = re.findall('\d+', term_string)
 
         if ((not parsed_nums) or (len(parsed_nums) < 3)):
-            logging.warning("Couldn't parse term string: %s" % term_string)
+            logging.warning(REGION + " //    Couldn't parse term string '%s' " 
+                "for inmate: %s" % (term_string, inmate_id))
             result = None
         else:
             years = int(parsed_nums[0])
@@ -1039,7 +1072,7 @@ def parse_sentence_duration(term_string):
     return result
 
 
-def parse_date_string(date_string):
+def parse_date_string(date_string, inmate_id):
     """
     parse_date_string()
     Dates are expressed differently in different records, typically following
@@ -1051,6 +1084,7 @@ def parse_date_string(date_string):
 
     Args:
         date_string: (str) Scraped string containing a date
+        inmate_id: (str) Inmate ID this date is for, for logging if parse fails
 
     Returns:
         Python datetime object representing the date parsed from the string, or
@@ -1059,7 +1093,8 @@ def parse_date_string(date_string):
     try:
         result = parser.parse(date_string)
     except ValueError:
-        logging.warning("Couldn't parse date string: %s" % date_string)
+        logging.warning(REGION + " //    Couldn't parse date string '%s' " 
+                "for inmate: %s" % (date_string, inmate_id))
         result = None
 
     return result
@@ -1088,7 +1123,8 @@ def link_inmate(record_list):
             prior_inmate = prior_inmate_key.get()
             inmate_id = prior_inmate.inmate_id
 
-            logging.info("Found an earlier record with an inmate ID, using that.")
+            logging.info(REGION + " //    Found an earlier record with an inmate "
+                "ID " + inmate_id + ", using that.")
             return inmate_id
 
     # Made it through the whole list without finding prior versions
