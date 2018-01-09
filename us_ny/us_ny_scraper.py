@@ -38,44 +38,49 @@ General scraping procedure:
 """
 
 from datetime import datetime, date
+from env_vars import EnvironmentVariable
+from google.appengine.ext import ndb
+from google.appengine.ext.db import Timeout, TransactionFailedError, InternalError
+from google.appengine.ext.ndb import polymodel
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
-from google.appengine.ext import ndb
-from google.appengine.ext.ndb import polymodel
-from google.appengine.ext.db import Timeout, TransactionFailedError, InternalError
+from google.appengine.api import urlfetch
 from inmate import Inmate
 from inmate_facility_snapshot import InmateFacilitySnapshot
 from lxml import html
 from record import Offense, SentenceDuration, Record
 from us_ny_inmate import UsNyInmate
 from us_ny_record import UsNyRecord
+from us_ny_scrape_session import ScrapeSession, ScrapedRecord
 import dateutil.parser as parser
 import json
 import logging
 import requests
 import requests_toolbelt.adapters.appengine
 import string
+import time
 import random
 import re
 
 
-# Use the App Engine Requests adapter. This makes sure that Requests uses
-# URLFetch.
-requests_toolbelt.adapters.appengine.monkeypatch()
-
 START_URL = "http://nysdoccslookup.doccs.ny.gov/"
 BASE_RESULTS_URL = "http://nysdoccslookup.doccs.ny.gov"
+RESUME_URL = "http://recidiviz-123.appspot.com/resume_scraper?region=us_ny"
 QUEUE_NAME = 'us-ny'
 REGION = 'us_ny'
-REQUEST_TIMEOUT = 5
+FAIL_COUNTER = REGION + "_next_page_fail_counter"
+
+# Use the App Engine Requests adapter to make sure that Requests plays
+# nice with GAE
+requests_toolbelt.adapters.appengine.monkeypatch()
+PROXY_DOMAIN = 'zproxy.luminati.io:22225/'
+HEADERS = {'User-Agent': ('For any issues, concerns, or rate constraints, ' 
+            'e-mail corrections@andrewland.co.')}
 
 
 # TODO(andrew) - Create class to surround this with, with requirements for 
-# the functions that will be called from recidiviz and worker such as setup()
-# and start_query.
-
-# TODO(andrew) - Move this into a scrapers/ subdir, with other regional 
-# scrapers
+# the functions that will be called from recidiviz and worker such as setup(),
+# start_query(), stop_scraper(), and resume_scraper().
 def setup():
     """
     setup()
@@ -88,8 +93,18 @@ def setup():
         None
 
     Returns:
-        Nothing if successful, -1 if fails.
+        N/A
     """
+
+    # Remove any old scraping session data
+    cleanup()
+
+    # Create new session
+    new_session = ScrapeSession()
+    try:
+        new_session.put()
+    except (Timeout, TransactionFailedError, InternalError):
+        logging.warning("Couldn't create new session entity.")
 
     # Note: Since DOCCS creates a new form for every link to follow, it doesn't
     # look like we need to worry about session vars for the us-ny scraper.
@@ -110,13 +125,13 @@ def start_query(first_name, last_name):
         last_name: string, last name for inmate query (required)
 
     Returns:
-        Nothing if successful, -1 if fails.
+        N/A
 
         Enqueues task for initial search page scrape to get form/session params
         for the initial search request.
     """
-
-    logging.info(REGION + " // Scraper starting up for name: %s %s" % (first_name, last_name))
+    logging.info("Scraper starting up for name: %s %s" % 
+        (first_name, last_name))
 
     # Search for the provided name
     params = {'first_name': first_name, 'last_name': last_name}
@@ -136,8 +151,8 @@ def start_query(first_name, last_name):
 
 # SESSION MANAGEMENT #
 
-# NOTE: US_NY DOESN'T NEED SESSION MGT, SO COMMENTING THIS SECTION OUT FOR THIS SCRAPER 
-#       IF USED IN FUTURE, ALSO UNCOMMENT IMPORT OF MEMCACHE.
+# NOTE: US_NY DOESN'T NEED WEB SESSION MGT, SO COMMENTING RELEVANT SECTIONS OF
+#       THIS SECTION OUT FOR THIS SCRAPER 
 
 """
 def get_session():
@@ -239,10 +254,107 @@ def get_session_vars():
 
     return
 """
+def cleanup(end_session=True):
+    """
+    cleanup()
+    Resets relevant session info after a scraping session is concluded and
+    before another one starts.
+
+    Args:
+        end_session: Whether to also close out the current scraping session
+
+    Returns:
+        N/A
+    """
+    # Re-set the counter for when the server loses state
+    memcache.set(key=FAIL_COUNTER, value=None)
+
+    if end_session:
+        # Close the last open scraping session by setting end date/time.
+        open_sessions = get_open_sessions()
+        for session in open_sessions:
+            session.end = datetime.now()
+            try:
+                session.put()
+            except (Timeout, TransactionFailedError, InternalError):
+                logging.warning("Couldn't set end time on prior sessions.")
+    
+    # Purge any existing tasks
+    queue = taskqueue.Queue(QUEUE_NAME)
+    queue.purge()
+
+    return
+
+
+def stop_scrape():
+    """
+    stop_scrape()
+    Required by Scraper class. Stops the scraper, even if in the middle of
+    a session. In us_ny case, this is called by a cron job each day at 9am
+    to ensure we don't interfere with regular users of the DOCCS site. The 
+    while-loop is to ensure that even tasks in the process of running get
+    shut down, since tasks spawn more tasks and keep the scraping going in 
+    this system.
+
+    Args:
+        None
+
+    Returns:
+        N/A 
+    """
+    counter = 0
+    while counter < 5:
+        cleanup()
+        time.sleep(5)
+        counter += 1
+
+
+def resume_scrape():
+    """
+    resume_scrape()
+    Required by Scraper class. Starts the scraper up again at the same
+    place (or roughly so) if it had to be stopped previously. This allows
+    for cron jobs to start/stop scrapers at different times of day.
+
+    Args:
+        None
+
+    Returns:
+        N/A 
+    """
+    setup()
+
+    logging.info("Sleeping for 40sec to allow taskqueue to purge...")
+
+    # Give some time for the taskqueue to be cleared before creating new
+    # tasks (gets purged in setup() above).
+    time.sleep(40)
+
+    logging.info("... sleep complete. Kicking off new scrape session.")
+
+    # Get the most recent session (doesn't matter whether it was properly 
+    # closed), and get the last name that was scraped in it.
+    recent_sessions = get_open_sessions(open_only=False)
+    
+    for session in recent_sessions:
+        if session.last_scraped:
+            last_scraped = session.last_scraped
+            break
+
+    name_components = last_scraped.split(', ')
+    params = {'first_name': name_components[1], 
+              'last_name': name_components[0]}
+    serial_params = json.dumps(params)
+
+    task = taskqueue.add(
+        url='/scraper',
+        queue_name=QUEUE_NAME,
+        params={'region': REGION,
+                'task': "scrape_search_page",
+                'params': serial_params})
 
 
 # SEARCH AND SEARCH RESULTS PAGES #
-
 
 def scrape_search_page(params):
     """
@@ -265,17 +377,51 @@ def scrape_search_page(params):
 
     params = json.loads(params)
 
-    logging.info(REGION + " //   Starting search for name in list: %s %s" %
-                 (params['first_name'], params['last_name']))
+    logging.info("Starting search for name in list: %s %s" %
+        (params['first_name'], params['last_name']))
 
-    # Load the Search page on DOCCS, which will generate some tokens in the <form>
-    search_page = requests.get(START_URL, timeout=REQUEST_TIMEOUT)
+    try:
+        # Load the Search page on DOCCS, which will generate some tokens in the 
+        # <form>
+        proxies = get_proxies()
+        search_page = requests.get(START_URL, proxies=proxies, headers=HEADERS)
+    except requests.exceptions.RequestException as ce:
+        log_error = "Error: {0}".format(ce)
+
+        if ce.request:
+            log_error += ("\n\nRequest headers: \n{0}"
+                          "\n\nMethod: {1}"
+                          "\n\nBody: \n{2} ")
+            log_error = log_error.format(
+                ce.request.headers, 
+                ce.request.method, 
+                ce.request.body)
+        
+        if ce.response:
+            log_error += ("\n\nResponse: \n{0} / {1}"
+                          "\n\nHeaders: \n{2}"
+                          "\n\nText: \n{3}")
+            log_error = log_error.format(
+                ce.response.status_code, 
+                ce.response.reason, 
+                ce.response.headers,
+                ce.response.text)
+
+        logging.warning("Problem retrieving search page, failing task to "
+            "retry. \n\n%s" % log_error)
+        return -1
+
     search_tree = html.fromstring(search_page.content)
 
-    # Extract said tokens and construct the URL for searches
-    session_K01 = search_tree.cssselect('[name=K01]')[0].get("value")
-    session_token = search_tree.cssselect('[name=DFH_STATE_TOKEN]')[0].get("value")
-    session_action = search_tree.xpath('//div[@id="content"]/form/@action')[0]
+    try:
+        # Extract said tokens and construct the URL for searches
+        session_K01 = search_tree.cssselect('[name=K01]')[0].get("value")
+        session_token = search_tree.cssselect('[name=DFH_STATE_TOKEN]')[0].get("value")
+        session_action = search_tree.xpath('//div[@id="content"]/form/@action')[0]
+    except IndexError:
+        logging.error("Search page not understood. HTML:\n\n%s" % 
+            search_page.content)
+        return -1
 
     search_results_params = {
         'first_page': True,
@@ -338,42 +484,63 @@ def scrape_search_results_page(params):
 
     url = BASE_RESULTS_URL + str(params['action'])
 
-    # The request for the first results page is a little unique 
-    if 'first_page' in params:
+    try:
 
-        # Create a request using the provided params
-        results_page = requests.post(url, data={
-            'K01': params['k01'],
-            'DFH_STATE_TOKEN': params['token'],
-            'DFH_MAP_STATE_TOKEN': '',
-            'M00_LAST_NAMEI': params['last_name'],
-            'M00_FIRST_NAMEI': params['first_name'],
-            'M00_MID_NAMEI': '',
-            'M00_NAME_SUFXI': '',
-            'M00_DOBCCYYI': '',
-            'M00_DIN_FLD1I': '',
-            'M00_DIN_FLD2I': '',
-            'M00_DIN_FLD3I': '',
-            'M00_NYSID_FLD1I': '',
-            'M00_NYSID_FLD2I': ''
-        }, timeout=REQUEST_TIMEOUT)
+        proxies = get_proxies()
 
-    else:
+        # The request for the first results page is a little unique 
+        if 'first_page' in params:
 
-        # Create a request using the provided params
-        results_page = requests.post(url, data={
-            'M13_PAGE_CLICKI': params['clicki'],
-            'M13_SEL_DINI': params['dini'],
-            'K01': params['k01'],
-            'K02': params['k02'],
-            'K03': params['k03'],
-            'K04': params['k04'],
-            'K05': params['k05'],
-            'K06': params['k06'],
-            'DFH_STATE_TOKEN': params['token'],
-            'DFH_MAP_STATE_TOKEN': params['map_token'],
-            'next': params['next'],
-        }, timeout=REQUEST_TIMEOUT)
+            # Create a request using the provided params
+            results_page = requests.post(url, proxies=proxies, headers=HEADERS, 
+                data={
+                'K01': params['k01'],
+                'DFH_STATE_TOKEN': params['token'],
+                'DFH_MAP_STATE_TOKEN': '',
+                'M00_LAST_NAMEI': params['last_name'],
+                'M00_FIRST_NAMEI': params['first_name'],
+                'M00_MID_NAMEI': '',
+                'M00_NAME_SUFXI': '',
+                'M00_DOBCCYYI': '',
+                'M00_DIN_FLD1I': '',
+                'M00_DIN_FLD2I': '',
+                'M00_DIN_FLD3I': '',
+                'M00_NYSID_FLD1I': '',
+                'M00_NYSID_FLD2I': ''
+            })
+
+        else:
+
+            # Create a request using the provided params
+            results_page = requests.post(url, proxies=proxies, headers=HEADERS,
+                data={
+                'M13_PAGE_CLICKI': params['clicki'],
+                'M13_SEL_DINI': params['dini'],
+                'K01': params['k01'],
+                'K02': params['k02'],
+                'K03': params['k03'],
+                'K04': params['k04'],
+                'K05': params['k05'],
+                'K06': params['k06'],
+                'DFH_STATE_TOKEN': params['token'],
+                'DFH_MAP_STATE_TOKEN': params['map_token'],
+                'next': params['next'],
+            })
+
+    except requests.exceptions.RequestException as ce:
+        printable = ("Error: %s" % ce)
+        if ce.request:
+            printable += "\n\nRequest headers:\n%s" % str(ce.request.headers)
+            printable += "\n\nMethod: %s" % ce.request.method
+            printable += "\n\nBody: \n%s" % ce.request.body
+        if ce.response:
+            printable += ("\n\nResponse: \n%s / %s" % 
+                (ce.response.status_code, ce.response.reason))
+            printable += "\n\nHeaders: \n%s" % str(ce.response.headers)
+            printable += "\n\nText: \n%s" % ce.response.text
+        logging.warning("Problem retrieving search results page, "
+            "failing task to retry. \n\n%s" % printable)
+        return -1
 
     results_tree = html.fromstring(results_page.content)
 
@@ -424,9 +591,10 @@ def scrape_search_results_page(params):
 
     # Parse the 'next' button's embedded form
     next_params = {}
-    next_button = results_tree.xpath('//div[@id="content"]/form')[0]
 
     try:
+        next_button = results_tree.xpath('//div[@id="content"]/form')[0]
+
         next_params['action'] = next_button.xpath('attribute::action')[0]
         next_params['clicki'] = next_button.xpath(
             './div/input[@name="M13_PAGE_CLICKI"]/@value')[0]
@@ -450,11 +618,30 @@ def scrape_search_results_page(params):
             './div/input[@name="DFH_MAP_STATE_TOKEN"]/@value')[0]
         next_params['next'] = next_button.xpath(
             './div/div/input[@name="next"]/@value')[0]
+
+        # Update session to remember the first person on this results page, to
+        # ensure we can pick up where we left off later if desired. Note that
+        # us_ny scraper can only crawl 1x search results page at a time, so 
+        # there is no risk of contention.
+        last_scraped = results_tree.xpath(
+            '//td[@headers="name"]')[0].text_content().strip()
+        update_session_result = update_last_scraped(last_scraped)
+
+        if not update_session_result:
+            # Failed to persist the name into the current session entity
+            return -1
+
     except IndexError:
-        # We've run out of names, and the 'Next 4 results' button dumped us
-        # back at the original search page. Log it, and end the query.
-        logging.info(REGION + " //   Looped. Ending scraping session.")
-        return
+        # We got a page we didn't expect - results_parsing_failure will
+        # attempt to disambiguate why.
+        wind_down = results_parsing_failure()
+
+        if wind_down:
+            # End task peacefully
+            return
+        else:
+            # Fail task to retry
+            return -1
 
     # Enqueue task to follow that link / get result
     next_params['first_name'] = params['first_name']
@@ -514,42 +701,63 @@ def scrape_inmate(params):
     inmate_details = {}
     url = BASE_RESULTS_URL + str(params['action'])
 
-    # Create a request using the provided params. How we structure this varies
-    # a bit depending on whether we got here from a results page or a 
-    # disambiguation page.
-    if 'group_id' in params:
-        inmate_details['group_id'] = params['group_id']
-        inmate_details['linked_records'] = params['linked_records']
+    try:
 
-        # Create a request using the provided params
-        inmate_page = requests.post(url, data={
-            'M12_SEL_DINI': params['dini'],
-            'K01': params['k01'],
-            'K02': params['k02'],
-            'K03': params['k03'],
-            'K04': params['k04'],
-            'K05': params['k05'],
-            'K06': params['k06'],
-            'DFH_STATE_TOKEN': params['token'],
-            'DFH_MAP_STATE_TOKEN': params['map_token'],
-            params['dinx_name']: params['dinx_val'],
-        }, timeout=REQUEST_TIMEOUT)
+        proxies = get_proxies()
 
-    else:
-        # Create a request using the provided params
-        inmate_page = requests.post(url, data={
-            'M13_PAGE_CLICKI': params['clicki'],
-            'M13_SEL_DINI': params['dini'],
-            'K01': params['k01'],
-            'K02': params['k02'],
-            'K03': params['k03'],
-            'K04': params['k04'],
-            'K05': params['k05'],
-            'K06': params['k06'],
-            'DFH_STATE_TOKEN': params['token'],
-            'DFH_MAP_STATE_TOKEN': params['map_token'],
-            params['dinx_name']: params['dinx_val'],
-        }, timeout=REQUEST_TIMEOUT)
+        # Create a request using the provided params. How we structure this varies
+        # a bit depending on whether we got here from a results page or a 
+        # disambiguation page.
+        if 'group_id' in params:
+            inmate_details['group_id'] = params['group_id']
+            inmate_details['linked_records'] = params['linked_records']
+
+            # Create a request using the provided params
+            inmate_page = requests.post(url, proxies=proxies, headers=HEADERS, 
+                data={
+                'M12_SEL_DINI': params['dini'],
+                'K01': params['k01'],
+                'K02': params['k02'],
+                'K03': params['k03'],
+                'K04': params['k04'],
+                'K05': params['k05'],
+                'K06': params['k06'],
+                'DFH_STATE_TOKEN': params['token'],
+                'DFH_MAP_STATE_TOKEN': params['map_token'],
+                params['dinx_name']: params['dinx_val'],
+            })
+
+        else:
+            # Create a request using the provided params
+            inmate_page = requests.post(url, proxies=proxies, headers=HEADERS, 
+                data={
+                'M13_PAGE_CLICKI': params['clicki'],
+                'M13_SEL_DINI': params['dini'],
+                'K01': params['k01'],
+                'K02': params['k02'],
+                'K03': params['k03'],
+                'K04': params['k04'],
+                'K05': params['k05'],
+                'K06': params['k06'],
+                'DFH_STATE_TOKEN': params['token'],
+                'DFH_MAP_STATE_TOKEN': params['map_token'],
+                params['dinx_name']: params['dinx_val'],
+            })
+
+    except requests.exceptions.RequestException as ce:
+        printable = ("Error: %s" % ce)
+        if ce.request:
+            printable += "\n\nRequest headers:\n%s" % str(ce.request.headers)
+            printable += "\n\nMethod: %s" % ce.request.method
+            printable += "\n\nBody: \n%s" % ce.request.body
+        if ce.response:
+            printable += ("\n\nResponse: \n%s / %s" % 
+                (ce.response.status_code, ce.response.reason))
+            printable += "\n\nHeaders: \n%s" % str(ce.response.headers)
+            printable += "\n\nText: \n%s" % ce.response.text
+        logging.warning("Problem retrieving inmate details, failing task to "
+            "retry. \n\n%s" % printable)
+        return -1
 
     page_tree = html.fromstring(inmate_page.content)
 
@@ -581,8 +789,9 @@ def scrape_inmate(params):
                     actual_first_row_sentences != expected_first_row_sentences):
 
             # This isn't the page we were expecting
-            logging.warning(REGION + " //    Did not find expected tables on inmates page. "
-                            "Page received: \n" + html.tostring(page_tree, pretty_print=True))
+            logging.warning("Did not find expected tables on inmates page. "
+                "Page received: \n" + 
+                html.tostring(page_tree, pretty_print=True))
             return -1
 
         else:
@@ -617,22 +826,22 @@ def scrape_inmate(params):
 
             inmate_details['crimes'] = crimes
 
-        logging.info(REGION + " //     (%s %s) Scraped inmate: %s" %
-                     (params['first_name'], params['last_name'], inmate_details['Inmate Name']))
+        logging_name = "%s %s" % (params['first_name'], params['last_name'])
+        logging_name = logging_name.strip()
+        logging.info("(%s) Scraped inmate: %s" %
+            (logging_name, inmate_details['Inmate Name']))
 
         return store_record(inmate_details)
 
     else:
-        # We're on a disambiguation page, not an actual details page. Scrape the disambig page
-        # and follow each link.
+        # We're on a disambiguation page, not an actual details page. Scrape 
+        # the disambig page and follow each link.
 
-        # We can call this one without creating a task, it doesn't need a new 
+        # We can call this one without creating a task, it doesn't create a new
         # network call
-        scrape_disambiguation(page_tree,
-                              params['first_name'],
-                              params['last_name'])
-
-        return
+        return scrape_disambiguation(page_tree,
+                                     params['first_name'],
+                                     params['last_name'])
 
 
 def scrape_disambiguation(page_tree, first_name, last_name):
@@ -663,6 +872,11 @@ def scrape_disambiguation(page_tree, first_name, last_name):
 
     # Parse the results list
     result_list = page_tree.xpath('//div[@id="content"]/table/tr/td/form')
+
+    if not result_list:
+        logging.warning("Malformed inmate or disambig page, failing task to "
+            "re-queue.")
+        return -1
 
     for row in result_list:
         result_params = {}
@@ -719,31 +933,32 @@ def scrape_disambiguation(page_tree, first_name, last_name):
 
             # Double-check that we haven't already processed this entry while
             # scraping another disambig page for this same inmate
-            is_duplicate = False
 
-            client = memcache.Client()
-            cache_name = REGION + "_" + dept_id_number
-            retry_counter = 1
+            current_session = get_open_sessions(most_recent_only=True)
 
-            while True:
-                cache_result = client.gets(cache_name)
-                if cache_result:
-                    # Already scraped, skip this inmate
-                    is_duplicate = True
-                    break
-                else:
-                    if client.cas(key=cache_name, value="1", time=360):
-                        # Not scraped, set memcache to prevent re-scraping later
-                        break
-                retry_counter += 1
-                if retry_counter >= 20:
-                    # Safest option if memcache difficulty is to re-scrape; de-dup 
-                    # logic later will catch it
-                    break
+            if current_session == None:
+                # The session's been closed, we should peacefully end scraping
+                logging.info("No open sessions, exiting without creating new "
+                    "tasks for disambig page results.")
+                return
 
-            if is_duplicate:
+            scraped_record = ScrapedRecord.query(ndb.AND(
+                ScrapedRecord.record_id == dept_id_number, 
+                ScrapedRecord.created_on > current_session.start)).get()
+
+            if scraped_record:
                 # Skip this inmate, move to next task to enqueue
+                logging.info("We already scraped record %s, skipping." % 
+                    dept_id_number)
                 continue
+
+            # Otherwise, let's schedule scraping it and add it to the list
+            new_scraped_record = ScrapedRecord(record_id=dept_id_number)
+            try:
+                new_scraped_record.put()
+            except (Timeout, TransactionFailedError, InternalError):
+                logging.warning("Couldn't persist ScrapedRecord entry, "
+                    "record_id: %s" % dept_id_number)
 
             # Enqueue task to follow that link / scrape record
             task_params['first_name'] = first_name
@@ -757,9 +972,6 @@ def scrape_disambiguation(page_tree, first_name, last_name):
             params={'region': REGION,
                     'task': "scrape_inmate",
                     'params': task_params})
-
-        else:
-            pass
 
     return
 
@@ -783,9 +995,11 @@ def store_record(inmate_details):
 
     department_identification_numbers = []
     if 'linked_records' in inmate_details:
-        department_identification_numbers.extend(inmate_details['linked_records'])
+        department_identification_numbers.extend(
+            inmate_details['linked_records'])
     else:
-        department_identification_numbers.append(inmate_details['DIN (Department Identification Number)'])
+        department_identification_numbers.append(
+            inmate_details['DIN (Department Identification Number)'])
 
     old_id = link_inmate(department_identification_numbers)
 
@@ -832,14 +1046,15 @@ def store_record(inmate_details):
     inmate.inmate_id = inmate_id
     inmate.inmate_id_is_fuzzy = True
     inmate.last_name = inmate_name[0]
-    inmate.given_names = inmate_name[1]
+    if len(inmate_name) > 1:
+        inmate.given_names = inmate_name[1]
     inmate.region = REGION
 
     try:
         inmate_key = inmate.put()
     except (Timeout, TransactionFailedError, InternalError):
         # Datastore error - fail task to trigger queue retry + backoff
-        logging.warning(REGION + " //    Couldn't persist inmate: %s" % inmate_id)
+        logging.warning("Couldn't persist inmate: %s" % inmate_id)
         return -1
 
     # CRIMINAL RECORD ENTRY
@@ -965,19 +1180,28 @@ def store_record(inmate_details):
         record.min_sentence_length = min_sentence_duration
     if max_sentence_duration:
         record.max_sentence_length = max_sentence_duration
+    if inmate_dob:
+        record.birthday = inmate_dob
+    if inmate_sex:
+        record.sex = inmate_sex
+    if inmate_race:
+        record.race = inmate_race
+    record.last_name = inmate_name[0]
+    record.given_names = inmate_name[1]
     record.record_id = record_id
     record.is_released = released
 
     try:
         record_key = record.put()
     except (Timeout, TransactionFailedError, InternalError):
-        logging.warning(REGION + " //    Couldn't persist record: %s" % record_id)
+        logging.warning("Couldn't persist record: %s" % record_id)
         return -1
 
     # FACILITY SNAPSHOT
 
     # Check if the most recent facility snapshot had the facility we see
-    last_facility_snapshot = InmateFacilitySnapshot.query(ancestor=record_key).order(-InmateFacilitySnapshot.snapshot_date).get()
+    last_facility_snapshot = InmateFacilitySnapshot.query(
+        ancestor=record_key).order(-InmateFacilitySnapshot.snapshot_date).get()
 
     scraped_facility = inmate_details['Housing / Releasing Facility']
     if not scraped_facility:
@@ -996,21 +1220,21 @@ def store_record(inmate_details):
         try:
             facility_snapshot.put()
         except (Timeout, TransactionFailedError, InternalError):
-            logging.warning(REGION + " //    Couldn't persist facility snapshot "
-                "for record: %s" % record_id)
+            logging.warning("Couldn't persist facility snapshot for record: %s" % 
+                record_id)
             return -1
 
     if 'group_id' in inmate_details:
-        logging.info(REGION + " //    Stored record for "
-            "%s %s, inmate %s, in group %s, for record %s." % (
+        logging.info("Stored record for %s %s, inmate %s, in group %s, for "
+            "record %s." % (
                 inmate_name[1], 
                 inmate_name[0], 
                 inmate_id,
                 inmate_details['group_id'], 
                 record_id))
     else:
-        logging.info(REGION + " //    Stored record for "
-            "%s %s, inmate %s, (no group), for record %s." % (
+        logging.info("Stored record for %s %s, inmate %s, (no group), for "
+            "record %s." % (
                 inmate_name[1], 
                 inmate_name[0], 
                 inmate_id,
@@ -1056,8 +1280,8 @@ def parse_sentence_duration(term_string, inmate_id):
         parsed_nums = re.findall('\d+', term_string)
 
         if ((not parsed_nums) or (len(parsed_nums) < 3)):
-            logging.warning(REGION + " //    Couldn't parse term string '%s' " 
-                "for inmate: %s" % (term_string, inmate_id))
+            logging.info("Couldn't parse term string '%s' for inmate: %s" % 
+                (term_string, inmate_id))
             result = None
         else:
             years = int(parsed_nums[0])
@@ -1088,13 +1312,14 @@ def parse_date_string(date_string, inmate_id):
 
     Returns:
         Python datetime object representing the date parsed from the string, or
-        None if string wasn't one of our expected values.
+        None if string wasn't one of our expected values (this is common, often
+        NONE or LIFE are put in for these if life sentence).
     """
     try:
         result = parser.parse(date_string)
     except ValueError:
-        logging.warning(REGION + " //    Couldn't parse date string '%s' " 
-                "for inmate: %s" % (date_string, inmate_id))
+        logging.info("Couldn't parse date string '%s' for inmate: %s" % 
+            (date_string, inmate_id))
         result = None
 
     return result
@@ -1123,8 +1348,8 @@ def link_inmate(record_list):
             prior_inmate = prior_inmate_key.get()
             inmate_id = prior_inmate.inmate_id
 
-            logging.info(REGION + " //    Found an earlier record with an inmate "
-                "ID " + inmate_id + ", using that.")
+            logging.info("Found an earlier record with an inmate ID " + 
+                inmate_id + ", using that.")
             return inmate_id
 
     # Made it through the whole list without finding prior versions
@@ -1154,10 +1379,8 @@ def generate_id(entity_kind):
     key_result = test_key.get()
 
     if key_result is not None:
-
         # Collision, try again
         return generate_id(entity_kind)
-
     else:
         return new_id
 
@@ -1197,3 +1420,223 @@ def calculate_age(birth_date):
         (birth_date.month, birth_date.day))
 
     return age
+
+
+def get_open_sessions(open_only=True, most_recent_only=False):
+    """
+    get_open_sessions()
+    Finds and returns the list of session that were started but not 
+    closed, ordered by most recent. If most_recent_only, just returns
+    the most recent match.
+
+    Args:
+        N/A
+
+    Returns:
+        Current ScrapeSession, or None if no open session found  
+    """
+    session_query = ScrapeSession.query()
+
+    if open_only:
+        session_query = session_query.filter(ScrapeSession.end == None)
+
+    session_query = session_query.order(-ScrapeSession.start)
+
+    if most_recent_only:
+        session_results = session_query.get()
+    else:
+        session_results = session_query.fetch()
+
+    return session_results
+
+
+def update_last_scraped(last_scraped):
+    """
+    update_last_scraped()
+    Updates the most recent open session entity with the name seen at the
+    top of the most recently scraped results page.
+
+    Args:
+        last_scraped: Name at the top of the most recent page of results
+
+    Returns:
+        True if successful
+        False if not
+    """
+    current_session = get_open_sessions(most_recent_only=True)
+    if current_session:
+        current_session.last_scraped = last_scraped
+        try:
+            current_session.put()
+        except (Timeout, TransactionFailedError, InternalError):
+            logging.warning("Couldn't persist last scraped name: %s" % 
+                last_scraped)
+            return False
+    else:
+        logging.error("No open sessions found!")
+        return False
+
+    return True
+
+
+def results_parsing_failure():
+    """
+    results_parsing_failure()
+    We didn't get the page we expected while retrieving a search results
+    page. We retry three times (keeping track in memcache), which is 
+    long enough for most transient errors to go away.
+
+    If we fail three times in a row (with backoff), we first check if we've
+    completed the alphabet. On the last page, when we click 'Next 4 results',
+    DOCCS just takes the user back to the main search page (which could be why
+    trying to parse it like a result page failed). If we did, we just shut 
+    down the scraper because this is success.
+
+    If not, we assume DOCCS has lost state and no longer knows what we're
+    asking for. In this case we clean up the current scraping session, purge
+    all other tasks in the queue, and kick off a new scraping session to
+    get new state in DOCCS to continue scraping using.
+
+    Args:
+        None
+
+    Returns:
+        True if calling function should 'succeed' (not be retried)
+        False if calling function should 'fail' (be retried)
+    """
+    # Check if this has happened recently already
+    fail_count = memcache.get(key=FAIL_COUNTER)
+
+    # Retry up to three times
+    fail_count = 0 if not fail_count else fail_count
+
+    if fail_count < 3:
+        logging.warning("Couldn't parse next page of results (attempt %s). "
+            "Failing task to force retry." % str(fail_count))
+        fail_count += 1
+        memcache.set(key=FAIL_COUNTER, value=fail_count, time=600)
+        return False
+    else:
+        # This is a hacky check for whether we finished the alphabet. The last
+        # name in DOCCS as of 11/13/2017 is 'ZYTEL', who's sentenced to life
+        # and has no other crimes / disambig.
+        current_session = get_open_sessions(most_recent_only=True)
+        if current_session:
+            last_scraped = current_session.last_scraped
+        else:
+            logging.error("No open sessions found! Bad state, ending scrape.")
+            return True
+
+        if not last_scraped:
+            logging.error("Session isn't old enough to have a last_scraped name "
+                "yet, but no search results are coming back. Finding last "
+                "scraped name from earlier session.")
+
+            # Get most recent sessions, including closed ones, and find
+            # the last one to have a last_scraped name in it. These will
+            # come back most-recent-first.
+            recent_sessions = get_open_sessions(open_only=False)
+
+            for session in recent_sessions:
+                if session.last_scraped:
+                    last_scraped = session.last_scraped
+                    break
+
+        if last_scraped[0:3] < "ZYT":
+
+            # We haven't finished the alphabet yet. Most likely, we're failing
+            # repeatedly because the server has lost state (e.g., went through
+            # a maintenance period).
+            logging.warning("Server has lost state. Kicking off new scrape "
+                "task for last name seen in results, and removing "
+                "other tasks with old state.")
+
+            # Construct a resume_scraping request with a built-in delay, so
+            # that the task it kicks off doesn't get eaten by our purging
+            # the taskqueue with cleanup() immediately after this. Use 
+            # urlfetch to get the GAE-added header to auth that this 
+            # request came from our app.
+            modified_resume_url = RESUME_URL
+            resume_call = urlfetch.fetch(
+                modified_resume_url, 
+                follow_redirects=False)
+
+            # If call succeeded, purge the taskqueue and shut down this session
+            # The order here is important, because I think cleanup() / purging 
+            # the taskqueue will actually kill this task as well, so nothing 
+            # after this will execute.
+            if resume_call.status_code == 200:
+                cleanup(end_session=True)
+            else:
+                # Fail the task to retry
+                return False
+
+            # Scraper should restart, wind-down this task gracefully.
+            return True
+
+        else:
+            # We've run out of names, and the 'Next 4 results' button dumped us
+            # back at the original search page. Log it, and end the query.
+            logging.info("Looped. Ending scraping session.")
+            cleanup()
+
+            return True
+
+
+def get_proxies(test_proxy=False):
+    """
+    get_proxies()
+    Retrieves proxy information from datastore to use in requests to 
+    third-party services.
+
+    Args:
+        test_proxy: Boolean, whether or not to use test proxy credentials
+
+    Returns:
+        Proxies dict for requests
+    """ 
+    # Pull the proxy user/pass from datastore
+    user_var = "proxy_user"
+    pass_var = "proxy_password"
+
+    if test_proxy == True:
+        user_var = "test_proxy_user"
+        pass_var = "test_proxy_password"
+
+    memcache_user_var = REGION + "_" + user_var
+    memcache_pass_var = REGION + "_" + pass_var
+
+    # Try to pull from memcache
+    proxy_user = memcache.get(memcache_user_var)
+    proxy_password = memcache.get(memcache_pass_var)
+
+    if (proxy_user is None) or (proxy_password is None):
+
+        # Fetch from datastore to repopulate
+        user_result = EnvironmentVariable.query(ndb.AND(
+            EnvironmentVariable.region == "all",
+            EnvironmentVariable.name == user_var)).get()
+        password_result = EnvironmentVariable.query(ndb.AND(
+            EnvironmentVariable.region == "all",
+            EnvironmentVariable.name == pass_var)).get()
+
+        # If not found, raise an exception - no point in proceeding.
+        if ((not user_result) or (not password_result)):
+            logging.error("Couldn't retrieve proxy user/pass.")
+            raise Exception("No proxy user/pass")
+        else:
+            # Set variables to their actual values
+            proxy_user = str(user_result.value)
+            proxy_password = str(password_result.value)
+
+            # Re-store in memcache for an hour
+            memcache.set(key=memcache_user_var, value=proxy_user, time=3600)
+            memcache.set(key=memcache_pass_var, value=proxy_password, time=3600)
+
+    # Return proxy dictionary
+    proxy_credentials = proxy_user + ":" + proxy_password
+    proxy_url = 'http://' + proxy_credentials + "@" + PROXY_DOMAIN
+
+    proxies = {'http': proxy_url}
+
+    return proxies
