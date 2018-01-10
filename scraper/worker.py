@@ -2,7 +2,6 @@
 # All rights reserved.
 
 
-from auth import authenticate_request
 from requests.packages.urllib3.contrib.appengine import TimeoutError
 import logging
 import webapp2
@@ -85,7 +84,7 @@ class Scraper(webapp2.RequestHandler):
             logging.info("--- Request timed out, re-queuing task. ---")
             result = -1
 
-        # Respond to the task queue to mark this task as done, or requeue if 
+        # Respond to the task queue to mark this task as done, or re-queue if
         # error result
         if result == -1:
             self.response.set_status(500)
@@ -94,5 +93,5 @@ class Scraper(webapp2.RequestHandler):
 
 
 app = webapp2.WSGIApplication([
-  ('/scraper', Scraper),
+    ('/scraper', Scraper),
 ], debug=False)

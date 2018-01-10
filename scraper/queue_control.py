@@ -32,7 +32,7 @@ class StopScraper(webapp2.RequestHandler):
         if not request_region:
             # No region code - log and exit.
             logging.error("No region parameter provided. Use a "
-                "specific region code (e.g., us_ny) or 'all'. Exiting.")
+                          "specific region code (e.g., us_ny) or 'all'. Exiting.")
             
             self.response.write('Missing parameters, see service logs.')
             self.response.set_status(400)
@@ -47,13 +47,13 @@ class StopScraper(webapp2.RequestHandler):
 
         elif request_region in region_list:
             logging.info("Request to stop %s scraper. Stopping..." %
-                request_region)
+                         request_region)
             stop_scraper(request_region)
 
         else:
             # Unrecognized region code, log the error and exit.
-            logging.error("No region found with name '%s'. Exiting." % 
-                request_region)
+            logging.error("No region found with name '%s'. Exiting." %
+                          request_region)
             
             self.response.write('Could not stop, see service logs.')
             self.response.set_status(400)
@@ -81,7 +81,7 @@ class ResumeScraper(webapp2.RequestHandler):
         if not request_region:
             # No region code - log and exit.
             logging.error("No region parameter provided. Use a "
-                "specific region code (e.g., us_ny) or 'all'. Exiting.")
+                          "specific region code (e.g., us_ny) or 'all'. Exiting.")
             
             self.response.write('Missing parameters, see service logs.')
             self.response.set_status(400)
@@ -96,13 +96,13 @@ class ResumeScraper(webapp2.RequestHandler):
 
         elif request_region in region_list:
             logging.info("Request to start %s scraper. Starting..." %
-                request_region)
+                         request_region)
             resume_scraper(request_region)
 
         else:
             # Unrecognized region code, log the error and exit.
-            logging.error("No region found with name '%s'. Exiting." % 
-                request_region)
+            logging.error("No region found with name '%s'. Exiting." %
+                          request_region)
             
             self.response.write('Could not start, see service logs.')
             self.response.set_status(400)
