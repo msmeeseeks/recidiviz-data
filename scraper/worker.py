@@ -67,7 +67,8 @@ class Scraper(webapp2.RequestHandler):
                      (queue_name, task, region))
 
         # Import scraper and call task with params
-        module = __import__(region)
+        top_level = __import__("scraper")
+        module = getattr(top_level, region)
         scraper = getattr(module, region + "_scraper")
         scraper_task = getattr(scraper, task)
 

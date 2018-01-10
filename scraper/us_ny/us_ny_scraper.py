@@ -41,17 +41,16 @@ from datetime import datetime, date
 from env_vars import EnvironmentVariable
 from google.appengine.ext import ndb
 from google.appengine.ext.db import Timeout, TransactionFailedError, InternalError
-from google.appengine.ext.ndb import polymodel
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
 from google.appengine.api import urlfetch
-from inmate import Inmate
-from inmate_facility_snapshot import InmateFacilitySnapshot
 from lxml import html
-from record import Offense, SentenceDuration, Record
+from models.inmate_facility_snapshot import InmateFacilitySnapshot
+from models.record import Offense, SentenceDuration
 from us_ny_inmate import UsNyInmate
 from us_ny_record import UsNyRecord
 from us_ny_scrape_session import ScrapeSession, ScrapedRecord
+
 import dateutil.parser as parser
 import json
 import logging

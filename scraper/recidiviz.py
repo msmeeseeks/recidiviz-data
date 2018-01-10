@@ -159,7 +159,8 @@ def generate_tasks(region, name_list):
     logging.info(" Generating tasks for %s..." % region)
 
     # Get session variables set up for the new scrape job
-    module = __import__(region)
+    top_level = __import__("scraper")
+    module = getattr(top_level, region)
     scraper = getattr(module, region + "_scraper")
     scraper.setup()
 

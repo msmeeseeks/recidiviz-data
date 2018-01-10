@@ -3,7 +3,7 @@
 
 
 from google.appengine.ext import ndb
-from inmate import Inmate
+from models.inmate import Inmate
 
 
 """

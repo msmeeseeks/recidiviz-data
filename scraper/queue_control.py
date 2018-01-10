@@ -121,7 +121,8 @@ def stop_scraper(region):
         N/A
     """
     # Import the relevant scraper and call its stop_scrape method
-    module = __import__(region)
+    top_level = __import__("scraper")
+    module = getattr(top_level, region)
     scraper = getattr(module, region + "_scraper")
     scraper.stop_scrape()
 
@@ -139,7 +140,8 @@ def resume_scraper(region):
         N/A
     """
     # Import the relevant scraper and call its start_scrape method
-    module = __import__(region)
+    top_level = __import__("scraper")
+    module = getattr(top_level, region)
     scraper = getattr(module, region + "_scraper")
     scraper.resume_scrape()
 
