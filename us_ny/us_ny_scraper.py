@@ -75,7 +75,7 @@ FAIL_COUNTER = REGION + "_next_page_fail_counter"
 requests_toolbelt.adapters.appengine.monkeypatch()
 PROXY_DOMAIN = 'zproxy.luminati.io:22225/'
 HEADERS = {'User-Agent': ('For any issues, concerns, or rate constraints, ' 
-            'e-mail corrections@andrewland.co.')}
+            'e-mail team@recidiviz.com.')}
 
 
 # TODO(andrew) - Create class to surround this with, with requirements for 
