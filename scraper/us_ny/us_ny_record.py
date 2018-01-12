@@ -3,7 +3,7 @@
 
 
 from google.appengine.ext import ndb
-from record import Record
+from models.record import Record
 
 
 """
