@@ -74,7 +74,9 @@ REGION = Region('us_ny')
 DOCKET_QUEUE_NAME = 'docket'
 FAIL_COUNTER = REGION.region_code + "_next_page_fail_counter"
 SCRAPER_WORK_URL = '/scraper/work'
-PROXY_URL = env_vars.get_env_var("proxy_url", None)
+
+# This is defined lazily when first required below
+PROXY_URL = None
 
 
 # Use the App Engine Requests adapter to make sure that Requests plays
@@ -1569,6 +1571,11 @@ def get_proxies(use_test=False):
     else:
         user_var = "proxy_user"
         pass_var = "proxy_password"
+
+    # Initialize here instead of procedurally above to avoid a call to memcached
+    # during module initialization
+    if not PROXY_URL:
+        PROXY_URL = env_vars.get_env_var("proxy_url", None)
 
     proxy_user = env_vars.get_env_var(user_var, None)
     proxy_password = env_vars.get_env_var(pass_var, None)

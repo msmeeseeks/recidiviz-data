@@ -15,9 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
+"""Tools for environment variables in Google App Engine."""
 
-from google.appengine.ext import ndb
+
 from models.inmate import Inmate
+from google.appengine.ext import ndb
 
 
 class UsNyInmate(Inmate):
@@ -27,8 +29,9 @@ class UsNyInmate(Inmate):
     (DOCCS). This extends the Inmate class.
 
     Attributes:
-        us_ny_inmate_id: (string) Same as inmate_id, but used as key for this entity type
-            to force uniqueness / prevent collisions within the us_ny records
+        us_ny_inmate_id: (string) Same as inmate_id, but used as key for this
+            entity type to force uniqueness / prevent collisions within the
+            us_ny records
         (see models.inmate for inherited attributes)
     """
     us_ny_inmate_id = ndb.StringProperty()
