@@ -75,10 +75,6 @@ DOCKET_QUEUE_NAME = 'docket'
 FAIL_COUNTER = REGION.region_code + "_next_page_fail_counter"
 SCRAPER_WORK_URL = '/scraper/work'
 
-# This is defined lazily when first required below
-PROXY_URL = None
-
-
 # Use the App Engine Requests adapter to make sure that Requests plays
 # nice with GAE
 requests_toolbelt.adapters.appengine.monkeypatch()
@@ -92,6 +88,7 @@ requests.packages.urllib3.disable_warnings(
 # TODO(andrew) - Create class to surround this with, with requirements for
 # the functions that will be called from recidiviz and worker such as setup(),
 # start_scrape(), stop_scrape(), and resume_scrape().
+
 
 def setup(scrape_type):
     """Cleans up old session info, creates new one. Called before each scrape.
@@ -1572,10 +1569,7 @@ def get_proxies(use_test=False):
         user_var = "proxy_user"
         pass_var = "proxy_password"
 
-    # Initialize here instead of procedurally above to avoid a call to memcached
-    # during module initialization
-    if not PROXY_URL:
-        PROXY_URL = env_vars.get_env_var("proxy_url", None)
+    proxy_url = env_vars.get_env_var("proxy_url", None)
 
     proxy_user = env_vars.get_env_var(user_var, None)
     proxy_password = env_vars.get_env_var(pass_var, None)
@@ -1584,7 +1578,7 @@ def get_proxies(use_test=False):
         raise Exception("No proxy user/pass")
 
     proxy_credentials = proxy_user + ":" + proxy_password
-    proxy_request_url = 'http://' + proxy_credentials + "@" + PROXY_URL
+    proxy_request_url = 'http://' + proxy_credentials + "@" + proxy_url
 
     proxies = {'http': proxy_request_url}
 
