@@ -37,7 +37,8 @@ Background scraping procedure:
     3. EITHER
         (3a) A disambiguation page (which record would you like to see for this
              inmate?)
-        (3b) A details page for the inmate, about a specific incarceration event
+        (3b) A details page for the inmate, about a specific incarceration
+             event
 """
 
 from copy import deepcopy
@@ -46,15 +47,12 @@ import re
 
 from lxml import html
 from lxml.etree import XMLSyntaxError  # pylint:disable=no-name-in-module
-import requests
-import requests_toolbelt.adapters.appengine
 
 from google.appengine.ext import deferred
 from google.appengine.ext import ndb
 from google.appengine.ext.db import InternalError
 from google.appengine.ext.db import Timeout, TransactionFailedError
 from google.appengine.api import memcache
-from google.appengine.api import urlfetch
 
 from recidiviz.models.record import Offense, SentenceDuration
 from recidiviz.ingest import sessions
@@ -68,19 +66,6 @@ from recidiviz.ingest.us_ny.us_ny_record import UsNyRecord
 from recidiviz.ingest.us_ny.us_ny_snapshot import UsNySnapshot
 
 
-
-# Use the App Engine Requests adapter to make sure that Requests plays
-# nice with GAE
-requests_toolbelt.adapters.appengine.monkeypatch()
-urlfetch.set_default_fetch_deadline(60)
-
-# Squelch urllib3 / sockets platform warning
-requests.packages.urllib3.disable_warnings(
-    requests.packages.urllib3.contrib.appengine.AppEnginePlatformWarning
-)
-
-
-
 class UsNyScraper(Scraper):
     """Class to scrape info from the NY state DOCCS searcher.
     """
@@ -88,19 +73,17 @@ class UsNyScraper(Scraper):
     def __init__(self):
         super(UsNyScraper, self).__init__('us_ny')
 
-
     def get_initial_task(self):
         """The name of the initial task to run for this scraper.
         """
         return 'scrape_search_page'
 
-
     def scrape_search_page(self, params):
         """Scrapes the search page for DOCCS to get session variables
 
-        Gets the main search page, pulls form details and session variables.
-        Enqueues task with params from search page form, to fetch the first page
-        of results.
+        Gets the main search page, pulls form details and session
+        variables.  Enqueues task with params from search page form,
+        to fetch the first page of results.
 
         Args:
             params: Dict of parameters, includes:
@@ -188,7 +171,8 @@ class UsNyScraper(Scraper):
                 first_name: (string) Given names for inmate query
                     (empty string if surname-only search)
                 last_name: (string) Surname for inmate query (required)
-                k01: (string) A request parameter for results, scraped from form
+                k01: (string) A request parameter for results, scraped from
+                    form
                 token: (string) DFH_STATE_TOKEN - session info from the form
                 action: (string) The 'action' attr from the scraped
                     form - URL to POST our request to
@@ -241,7 +225,6 @@ class UsNyScraper(Scraper):
                 'DFH_MAP_STATE_TOKEN': params['map_token'],
                 'next': params['next'],
             }
-
 
         url = self.get_region().base_url + str(params['action'])
         results_page = self.fetch_page(url, data=data)
@@ -356,10 +339,10 @@ class UsNyScraper(Scraper):
         """Fetches inmate listing page, parses results
 
         Fetches inmate listing page. This sometimes turns out to be a
-        disambiguation page, as there may be multiple incarceration records in
-        DOCCS for the person we've selected. If so, shunts details over to
-        scrape_disambiguation(). If actual results page, pulls details from page
-        and sends to store_record.
+        disambiguation page, as there may be multiple incarceration
+        records in DOCCS for the person we've selected. If so, shunts
+        details over to scrape_disambiguation(). If actual results
+        page, pulls details from page and sends to store_record.
 
         Args:
             params: Dict of parameters. This is how DOCCS keeps track
@@ -373,7 +356,8 @@ class UsNyScraper(Scraper):
                 first_name: (string) First name for inmate query
                     (empty string if last-name only search)
                 last_name: (string) Last name for inmate query (required)
-                token: (string) DFH_STATE_TOKEN - session info from scraped form
+                token: (string) DFH_STATE_TOKEN - session info from scraped
+                    form
                 action: (string) the 'action' attr from the scraped form -
                     URL to POST to
                 dini: (string) A request parameter for results,
@@ -393,6 +377,7 @@ class UsNyScraper(Scraper):
 
         Returns:
             Nothing if successful, -1 if fails.
+
         """
 
         next_docket_item = False
@@ -429,7 +414,6 @@ class UsNyScraper(Scraper):
                 'M00_NYSID_FLD1I': '',
                 'M00_NYSID_FLD2I': ''
             }
-
 
         elif 'group_id' in params:
             # Arriving from disambiguation page
@@ -478,7 +462,8 @@ class UsNyScraper(Scraper):
 
         if details_page:
 
-            # Create xpath selectors for the parts of the page we want to scrape
+            # Create xpath selectors for the parts of the page we want
+            # to scrape
             id_and_locale_rows = details_page[0].xpath(
                 "./table[contains(@summary, 'Identifying')]/tr")
             crimes_rows = details_page[0].xpath(
@@ -503,8 +488,8 @@ class UsNyScraper(Scraper):
                     actual_first_row_sentences != expected_first_row_sentences):
 
                 # This isn't the page we were expecting
-                logging.warning("Did not find expected tables on inmates page. "
-                                "Page received: \n%s",
+                logging.warning("Did not find expected tables on inmates page."
+                                " Page received: \n%s",
                                 html.tostring(page_tree, pretty_print=True))
                 return -1
 
@@ -514,7 +499,8 @@ class UsNyScraper(Scraper):
                 # Capture table data from each details table on the page
                 for row in id_and_locale_rows:
                     row_data = row.xpath('./td')
-                    key, value = scraper_utils.normalize_key_value_row(row_data)
+                    key, value = scraper_utils.normalize_key_value_row(
+                        row_data)
                     inmate_details[key] = value
 
                 for row in crimes_rows:
@@ -535,7 +521,8 @@ class UsNyScraper(Scraper):
 
                 for row in sentence_rows:
                     row_data = row.xpath('./td')
-                    key, value = scraper_utils.normalize_key_value_row(row_data)
+                    key, value = scraper_utils.normalize_key_value_row(
+                        row_data)
                     inmate_details[key] = value
 
                 inmate_details['crimes'] = crimes
@@ -556,15 +543,14 @@ class UsNyScraper(Scraper):
             return self.store_record(inmate_details)
 
         else:
-            # We're on a disambiguation page, not an actual details page. Scrape
-            # the disambig page and follow each link.
+            # We're on a disambiguation page, not an actual details
+            # page. Scrape the disambig page and follow each link.
 
             # We can call this one without creating a task, it doesn't
             # create a new network request to DOCCS / doesn't need to
             # be throttled.
             return self.scrape_disambiguation(
                 page_tree, params['content'], scrape_type, ignore_list)
-
 
     def scrape_disambiguation(self, page_tree, query_content,
                               scrape_type, ignore_list):
@@ -661,8 +647,8 @@ class UsNyScraper(Scraper):
             # The only differences are
             #   a) they have empty 'value' attr in the 'submit' element /
             #     (thus are empty / invisible in the UI), and
-            #   b) they go back to the search results instead of listing another
-            #     record.
+            #   b) they go back to the search results instead of
+            #     listing another record.
             #
             # To avoid the latter mucking up our parsing, we test
             # dinx_val to skip these entries.
@@ -722,7 +708,6 @@ class UsNyScraper(Scraper):
                 self.add_task('scrape_inmate', task_params)
 
         return None
-
 
     def store_record(self, inmate_details):
         """Store scraped data from a results page
@@ -863,8 +848,8 @@ class UsNyScraper(Scraper):
                 'Latest Release Date / Type (Released Inmates Only)'])
         if last_release:
             release_info = last_release.split(" ", 1)
-            last_release_date = scraper_utils.parse_date_string(release_info[0],
-                                                                inmate_id)
+            last_release_date = scraper_utils.parse_date_string(
+                release_info[0], inmate_id)
             last_release_type = release_info[1]
         else:
             last_release_date = None
@@ -948,12 +933,11 @@ class UsNyScraper(Scraper):
                          "for record %s.", inmate_name[1], inmate_name[0],
                          inmate_id, inmate_details['group_id'], record_id)
         else:
-            logging.info("Checked record for %s %s, inmate %s, (no group), for "
-                         "record %s.", inmate_name[1], inmate_name[0],
+            logging.info("Checked record for %s %s, inmate %s, (no group), for"
+                         " record %s.", inmate_name[1], inmate_name[0],
                          inmate_id, record_id)
 
         return None
-
 
     def parse_sentence_duration(self, term_string, inmate_id):
         """Converts string describing sentence duration to
@@ -1011,7 +995,6 @@ class UsNyScraper(Scraper):
 
         return result
 
-
     def link_inmate(self, record_list):
         """Checks for prior records matching newly scraped ones, returns
         inmate ID
@@ -1042,8 +1025,6 @@ class UsNyScraper(Scraper):
 
         return None
 
-
-
     def results_parsing_failure(self):
         """Determines cause, handles retries for parsing problems
 
@@ -1059,10 +1040,11 @@ class UsNyScraper(Scraper):
         result page failed). If we did, we just shut down the scraper
         because this is success.
 
-        If not, we assume DOCCS has lost state and no longer knows what we're
-        asking for. In this case we clean up the current scraping session, purge
-        all other tasks in the queue, and kick off a new scraping session to
-        get new state in DOCCS to continue scraping using.
+        If not, we assume DOCCS has lost state and no longer knows
+        what we're asking for. In this case we clean up the current
+        scraping session, purge all other tasks in the queue, and kick
+        off a new scraping session to get new state in DOCCS to
+        continue scraping using.
 
         Args:
             None
@@ -1077,8 +1059,8 @@ class UsNyScraper(Scraper):
         fail_count = 0 if not fail_count else fail_count
 
         if fail_count < 3:
-            logging.warning("Couldn't parse next page of results (attempt %d). "
-                            "Failing task to force retry.", fail_count)
+            logging.warning("Couldn't parse next page of results (attempt %d)."
+                            " Failing task to force retry.", fail_count)
             fail_count += 1
             memcache.set(key=self.fail_counter, value=fail_count, time=600)
             return False
@@ -1144,7 +1126,6 @@ class UsNyScraper(Scraper):
             self.stop_scrape([scrape_type])
 
             return True
-
 
     def inmate_id_to_record_id(self, inmate_id):
         """Convert provided inmate_id to record_id of any record for that inmate
@@ -1232,7 +1213,8 @@ class UsNyScraper(Scraper):
 
         The new snapshot will only include those fields which have changed.
         Args:
-            old_record: (UsNyRecord) The record entity this snapshot pertains to
+            old_record: (UsNyRecord) The record entity this snapshot pertains
+                to
             snapshot: (UsNySnapshot) Snapshot object with details from current
                 scrape.
         Returns:
