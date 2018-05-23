@@ -195,23 +195,23 @@ class TestFindRecidivism(object):
 
         assert len(recidivism_events_by_cohort) == 2
 
-        assert recidivism_events_by_cohort[2010] == recidivism_event.\
-            RecidivismEvent.recidivism_event(
+        assert recidivism_events_by_cohort[2010] == [
+            recidivism_event.RecidivismEvent.recidivism_event(
                 initial_incarceration.custody_date,
                 initial_incarceration.latest_release_date,
                 initial_incarceration_second_snapshot.latest_facility,
                 first_reincarceration.custody_date,
                 first_reincarceration_first_snapshot.latest_facility,
-                False)
+                False)]
 
-        assert recidivism_events_by_cohort[2014] == recidivism_event.\
-            RecidivismEvent.recidivism_event(
+        assert recidivism_events_by_cohort[2014] == [
+            recidivism_event.RecidivismEvent.recidivism_event(
                 first_reincarceration.custody_date,
                 first_reincarceration.latest_release_date,
                 first_reincarceration_second_snapshot.latest_facility,
                 subsequent_reincarceration.custody_date,
                 subsequent_reincarceration_snapshot.latest_facility,
-                False)
+                False)]
 
     def test_find_recidivism_no_records_at_all(self):
         """Tests the find_recidivism function when the inmate has no records."""
@@ -238,11 +238,11 @@ class TestFindRecidivism(object):
 
         assert len(recidivism_events_by_cohort) == 1
 
-        assert recidivism_events_by_cohort[2010] == recidivism_event.\
-            RecidivismEvent.non_recidivism_event(
+        assert recidivism_events_by_cohort[2010] == [
+            recidivism_event.RecidivismEvent.non_recidivism_event(
                 initial_incarceration.custody_date,
                 initial_incarceration.latest_release_date,
-                initial_incarceration_second_snapshot.latest_facility)
+                initial_incarceration_second_snapshot.latest_facility)]
 
     def test_find_recidivism_still_incarcerated_on_first(self):
         """Tests the find_recidivism function where the inmate is still
@@ -286,14 +286,14 @@ class TestFindRecidivism(object):
         # because of its lack of a custody date.
         assert len(recidivism_events_by_cohort) == 1
 
-        assert recidivism_events_by_cohort[2014] == recidivism_event.\
-            RecidivismEvent.recidivism_event(
+        assert recidivism_events_by_cohort[2014] == [
+            recidivism_event.RecidivismEvent.recidivism_event(
                 first_reincarceration.custody_date,
                 first_reincarceration.latest_release_date,
                 first_reincarceration_second_snapshot.latest_facility,
                 subsequent_reincarceration.custody_date,
                 subsequent_reincarceration_snapshot.latest_facility,
-                False)
+                False)]
 
     def test_find_recidivism_invalid_released_but_no_release_date(self):
         """Tests the find_recidivism function error handling when the record
@@ -324,14 +324,14 @@ class TestFindRecidivism(object):
         # because of its lack of a release date although released=True.
         assert len(recidivism_events_by_cohort) == 1
 
-        assert recidivism_events_by_cohort[2014] == recidivism_event.\
-            RecidivismEvent.recidivism_event(
+        assert recidivism_events_by_cohort[2014] == [
+            recidivism_event.RecidivismEvent.recidivism_event(
                 first_reincarceration.custody_date,
                 first_reincarceration.latest_release_date,
                 first_reincarceration_second_snapshot.latest_facility,
                 subsequent_reincarceration.custody_date,
                 subsequent_reincarceration_snapshot.latest_facility,
-                False)
+                False)]
 
     def test_find_recidivism_invalid_released_but_no_entry_date_on_reincarceration(self):  # pylint: disable=line-too-long
         """Tests the find_recidivism function error handling when the record
@@ -365,14 +365,14 @@ class TestFindRecidivism(object):
         # record-keeping error gets sorted to the front by our Datastore query.
         assert len(recidivism_events_by_cohort) == 1
 
-        assert recidivism_events_by_cohort[2010] == recidivism_event.\
-            RecidivismEvent.recidivism_event(
+        assert recidivism_events_by_cohort[2010] == [
+            recidivism_event.RecidivismEvent.recidivism_event(
                 initial_incarceration.custody_date,
                 initial_incarceration.latest_release_date,
                 initial_incarceration_second_snapshot.latest_facility,
                 subsequent_reincarceration.custody_date,
                 subsequent_reincarceration_snapshot.latest_facility,
-                False)
+                False)]
 
 
 def record(parent_key, is_released, custody_date, latest_release_date=None):

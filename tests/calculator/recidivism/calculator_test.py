@@ -38,7 +38,7 @@ from models.snapshot import Snapshot
 
 
 def test_reincarceration_dates():
-    release_date = date.today()
+    release_date = date(2018, 5, 1)
     original_entry_date = release_date - relativedelta(years=4)
     reincarceration_date = release_date + relativedelta(years=3)
     second_release_date = reincarceration_date + relativedelta(years=1)
@@ -48,10 +48,32 @@ def test_reincarceration_dates():
         reincarceration_date, "Sing Sing", False)
     second_event = recidivism_event.RecidivismEvent.non_recidivism_event(
         reincarceration_date, second_release_date, "Sing Sing")
-    recidivism_events = {2018: first_event, 2022: second_event}
+    recidivism_events = {2018: [first_event], 2022: [second_event]}
 
     release_dates = calculator.reincarceration_dates(recidivism_events)
     assert release_dates == [reincarceration_date]
+
+
+def test_reincarceration_dates_multiple_in_cohort():
+    release_date = date(2014, 3, 12)
+    original_entry_date = release_date - relativedelta(years=4)
+    reincarceration_date = release_date + relativedelta(years=3)
+    second_release_date = reincarceration_date + relativedelta(months=2)
+    second_reincarceration_date = second_release_date + relativedelta(months=1)
+    final_release_date = second_reincarceration_date + relativedelta(months=4)
+
+    first_event = recidivism_event.RecidivismEvent.recidivism_event(
+        original_entry_date, release_date, "Sing Sing",
+        reincarceration_date, "Sing Sing", False)
+    second_event = recidivism_event.RecidivismEvent.recidivism_event(
+        reincarceration_date, second_release_date, "Sing Sing",
+        second_reincarceration_date, "Sing Sing", True)
+    third_event = recidivism_event.RecidivismEvent.non_recidivism_event(
+        second_reincarceration_date, final_release_date, "Sing Sing")
+    recidivism_events = {2018: [first_event], 2022: [second_event, third_event]}
+
+    release_dates = calculator.reincarceration_dates(recidivism_events)
+    assert release_dates == [reincarceration_date, second_reincarceration_date]
 
 
 def test_reincarceration_dates_empty():
@@ -299,9 +321,9 @@ class TestMapRecidivismCombinations(object):
                         race="white", sex="female")
 
         recidivism_events_by_cohort = {
-            2008: recidivism_event.RecidivismEvent.recidivism_event(
+            2008: [recidivism_event.RecidivismEvent.recidivism_event(
                 date(2005, 7, 19), date(2008, 9, 19), "Hudson",
-                date(2014, 5, 12), "Upstate", False)
+                date(2014, 5, 12), "Upstate", False)]
         }
 
         recidivism_combinations = calculator.map_recidivism_combinations(
@@ -324,12 +346,12 @@ class TestMapRecidivismCombinations(object):
                         race="white", sex="female")
 
         recidivism_events_by_cohort = {
-            1908: recidivism_event.RecidivismEvent.recidivism_event(
+            1908: [recidivism_event.RecidivismEvent.recidivism_event(
                 date(1905, 7, 19), date(1908, 9, 19), "Hudson",
-                date(1910, 8, 12), "Upstate", False),
-            1912: recidivism_event.RecidivismEvent.recidivism_event(
+                date(1910, 8, 12), "Upstate", False)],
+            1912: [recidivism_event.RecidivismEvent.recidivism_event(
                 date(1910, 8, 12), date(1912, 8, 19), "Upstate",
-                date(1914, 7, 12), "Sing Sing", False)
+                date(1914, 7, 12), "Sing Sing", False)]
         }
 
         recidivism_combinations = calculator.map_recidivism_combinations(
@@ -360,8 +382,8 @@ class TestMapRecidivismCombinations(object):
                         race="white", sex="female")
 
         recidivism_events_by_cohort = {
-            2008: recidivism_event.RecidivismEvent.non_recidivism_event(
-                date(2005, 7, 19), date(2008, 9, 19), "Hudson")
+            2008: [recidivism_event.RecidivismEvent.non_recidivism_event(
+                date(2005, 7, 19), date(2008, 9, 19), "Hudson")]
         }
 
         recidivism_combinations = calculator.map_recidivism_combinations(
@@ -380,9 +402,9 @@ class TestMapRecidivismCombinations(object):
                         race="white", sex="female")
 
         recidivism_events_by_cohort = {
-            2008: recidivism_event.RecidivismEvent.recidivism_event(
+            2008: [recidivism_event.RecidivismEvent.recidivism_event(
                 date(2005, 7, 19), date(2008, 9, 19), "Hudson",
-                date(2018, 10, 12), "Upstate", False)
+                date(2018, 10, 12), "Upstate", False)]
         }
 
         recidivism_combinations = calculator.map_recidivism_combinations(
@@ -393,6 +415,38 @@ class TestMapRecidivismCombinations(object):
         assert len(recidivism_combinations) == 320
         assert all(value == 0 for _combination, value
                    in recidivism_combinations)
+
+    def test_map_recidivism_combinations_multiple_in_cohort(self):
+        """Tests the map_recidivism_combinations function where there are
+        multiple recidivism events for a single release cohort in the input."""
+        inmate = Inmate(id="test-inmate", birthday=date(1984, 8, 31),
+                        race="white", sex="female")
+
+        recidivism_events_by_cohort = {
+            2008: [
+                recidivism_event.RecidivismEvent.recidivism_event(
+                    date(2005, 7, 19), date(2008, 1, 19), "Hudson",
+                    date(2008, 3, 12), "Upstate", True),
+                recidivism_event.RecidivismEvent.non_recidivism_event(
+                    date(2008, 3, 12), date(2008, 6, 17), "Upstate")
+            ]
+        }
+
+        recidivism_combinations = calculator.map_recidivism_combinations(
+            inmate, recidivism_events_by_cohort)
+
+        # 16 combinations of demographics and facility * 2 methodologies
+        # * 10 periods * 2 events = 640 metrics
+        assert len(recidivism_combinations) == 640
+
+        recidivism_instances = 0
+        for _combination, value in recidivism_combinations:
+            if value > 0:
+                recidivism_instances += 1
+        # Exactly half should be 1s and half 0s, because there was recidivism in
+        # the very first year after the first release, and no recidivism at all
+        # from the second release
+        assert recidivism_instances == 320
 
 
 def record(parent_key, is_released, custody_date, latest_release_date=None):

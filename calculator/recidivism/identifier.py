@@ -32,6 +32,7 @@ Example:
 
 
 import logging
+from collections import defaultdict
 from models.snapshot import Snapshot
 from models.record import Record
 # This is required to permit access to PolyModel attributes on UsNyRecord
@@ -44,21 +45,30 @@ def find_recidivism(inmate, include_conditional_violations=False):
     recidivism or not.
 
     Transforms each sentence from which the inmate has been released into a
-    mapping from its release cohort to the details of the event. The release
-    cohort is an integer for the year, e.g. 2006. The event details are a
-    RecidivismEvent object, which represents events of both recidivism and
-    non-recidivism. That is, each inmate sentence is transformed into a
-    recidivism event unless it is the most recent sentence and they are still
-    incarcerated.
+    mapping from a release cohort to the details of all event in that cohort.
+    The release cohort is an integer for the year, e.g. 2006. The event details
+    are RecidivismEvent objects, which represents events of both recidivism and
+    non-recidivism. That is, each inmate sentence is transformed into one or
+    more recidivism event unless it is the most recent sentence and they are
+    still incarcerated.
 
     Example output for someone who went to prison in 2006, was released in 2008,
     went back in 2010, was released in 2012, and never returned:
     {
-      2008: RecidivismEvent(recidivated=True, original_entry_date="2006-04-05",
-                            ...),
-      2012: RecidivismEvent(recidivated=False, original_entry_date="2010-09-17",
-                            ...)
+      2008:[RecidivismEvent(recidivated=True, original_entry_date="2006-04-05",
+                            ...)],
+      2012:[RecidivismEvent(recidivated=False, original_entry_date="2010-09-17",
+                            ...)]
     }
+
+    The reason the value in the returned dictionary is a list of
+    RecidivismEvents instead of a single event is that, in rare corner cases,
+    it is possible for an individual to have multiple events worth tracking in
+    the same calendar year. For example, an individual could be released
+    conditionally early in the year, have their release revoked and be
+    reincarcerated, then be released again (conditionally or otherwise), and be
+    reincarcerated again, all in the same year. This would include two events
+    in one release cohort.
 
     Args:
         inmate: an inmate to determine recidivism for.
@@ -68,8 +78,8 @@ def find_recidivism(inmate, include_conditional_violations=False):
 
     Returns:
         A dictionary from release cohorts to recidivism events for the given
-        inmate in that cohort. No more than one event can be returned per
-        release cohort per inmate.
+        inmate in that cohort. One event will be returned per release cohort
+        in almost every case. Rarely, there could be multiple events per cohort.
     """
     records = Record.query(ancestor=inmate.key)\
         .order(Record.custody_date)\
@@ -79,7 +89,7 @@ def find_recidivism(inmate, include_conditional_violations=False):
         .order(-Snapshot.created_on)\
         .fetch()
 
-    recidivism_events = {}
+    recidivism_events = defaultdict(list)
 
     for index, record in enumerate(records):
         if record.custody_date is None:
@@ -101,7 +111,7 @@ def find_recidivism(inmate, include_conditional_violations=False):
             event = for_last_record(record, original_entry_date,
                                     release_date, release_facility)
             if event:
-                recidivism_events[release_cohort] = event
+                recidivism_events[release_cohort].append(event)
         else:
             # If there is a record after this one and they have been released,
             # then they recidivated. Capture the details.
@@ -109,15 +119,15 @@ def find_recidivism(inmate, include_conditional_violations=False):
                 event = for_intermediate_record(record, records[index + 1],
                                                 snapshots, original_entry_date,
                                                 release_date, release_facility)
-                recidivism_events[release_cohort] = event
+                recidivism_events[release_cohort].append(event)
 
                 if include_conditional_violations:
                     (conditional_release_cohort, conditional_event) = \
                         for_conditional_release(record,
                                                 original_entry_date,
                                                 release_facility)
-                    recidivism_events[conditional_release_cohort] = \
-                        conditional_event
+                    recidivism_events[conditional_release_cohort]\
+                        .append(conditional_event)
 
     return recidivism_events
 

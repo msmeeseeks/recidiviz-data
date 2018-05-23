@@ -92,21 +92,22 @@ def map_recidivism_combinations(inmate, recidivism_events):
     metrics = []
     all_reincarceration_dates = reincarceration_dates(recidivism_events)
 
-    for release_cohort, event in recidivism_events.iteritems():
-        characteristic_combos = characteristic_combinations(inmate, event)
+    for release_cohort, events in recidivism_events.iteritems():
+        for event in events:
+            characteristic_combos = characteristic_combinations(inmate, event)
 
-        earliest_recidivism_period = earliest_recidivated_follow_up_period(
-            event.release_date, event.reincarceration_date)
+            earliest_recidivism_period = earliest_recidivated_follow_up_period(
+                event.release_date, event.reincarceration_date)
 
-        relevant_periods = relevant_follow_up_periods(
-            event.release_date, date.today(), FOLLOW_UP_PERIODS)
+            relevant_periods = relevant_follow_up_periods(
+                event.release_date, date.today(), FOLLOW_UP_PERIODS)
 
-        for combo in characteristic_combos:
-            combo["release_cohort"] = release_cohort
+            for combo in characteristic_combos:
+                combo["release_cohort"] = release_cohort
 
-            metrics.extend(combination_metrics(
-                combo, event, all_reincarceration_dates,
-                earliest_recidivism_period, relevant_periods))
+                metrics.extend(combination_metrics(
+                    combo, event, all_reincarceration_dates,
+                    earliest_recidivism_period, relevant_periods))
 
     return metrics
 
@@ -126,9 +127,11 @@ def reincarceration_dates(recidivism_events):
         A list of reincarceration dates, in the order in which they appear in
         the given list of objects.
     """
-    return [event.reincarceration_date
-            for _cohort, event in recidivism_events.iteritems()
-            if event.reincarceration_date]
+    dates = []
+    for _cohort, events in recidivism_events.iteritems():
+        dates.extend([event.reincarceration_date for event in events
+                      if event.reincarceration_date])
+    return dates
 
 
 def count_reincarcerations_in_window(start_date,
