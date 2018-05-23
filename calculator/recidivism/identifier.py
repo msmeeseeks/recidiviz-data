@@ -33,10 +33,12 @@ Example:
 
 import logging
 from collections import defaultdict
+from dateutil.relativedelta import relativedelta
 from models.snapshot import Snapshot
 from models.record import Record
-# This is required to permit access to PolyModel attributes on UsNyRecord
+# These are required to permit access to PolyModel attributes on UsNy models
 from scraper.us_ny.us_ny_record import UsNyRecord #pylint: disable=unused-import
+from scraper.us_ny.us_ny_snapshot import UsNySnapshot #pylint: disable=unused-import
 from .recidivism_event import RecidivismEvent
 
 
@@ -122,12 +124,12 @@ def find_recidivism(inmate, include_conditional_violations=False):
                 recidivism_events[release_cohort].append(event)
 
                 if include_conditional_violations:
-                    (conditional_release_cohort, conditional_event) = \
-                        for_conditional_release(record,
-                                                original_entry_date,
-                                                release_facility)
-                    recidivism_events[conditional_release_cohort]\
-                        .append(conditional_event)
+                    conditional_events = for_conditional_release(
+                        record, original_entry_date, original_entry_date,
+                        release_date, release_facility)
+
+                    merge_recidivism_events(recidivism_events,
+                                            conditional_events)
 
     return recidivism_events
 
@@ -153,8 +155,9 @@ def subsequent_entrance(record):
     """The date of most recent entrance into prison for the given record.
 
     A subsequent entrance is when an inmate returns to prison for a given
-    sentence, after having already been conditionally for that same sentence.
-    It is not returning to prison for a brand new sentence.
+    sentence, after having already been released for that same sentence, e.g.
+    onto parole or a conditional release. It is not returning to prison for a
+    brand new sentence.
 
     Args:
         record: a single record
@@ -234,13 +237,32 @@ def last_facility(record, snapshots):
                  if snapshot.key.parent().id() == record.key.id()), None)
 
 
-def released_only_once():
-    """TODO See Issue #34"""
-    return True
+def incarcerated_multiple_times(record):
+    """Returns whether or not the individual was incarcerated multiple distinct
+    times for this given record.
+
+    A person is incarcerated multiple times for the same record if they are
+    released to some form of supervision or with some conditions, and then
+    violate the terms of the release and are reincarcerated.
+
+    This works by checking if the original entry date for the record is equal to
+    the last known entry date. If they are the same, they have only been
+    incarcerated a single time for this record. If they are different, then
+    there are at least two distinct incarcerations for the record.
+
+    Args:
+        record: a single record
+
+    Returns:
+        True if the person was incarcerated multiple times for the record.
+        False otherwise.
+    """
+    return record.custody_date == record.last_custody_date
 
 
 def for_last_record(record, original_entry_date,
-                    release_date, release_facility):
+                    release_date, release_facility,
+                    was_conditional=False):
     """Returns any non-recidivism event relevant to the person's last record.
 
     If the person has been released from their last record, there is an instance
@@ -253,6 +275,7 @@ def for_last_record(record, original_entry_date,
         release_date: when they were last released for this record
         release_facility: the facility they were last released from for this
             record
+        was_conditional: whether this release was conditional
 
     Returns:
         A non-recidivism event if released from this record. None otherwise.
@@ -265,7 +288,8 @@ def for_last_record(record, original_entry_date,
 
         return RecidivismEvent.non_recidivism_event(original_entry_date,
                                                     release_date,
-                                                    release_facility)
+                                                    release_facility,
+                                                    was_conditional)
 
     logging.debug('Inmate is still incarcerated for last or only '
                   'record %s. Nothing to track', record.key.id())
@@ -306,28 +330,184 @@ def for_intermediate_record(record, recidivism_record, snapshots,
         reincarceration_date, reincarceration_facility, False)
 
 
-def for_conditional_release(record, original_entry_date, release_facility):
-    """Returns a recidivism event if the person was conditionally released
-    as part of this record and sent back for a violation of those conditions.
+def for_conditional_release(record, snapshots, original_entry_date,
+                            release_date, release_facility):
+    """Returns recidivism events mapped to their release cohorts if the person
+    was conditionally released as part of this record.
 
-    TODO See Issue #34 - Fully support this.
+    This includes both events where the individual was conditionally released
+    and sent back (regardless of whether they were subsequently released again),
+    i.e. revocation, and instances where they were conditionally released and
+    did not return for this record (regardless of whether they have returned for
+    a new, separate incarceration), i.e. non-revocation.
 
     Args:
         record: a record for some person
+        snapshots: all snapshots for this person
         original_entry_date: when they entered for this record
+        release_date: when they were last released for this record
         release_facility: the facility they were last released from for this
             record
+
     Returns:
-        A recidivism event if there was incarceration due to a violation of
-        some conditional release. None otherwise.
+        A dictionary from release cohorts to conditional release-related
+        recidivism events for the given inmate in that cohort. One event will be
+        returned per release cohort in almost every case. Rarely, there could be
+        multiple events per cohort.
     """
-    if not released_only_once():
-        intermediate_release_date = None
-        intermediate_release_cohort = intermediate_release_date.year
-        re_entrance = subsequent_entrance(record)
+    if incarcerated_multiple_times(record):
+        return conditional_recidivism_events(record, snapshots)
+    else:
+        if released_early(record):
+            # They were released conditionally and never returned, no revocation
+            event = for_last_record(record, original_entry_date, release_date,
+                                    release_facility, True)
+            return {release_date.year: [event]}
 
-        return intermediate_release_cohort, RecidivismEvent.recidivism_event(
-            original_entry_date, intermediate_release_date, release_facility,
-            re_entrance, release_facility, True)
+    return {}
 
-    return None
+
+def conditional_recidivism_events(record, snapshots):
+    """Returns revocation recidivism events.
+
+    Revocation events are when an individual is released per some conditions,
+    e.g. to parole, and is reincarcerated due to a violation of those
+    conditions, i.e. their parole is revoked.
+
+    This attempts to capture those events, though there are deficiencies.
+    Because this implementation relies on custody and release date changes
+    captured in successive snapshots, we need enough historical (assuming the
+    historical data does not commit data loss, as New York State's DOCCS does)
+    and/or ongoing data to reach meaningful quantities.
+
+    Additionally, in the case where there is no subsequent custody date after a
+    final detected release date, i.e. apparent non-revocation, we check if the
+    overall time spent incarcerated is less than the max sentence length to
+    detect if this was an actual conditional release and not an unconditional
+    release. This may not be accurate in all jurisdictions.
+
+    Args:
+        record: a record for some person
+        snapshots: all snapshots for this person
+
+    Returns:
+        A dictionary from release cohorts to recidivism events for the given
+        inmate in that cohort. One event will be returned per release cohort
+        in almost every case. Rarely, there could be multiple events per cohort.
+    """
+
+    # TODO rework all conditional language around "revocation"?
+
+    def has_relevant_change(record_snapshot):
+        return record_snapshot.custody_date \
+               or record_snapshot.latest_custody_date \
+               or record_snapshot.latest_release_date
+
+    conditional_events = defaultdict(list)
+    prior_entry_date = record.custody_date
+    most_recent_release_date = None
+    re_entry_date = None
+    prior_facility = None
+    most_recent_facility = None
+
+    for snapshot in snapshots:
+        if not has_relevant_change(snapshot):
+            continue
+
+        if re_entry_date and not snapshot.latest_custody_date:
+            # We previously determined a most recent release date and
+            # it was not updated here, so let's capture it
+            if most_recent_release_date and \
+                    re_entry_date > most_recent_release_date:
+                most_recent_release_cohort = most_recent_release_date.year
+
+                conditional_events[most_recent_release_cohort].append(
+                    RecidivismEvent.recidivism_event(
+                        prior_entry_date, most_recent_release_date,
+                        prior_facility, re_entry_date,
+                        most_recent_facility, True))
+
+                prior_facility = most_recent_facility
+                prior_entry_date = re_entry_date
+                re_entry_date = None
+                most_recent_release_date = None
+            else:
+                # Do nothing yet. Still waiting on a release date update
+                pass
+
+        if snapshot.latest_custody_date and \
+                snapshot.latest_custody_date != re_entry_date:
+            # Snapshot introduces new custody date or updates previously
+            # introduced custody date if it is a manual fix in source data
+            re_entry_date = snapshot.latest_custody_date
+
+        elif snapshot.custody_date and \
+                snapshot.custody_date != prior_entry_date and \
+                not most_recent_release_date and not conditional_events:
+            # Update to the original custody date (unlikely but could be a
+            # manual fix applied in source system)
+            prior_entry_date = snapshot.custody_date
+
+        if snapshot.latest_release_date:
+            # Snapshot introduces new release date or updates previously
+            # introduced release date if it is a manual fix in source data
+            most_recent_release_date = snapshot.latest_release_date
+
+        if snapshot.latest_facility:
+            # Snapshot introduced a change to the facility
+            if not prior_facility:
+                prior_facility = snapshot.latest_facility
+            most_recent_facility = snapshot.latest_facility
+
+    # Check if anything to be finalized after last snapshot passed
+    if most_recent_release_date:
+        most_recent_release_cohort = most_recent_release_date.year
+
+        if re_entry_date:
+            conditional_events[most_recent_release_cohort].append(
+                RecidivismEvent.recidivism_event(
+                    prior_entry_date, most_recent_release_date,
+                    prior_facility, re_entry_date,
+                    most_recent_facility, True))
+        elif released_early(record):
+            conditional_events[most_recent_release_cohort].append(
+                RecidivismEvent.non_recidivism_event(
+                    prior_entry_date, most_recent_release_date,
+                    most_recent_facility, True))
+
+    return conditional_events
+
+
+def released_early(record):
+    """Returns whether or not the individual was released early from their
+    sentence.
+
+    Args:
+        record: a record for some person
+
+    Returns:
+        True if they were released early. False if they were released having
+        served the full sentence, if not yet released, or if we cannot clearly
+        make a determination.
+    """
+    if not record.is_released:
+        return False
+
+    max_sentence = record.max_sentence_length
+
+    if not max_sentence or (not max_sentence.years and
+                            not max_sentence.months and
+                            not max_sentence.days):
+        return False
+
+    return max_sentence.life_sentence \
+        or record.custody_date + relativedelta(years=max_sentence.years,
+                                               months=max_sentence.months,
+                                               days=max_sentence.days) \
+        > record.last_release_date
+
+
+def merge_recidivism_events(first, second):
+    for cohort, events in second:
+        for event in events:
+            first[cohort].append(event)

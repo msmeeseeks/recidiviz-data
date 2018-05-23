@@ -89,7 +89,7 @@ class RecidivismEvent(object):
 
     @staticmethod
     def non_recidivism_event(original_entry_date, release_date,
-                             release_facility):
+                             release_facility, was_conditional=False):
         """Creates a RecidivismEvent instance for an event where reincarceration
         did not occur.
 
@@ -100,12 +100,16 @@ class RecidivismEvent(object):
                 prison for this record.
             release_facility: The facility that the inmate was last released
                 from for this record.
+            was_conditional: A boolean indicating whether or not the recidivism,
+                if it occurred, was due to a conditional violation, as opposed
+                to a new incarceration.
 
         Returns:
             A RecidivismEvent for an instance where recidivism did not occur.
         """
         return RecidivismEvent(False, original_entry_date, release_date,
-                               release_facility)
+                               release_facility,
+                               was_conditional=was_conditional)
 
     def __repr__(self):
         return "<RecidivismEvent recidivated: %s, original_entry_date: %s, " \
