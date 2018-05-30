@@ -282,7 +282,7 @@ def characteristic_combinations(inmate, event):
     Release Cohort; Follow-up Period (up to 10 years);
     Methodology (Event-based, Offender-based);
     Demographics (age, race, sex); Location (prison, region); ...
-    TODO: Add support for conditional violations, offense, sentencing
+    TODO: Add support for offense, sentencing
     - Issues 34, 33, 32
 
     Release cohort, follow-up period, and methodology are not included in the
@@ -313,6 +313,9 @@ def characteristic_combinations(inmate, event):
                        "race": inmate.race,
                        "sex": inmate.sex,
                        "release_facility": event.release_facility}
+
+    if event.was_conditional:
+        characteristics["conditional"] = True
 
     return for_characteristics(characteristics)
 

@@ -72,6 +72,7 @@ class RecidivismMetric(polymodel.PolyModel):
     race = ndb.StringProperty()
     sex = ndb.StringProperty()
     release_facility = ndb.StringProperty()
+    conditional = ndb.BooleanProperty()
 
     # Metric values
     total_records = ndb.IntegerProperty()

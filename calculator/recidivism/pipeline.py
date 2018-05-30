@@ -152,6 +152,8 @@ def to_metric(metric_key, total_records, total_recidivism):
         metric.sex = key_mapping["sex"]
     if "release_facility" in key_mapping:
         metric.release_facility = key_mapping["release_facility"]
+    if "conditional" in key_mapping:
+        metric.conditional = key_mapping["conditional"]
 
     return metric
 

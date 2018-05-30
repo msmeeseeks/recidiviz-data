@@ -125,7 +125,7 @@ def find_recidivism(inmate, include_conditional_violations=False):
 
                 if include_conditional_violations:
                     conditional_events = for_conditional_release(
-                        record, original_entry_date, original_entry_date,
+                        record, snapshots, original_entry_date,
                         release_date, release_facility)
 
                     merge_recidivism_events(recidivism_events,
@@ -400,7 +400,7 @@ def conditional_recidivism_events(record, snapshots):
 
     def has_relevant_change(record_snapshot):
         return record_snapshot.custody_date \
-               or record_snapshot.latest_custody_date \
+               or record_snapshot.last_custody_date \
                or record_snapshot.latest_release_date
 
     conditional_events = defaultdict(list)
@@ -414,7 +414,7 @@ def conditional_recidivism_events(record, snapshots):
         if not has_relevant_change(snapshot):
             continue
 
-        if re_entry_date and not snapshot.latest_custody_date:
+        if re_entry_date and not snapshot.last_custody_date:
             # We previously determined a most recent release date and
             # it was not updated here, so let's capture it
             if most_recent_release_date and \
@@ -435,11 +435,11 @@ def conditional_recidivism_events(record, snapshots):
                 # Do nothing yet. Still waiting on a release date update
                 pass
 
-        if snapshot.latest_custody_date and \
-                snapshot.latest_custody_date != re_entry_date:
+        if snapshot.last_custody_date and \
+                snapshot.last_custody_date != re_entry_date:
             # Snapshot introduces new custody date or updates previously
             # introduced custody date if it is a manual fix in source data
-            re_entry_date = snapshot.latest_custody_date
+            re_entry_date = snapshot.last_custody_date
 
         elif snapshot.custody_date and \
                 snapshot.custody_date != prior_entry_date and \
@@ -490,7 +490,7 @@ def released_early(record):
         served the full sentence, if not yet released, or if we cannot clearly
         make a determination.
     """
-    if not record.is_released:
+    if not record.is_released or not record.latest_release_date:
         return False
 
     max_sentence = record.max_sentence_length
@@ -504,10 +504,10 @@ def released_early(record):
         or record.custody_date + relativedelta(years=max_sentence.years,
                                                months=max_sentence.months,
                                                days=max_sentence.days) \
-        > record.last_release_date
+        > record.latest_release_date
 
 
 def merge_recidivism_events(first, second):
-    for cohort, events in second:
+    for cohort, events in second.iteritems():
         for event in events:
             first[cohort].append(event)
