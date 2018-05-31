@@ -16,4 +16,4 @@
 # =============================================================================
 
 
-from scraper.us_ny import us_ny_scraper
+from ingest.us_ny import us_ny_scraper
