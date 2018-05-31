@@ -20,6 +20,7 @@
 
 import logging
 import webapp2
+from google.appengine.api import memcache
 from requests.packages.urllib3.contrib.appengine import TimeoutError
 from utils import regions
 from utils.auth import authenticate_request
@@ -80,7 +81,7 @@ class Scraper(webapp2.RequestHandler):
         logging.info("Queue %s, processing task (%s) for %s." %
                      (queue_name, task, region))
 
-        scraper = regions.get_scraper(region)
+        scraper = regions.get_scraper_from_cache(region)
         scraper_task = getattr(scraper, task)
 
         try:
