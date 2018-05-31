@@ -43,11 +43,12 @@ class Region(object):
              'record': 'UsNyRecord',
              'snapshot': 'UsNySnapshot'}
         names_file: (string) Filename of names file for this region
+        params: (dict) Optional mapping of key-value pairs specific to region
         queues: (list) List of queue name for acceptable scraping queues
         region_code: (string) Region code
         region_name: (string) Human-readable region name
-        scraper_class: (string) Name of the class for this region's scraper.
-            If absent, this assumes the scraper is `[region_code]_scraper`.
+        scraper_class: (string) Optional name of the class for this region's
+            scraper. If absent, assumes the scraper is `[region_code]_scraper`.
         scraper_package: (string) Name of the package with this region's scraper
         timezone: (string) Timezone in which this region resides. If the region
             is in multiple timezones, this is the timezone in which most of the
@@ -65,6 +66,7 @@ class Region(object):
         self.entity_kinds = region_config["entity_kinds"]
         self.region_code = region_config["region_code"]
         self.names_file = get_name_list_file(self.region_code)
+        self.params = region_config.get("params", {})
         self.queues = region_config["queues"]
         self.region_name = region_config["region_name"]
         self.scraper_class = region_config.get("scraper_class",

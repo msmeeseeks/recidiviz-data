@@ -56,6 +56,9 @@ MANIFEST_CONTENTS = """
           record: UsFlRecord
           snapshot: UsFlSnapshot
         names_file: us_fl_names.csv
+        params:
+          foo: bar
+          sha: baz
         queues:
         - us-fl-scraper
         - a-different-queue
@@ -95,6 +98,10 @@ FULL_MANIFEST = {
                 'snapshot': 'UsFlSnapshot'
             },
             'names_file': 'us_fl_names.csv',
+            'params': {
+                'foo': 'bar',
+                'sha': 'baz'
+            },
             'queues': ['us-fl-scraper', 'a-different-queue'],
             'region_code': 'us_fl',
             'region_name': 'Florida State',
@@ -173,12 +180,16 @@ def test_region_class():
     assert region.get_inmate_kind().__name__ == 'UsNyInmate'
     assert region.get_record_kind().__name__ == 'UsNyRecord'
     assert region.get_snapshot_kind().__name__ == 'UsNySnapshot'
+    assert not region.params
+    assert region.queues == ['us-ny-scraper']
+    assert region.scraper_class == 'us_ny_scraper'
 
 
 def test_region_class_with_scraper_class_and_multiple_queues():
     region = with_manifest(regions.Region, 'us_fl')
-    assert region.scraper_class == 'a_different_scraper'
+    assert region.params == {'foo': 'bar', 'sha': 'baz'}
     assert region.queues == ['us-fl-scraper', 'a-different-queue']
+    assert region.scraper_class == 'a_different_scraper'
 
 
 def with_manifest(func, *args, **kwargs):
