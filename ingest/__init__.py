@@ -23,7 +23,9 @@ sources.
 """
 
 
+import ingest.docket
 import ingest.models
 import ingest.queue_control
+import ingest.sessions
 import ingest.us_ny
 import ingest.worker

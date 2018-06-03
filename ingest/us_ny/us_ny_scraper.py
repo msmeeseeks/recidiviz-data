@@ -50,6 +50,8 @@ from lxml import html
 from lxml.etree import XMLSyntaxError
 from models import env_vars
 from models.record import Offense, SentenceDuration
+from ingest import docket
+from ingest import sessions
 from ingest.models.scrape_session import ScrapeSession, ScrapedRecord
 from us_ny_inmate import UsNyInmate
 from us_ny_record import UsNyRecord
@@ -71,7 +73,6 @@ import re
 
 
 REGION = Region('us_ny')
-DOCKET_QUEUE_NAME = 'docket'
 FAIL_COUNTER = REGION.region_code + "_next_page_fail_counter"
 SCRAPER_WORK_URL = '/scraper/work'
 
@@ -166,7 +167,8 @@ def cleanup(scrape_type):
     """
     memcache.set(key=FAIL_COUNTER, value=None)
 
-    open_sessions = get_open_sessions(scrape_type=scrape_type)
+    open_sessions = sessions.get_open_sessions(REGION.region_code,
+                                               scrape_type=scrape_type)
 
     for session in open_sessions:
         session.end = datetime.now()
@@ -205,7 +207,7 @@ def stop_scrape(scrape_types):
     # resume for them since the taskqueue purge below will kill them.
     other_scrapes = set([])
 
-    open_sessions = get_open_sessions()
+    open_sessions = sessions.get_open_sessions(REGION.region_code)
     for session in open_sessions:
         if session.scrape_type not in scrape_types:
             other_scrapes.add(session.scrape_type)
@@ -232,8 +234,9 @@ def resume_scrape(scrape_type):
     Returns:
         N/A
     """
-    recent_sessions = get_open_sessions(open_only=False,
-                                        scrape_type=scrape_type)
+    recent_sessions = sessions.get_open_sessions(REGION.region_code,
+                                                 open_only=False,
+                                                 scrape_type=scrape_type)
 
     if scrape_type == "background":
         # Background scrape
@@ -800,7 +803,8 @@ def scrape_inmate(params):
         # Kick off next docket item if this concludes our last one
         if next_docket_item:
             # Delete current docket item, update session
-            remove_item_from_session_and_docket(scrape_type)
+            docket.remove_item_from_session_and_docket(REGION.region_code,
+                                                       scrape_type)
 
             # Start the next docket item
             start_scrape(params["scrape_type"])
@@ -925,7 +929,8 @@ def scrape_disambiguation(page_tree, query_content, scrape_type, ignore_list):
 
             # Double-check that we haven't already processed this entry while
             # scraping another disambig page for this same inmate
-            current_session = get_open_sessions(most_recent_only=True)
+            current_session = sessions.get_open_sessions(REGION.region_code,
+                                                         most_recent_only=True)
 
             if current_session is None:
                 # The session's been closed, we should peacefully end scraping
@@ -1389,39 +1394,6 @@ def calculate_age(birth_date):
     return age
 
 
-def get_open_sessions(open_only=True, most_recent_only=False, scrape_type=None):
-    """Retrieves ScrapeSession entities
-
-    Retrieves some combination of scrape session entities based on the arguments
-    provided.
-
-    Args:
-        open_only: (bool) Only return currently open sessions
-        most_recent_only: (bool) Only return the most recent session entity
-        scrape_type: (string) Only return sessions of this scrape type
-
-    Returns:
-        Result set of ScrapeSession entities, or None if no matching sessions found
-    """
-    session_query = ScrapeSession.query()
-    session_query = session_query.filter(
-        ScrapeSession.region == REGION.region_code).order(-ScrapeSession.start)
-
-    if open_only:
-        # This must be an equality operator instead of `is None` for `filter` to work
-        session_query = session_query.filter(ScrapeSession.end == None)
-
-    if scrape_type:
-        session_query = session_query.filter(ScrapeSession.scrape_type == scrape_type)
-
-    if most_recent_only:
-        session_results = session_query.get()
-    else:
-        session_results = session_query.fetch()
-
-    return session_results
-
-
 def update_last_scraped(last_scraped, scrape_type):
     """Updates ScrapeSession entity with most recently scraped inmate
 
@@ -1437,8 +1409,9 @@ def update_last_scraped(last_scraped, scrape_type):
         True if successful
         False if not
     """
-    current_session = get_open_sessions(most_recent_only=True,
-                                        scrape_type=scrape_type)
+    current_session = sessions.get_open_sessions(REGION.region_code,
+                                                 most_recent_only=True,
+                                                 scrape_type=scrape_type)
     if current_session:
         current_session.last_scraped = last_scraped
         try:
@@ -1493,7 +1466,8 @@ def results_parsing_failure():
         # This is a hacky check for whether we finished the alphabet. The last
         # name in DOCCS as of 11/13/2017 is 'ZYTEL', who's sentenced to life
         # and has no other crimes / disambig.
-        current_session = get_open_sessions(most_recent_only=True)
+        current_session = sessions.get_open_sessions(REGION.region_code,
+                                                     most_recent_only=True)
         if current_session:
             last_scraped = current_session.last_scraped
             scrape_type = current_session.scrape_type
@@ -1509,7 +1483,8 @@ def results_parsing_failure():
             # Get most recent sessions, including closed ones, and find
             # the last one to have a last_scraped name in it. These will
             # come back most-recent-first.
-            recent_sessions = get_open_sessions(open_only=False, scrape_type=scrape_type)
+            recent_sessions = sessions.get_open_sessions(
+                REGION.region_code, open_only=False, scrape_type=scrape_type)
 
             for session in recent_sessions:
                 if session.last_scraped:
@@ -1611,11 +1586,7 @@ def get_headers():
 
 
 def iterate_docket_item(scrape_type):
-    """Leases new docket item, updates current session, returns item contents
-
-    Pulls an arbitrary new item from the docket type provided, adds it to the
-    current session info, and (if snapshot scrape) converts the docket item
-    payload from an inmate_id to a record_id for search in DOCCS.
+    """Leases new docket item, updates current session, returns item contents.
 
     Returns an entity to scrape as provided by the docket item.
 
@@ -1623,23 +1594,13 @@ def iterate_docket_item(scrape_type):
         scrape_type: (string) Type of docket item to retrieve
 
     Returns:
-        False if failure
+        False if there was any failure to retrieve a new docket item.
         If successful:
             Background scrape: ("surname", "given names")
             Snapshot scrape:   ("record_id", ["records to ignore", ...])
     """
-
-    docket_item = get_new_docket_item(scrape_type)
-    if not docket_item:
-        logging.info("No items in %s docket. Ending scrape." % scrape_type)
-        return False
-
-    item_content = json.loads(docket_item.payload)
-
-    item_added = add_docket_item_to_current_session(docket_item.name, scrape_type)
-    if not item_added:
-        logging.error("Failed to update session with %s docket item %s." %
-                      (scrape_type, str(item_content)))
+    item_content = docket.iterate_docket_item(REGION.region_code, scrape_type)
+    if not item_content:
         return False
 
     if scrape_type == "snapshot":
@@ -1648,59 +1609,13 @@ def iterate_docket_item(scrape_type):
         record_id = inmate_to_record(item_content[0])
 
         if not record_id:
-            logging.error("Couldn't convert docket item %s to record" %
-                          str(item_content))
+            logging.error("Couldn't convert docket item [%s] to record"
+                          % str(item_content))
             return False
 
-        result = (record_id, item_content[1])
+        return record_id, item_content[1]
 
-    else:
-        result = item_content
-
-    return result
-
-
-def get_new_docket_item(scrape_type, attempt=0):
-    """Retrieves arbitrary item from docket for the specified scrape type
-
-    Retrieves an arbitrary item still in the docket (whichever docket
-    type is specified). Some retry logic is built-in, since this may
-    get called immediately after task creation and it's not clear how
-    quickly the taskqueue index updates.
-
-    Args:
-        scrape_type: (string) Scrape type to lease item for
-        attempt: (int) # of attempts so far. After 2, returns None
-
-    Returns:
-        None if query returns None
-        Task entity from queue
-    """
-    docket_item = None
-
-    # We only lease tasks for 5min, so that they pop back into the queue
-    # if we pause or stop the scrape for very long.
-    # Note: This may be the right number for us_ny snapshot scraping, but
-    #   if reused with another scraper the background scrapes might need
-    #   more time depending on e.g. # results for query 'John Doe'.
-    q = taskqueue.Queue(DOCKET_QUEUE_NAME)
-    tag_name = REGION.region_code + "-" + scrape_type
-    lease_duration_seconds = 300
-    num_tasks = 1
-    docket_results = q.lease_tasks_by_tag(lease_duration_seconds,
-                                          num_tasks,
-                                          tag_name)
-
-    if docket_results:
-        docket_item = docket_results[0]
-        logging.info("Leased docket item %s from the docket queue." %
-            (docket_item.name))
-    elif attempt < 2:
-        # Datastore index may not have been updated, sleep for 5sec then retry
-        time.sleep(5)
-        return get_new_docket_item(scrape_type, attempt+1)
-
-    return docket_item
+    return item_content
 
 
 def inmate_to_record(inmate_id):
@@ -1732,116 +1647,6 @@ def inmate_to_record(inmate_id):
         return None
 
     return record.record_id
-
-
-def remove_item_from_session_and_docket(scrape_type):
-    """Deletes currently leased docket item, removes from scrape session
-
-    Fetches the current session, determines which item from the docket is currently
-    being worked on, then deletes that item and resets the session item to blank.
-
-    Args:
-        N/A
-
-    Returns:
-        N/A
-    """
-    # Get the current session, remove and delete its docket item
-    session = get_open_sessions(open_only=True,
-                                most_recent_only=True,
-                                scrape_type=scrape_type)
-
-    if not session:
-        logging.error("No open sessions found to remove docket item. "
-            "Shutting down.")
-
-    docket_item_name = session.docket_item
-    if docket_item_name:
-        item_deleted = delete_docket_item(docket_item_name)
-
-        if item_deleted:
-            session.docket_item = None
-            try:
-                session.put()
-            except (Timeout, TransactionFailedError, InternalError) as e:
-                logging.error("Failed to persist session after deleting docket "
-                    "item %s" % (docket_item_name))
-
-    return
-
-def delete_docket_item(item_name):
-    """Delete a specific docket item from the docket pull queue
-
-    Deletes a specific docket item, e.g. when we've completed it or when we're
-    purging a prior docket to build a new one.
-
-    Args:
-        item_name: (string) The docket item's name, which we use to select and
-            delete it
-
-    Returns:
-        True if successful
-        False if not
-    """
-    q = taskqueue.Queue(DOCKET_QUEUE_NAME)
-
-    # Delete item from docket, update session to remove docket item.
-    # Note: taskqueue.delete_tasks_by_name is supposed to accept either
-    #   a single task name (string) or a list of task names. However,
-    #   a bug currently causes it to treat a string variable as an iterable
-    #   as well, and to try to delete tasks named after each char. So we
-    #   submit a list of length 1.
-    docket_items = q.delete_tasks_by_name([item_name])
-
-    # Verify that docket item was properly deleted
-    if not docket_items[0].was_deleted:
-        logging.error("Error while deleting docket item with name %s" %
-            (item_name))
-        return False
-
-    return True
-
-
-def add_docket_item_to_current_session(docket_item_name, scrape_type, attempt=0):
-    """Adds newly leased docket item to scrape session for tracking
-
-    Adds a provided item's key to the current session info, so that the session
-    can know which item to remove from the docket when work is done on it.
-
-    Args:
-        docket_item_name: (string) A docket queue task name
-        scrape_type: (string) The session type this docket item should be added to
-        attempt: (int) # of attempts so far. After 2, returns False
-
-    Returns:
-        True is successful
-        False if not
-    """
-    session = get_open_sessions(open_only=True,
-                                most_recent_only=True,
-                                scrape_type=scrape_type)
-
-    if session:
-        session.docket_item = docket_item_name
-
-        try:
-            session.put()
-        except (Timeout, TransactionFailedError, InternalError):
-            return False
-
-    else:
-        if attempt > 2:
-            # Usually means we (manually or via cron) commanded scraper to stop.
-            logging.info("No open session to update with docket item.")
-            return False
-        else:
-            # Give a bit of space for eventual consistency; our newly-minted session
-            # isn't yet coming up in query results.
-            time.sleep(2)
-            add_docket_item_to_current_session(docket_item_name, scrape_type, attempt+1)
-
-
-    return True
 
 
 def record_to_snapshot(record):
