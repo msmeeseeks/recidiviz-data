@@ -66,10 +66,10 @@ def add_docket_item_to_current_session(docket_item_name,
             # Give a bit of space for eventual consistency;
             # our newly-minted session isn't yet coming up in query results.
             time.sleep(2)
-            add_docket_item_to_current_session(docket_item_name,
-                                               region_code,
-                                               scrape_type,
-                                               attempt+1)
+            return add_docket_item_to_current_session(docket_item_name,
+                                                      region_code,
+                                                      scrape_type,
+                                                      attempt+1)
     return True
 
 
