@@ -50,7 +50,7 @@ from lxml import html
 from lxml.etree import XMLSyntaxError
 from models import env_vars
 from models.record import Offense, SentenceDuration
-from scraper.models.scrape_session import ScrapeSession, ScrapedRecord
+from ingest.models.scrape_session import ScrapeSession, ScrapedRecord
 from us_ny_inmate import UsNyInmate
 from us_ny_record import UsNyRecord
 from us_ny_snapshot import UsNySnapshot
