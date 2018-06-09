@@ -143,7 +143,8 @@ def start_scrape(scrape_type):
     serial_params = json.dumps(params)
 
     taskqueue.add(url=SCRAPER_WORK_URL,
-                  queue_name=REGION.scrape_queue_name,
+                  # TODO (Issue #88): Replace this dynamic queue selection
+                  queue_name=REGION.queues[0],
                   params={'region': REGION.region_code,
                           'task': "scrape_search_page",
                           'params': serial_params})
@@ -215,7 +216,7 @@ def stop_scrape(scrape_types):
             "type: %s." % str(scrape))
         deferred.defer(resume_scrape, scrape, _countdown=60)
 
-    q = taskqueue.Queue(REGION.scrape_queue_name)
+    q = taskqueue.Queue(REGION.queues[0])
     q.purge()
 
 
@@ -275,7 +276,7 @@ def resume_scrape(scrape_type):
     serial_params = json.dumps(params)
 
     taskqueue.add(url=SCRAPER_WORK_URL,
-                  queue_name=REGION.scrape_queue_name,
+                  queue_name=REGION.queues[0],
                   params={'region': REGION.region_code,
                           'task': "scrape_search_page",
                           'params': serial_params})
@@ -366,7 +367,7 @@ def scrape_search_page(params):
         task_name = "scrape_inmate"
 
     taskqueue.add(url=SCRAPER_WORK_URL,
-                  queue_name=REGION.scrape_queue_name,
+                  queue_name=REGION.queues[0],
                   params={'region': REGION.region_code,
                           'task': task_name,
                           'params': search_results_params_serial})
@@ -526,7 +527,7 @@ def scrape_search_results_page(params):
         result_params = json.dumps(result_params)
 
         taskqueue.add(url=SCRAPER_WORK_URL,
-                      queue_name=REGION.scrape_queue_name,
+                      queue_name=REGION.queues[0],
                       params={'region': REGION.region_code,
                               'task': "scrape_inmate",
                               'params': result_params})
@@ -589,7 +590,7 @@ def scrape_search_results_page(params):
     next_params = json.dumps(next_params)
 
     taskqueue.add(url=SCRAPER_WORK_URL,
-                  queue_name=REGION.scrape_queue_name,
+                  queue_name=REGION.queues[0],
                   params={'region': REGION.region_code,
                           'task': "scrape_search_results_page",
                           'params': next_params})
@@ -968,7 +969,7 @@ def scrape_disambiguation(page_tree, query_content, scrape_type, ignore_list):
             task_params = json.dumps(task_params)
 
             taskqueue.add(url=SCRAPER_WORK_URL,
-                          queue_name=REGION.scrape_queue_name,
+                          queue_name=REGION.queues[0],
                           params={'region': REGION.region_code,
                                   'task': "scrape_inmate",
                                   'params': task_params})
