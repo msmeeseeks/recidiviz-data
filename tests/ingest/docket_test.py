@@ -19,14 +19,10 @@
 
 
 import json
-import operator
-import os
 import time
-import unittest
 
 from datetime import datetime
 from google.appengine.api import taskqueue
-from google.appengine.ext import deferred
 from google.appengine.ext import ndb
 from google.appengine.ext import testbed
 from ingest import docket
