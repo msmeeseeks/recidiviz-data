@@ -254,10 +254,12 @@ def load_snapshot_target_list(region_code, phase, cursor=None):
         # (Snapshot search aims to catch when they get out / facility changes)
         snapshot_query = region_snapshot.query(ndb.AND(
             region_snapshot.created_on > start_datetime,
-            not region_snapshot.is_released))
+            # This must be an equality operator instead of `not ...` to work
+            region_snapshot.is_released == False))  # pylint: disable=singleton-comparison
 
         query_results, next_cursor, more = snapshot_query.fetch_page(
             batch_size, start_cursor=cursor)
+        print query_results, next_cursor, more, phase
 
     elif phase == 1:
         # Query 2: Records (edge case: record / release predates our scraping)
@@ -271,10 +273,12 @@ def load_snapshot_target_list(region_code, phase, cursor=None):
         # is to catch any for which the core snapshot query didn't apply.
         inmate_records_query = region_record.query(ndb.AND(
             region_record.latest_release_date > start_date,
-            region_record.is_released))
+            # This must be an equality operator to work
+            region_record.is_released == True))  # pylint: disable=singleton-comparison
 
         query_results, next_cursor, more = inmate_records_query.fetch_page(
             batch_size, start_cursor=cursor)
+        print query_results, next_cursor, more, phase
 
     elif phase == 2:
         # Query 3: Records (edge case: no record changes since before window)
@@ -296,6 +300,7 @@ def load_snapshot_target_list(region_code, phase, cursor=None):
 
         query_results, next_cursor, more = inmate_records_query.fetch_page(
             batch_size, start_cursor=cursor)
+        print query_results, next_cursor, more, phase
 
     else:
         logging.info("Finished loading snapshot target list to docket.")
@@ -303,10 +308,13 @@ def load_snapshot_target_list(region_code, phase, cursor=None):
 
     (relevant_records, inmate_keys_ids) = process_query_response(
         query_type, query_results)
+    print relevant_records
+    print inmate_keys_ids
 
     # Invert results to a combination of inmate + set of records to ignore
     results = get_ignore_records(start_date, region_record, relevant_records,
                                  inmate_keys_ids)
+    print results
 
     # Store the inmates and ignore records as docket items for snapshot scrape
     add_to_query_docket(region_code, scrape_type, results)
@@ -468,7 +476,7 @@ def add_to_query_docket(region_code, scrape_type, docket_items):
     logging.info("Populating query docket for %s/%s.", region_code, scrape_type)
     q = taskqueue.Queue(DOCKET_QUEUE_NAME)
 
-    tag_name = region_code + "-" + scrape_type
+    tag_name = "{}-{}".format(region_code, scrape_type)
 
     tasks_to_add = []
     for item in docket_items:
@@ -624,7 +632,7 @@ def purge_query_docket(region, scrape_type):
 
     lease_seconds = 3600
     max_tasks = 1000
-    tag_name = region + "-" + scrape_type
+    tag_name = "{}-{}".format(region, scrape_type)
     deadline_seconds = 20
 
     q = taskqueue.Queue(DOCKET_QUEUE_NAME)

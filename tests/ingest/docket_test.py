@@ -22,12 +22,93 @@ import json
 import time
 
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 from google.appengine.ext import testbed
 from ingest import docket
 from ingest import sessions
 from ingest.models.scrape_session import ScrapeSession
+from ingest.us_ny.us_ny_record import UsNyRecord
+from ingest.us_ny.us_ny_snapshot import UsNySnapshot
+from models.inmate import Inmate
+
+
+class TestPopulation(object):
+    """Tests for the methods related to population of items in the docket."""
+
+    def setup_method(self, _test_method):
+        # noinspection PyAttributeOutsideInit
+        self.testbed = testbed.Testbed()
+        self.testbed.activate()
+        self.testbed.init_datastore_v3_stub()
+        self.testbed.init_memcache_stub()
+        ndb.get_context().clear_cache()
+
+        # root_path must be set the the location of queue.yaml.
+        # Otherwise, only the 'default' queue will be available.
+        self.testbed.init_taskqueue_stub(root_path='.')
+
+        # noinspection PyAttributeOutsideInit
+        self.taskqueue_stub = self.testbed.get_stub(
+            testbed.TASKQUEUE_SERVICE_NAME)
+
+    def teardown_method(self, _test_method):
+        self.testbed.deactivate()
+
+    def test_add_to_query_docket_background(self):
+        docket.add_to_query_docket("us_ny",
+                                   "background",
+                                   get_payload(as_json=False))
+
+        tasks = [docket.get_new_docket_item("us_ny", "background"),
+                 docket.get_new_docket_item("us_ny", "background")]
+        assert len(tasks) == 2
+
+        for i, task in enumerate(tasks):
+            assert task.payload == json.dumps(
+                get_payload(as_json=False)[i])
+            assert task.tag == "us_ny-background"
+
+    def test_add_to_query_docket_snapshot(self):
+        docket.add_to_query_docket("us_ny",
+                                   "snapshot",
+                                   get_snapshot_payload(as_json=False))
+
+        tasks = [docket.get_new_docket_item("us_ny", "snapshot"),
+                 docket.get_new_docket_item("us_ny", "snapshot")]
+        assert len(tasks) == 2
+
+        for i, task in enumerate(tasks):
+            assert task.payload == json.dumps(
+                get_snapshot_payload(as_json=False)[i])
+            assert task.tag == "us_ny-snapshot"
+
+    def test_load_target_list_background_happy_path(self):
+        docket.load_target_list("background", "us_ny", {})
+
+        task = docket.get_new_docket_item("us_ny", "background")
+        assert task.payload == json.dumps(('aaardvark', ''))
+        assert not docket.get_new_docket_item("us_ny", "background", back_off=1)
+
+    def test_load_target_list_snapshot_never_ingested(self):
+        docket.load_target_list("snapshot", "us_ny", {})
+
+        assert not docket.get_new_docket_item("us_ny", "snapshot", back_off=1)
+
+    def test_load_target_list_snapshot_happy_path(self):
+        halfway = datetime.now() - relativedelta(years=5)
+
+        inmate = get_inmate("clem", "12345")
+        record = get_record(inmate.key, "56789", halfway)
+        get_record(inmate.key, "89012", halfway - relativedelta(years=10))
+        get_snapshot(record.key, halfway)
+
+        docket.load_target_list("snapshot", "us_ny", {})
+
+        task = docket.get_new_docket_item("us_ny", "snapshot")
+        assert task.payload == json.dumps(("12345", ["89012"]))
+        assert task.tag == "us_ny-snapshot"
 
 
 class TestRetrieval(object):
@@ -218,6 +299,13 @@ def get_payload(as_json=True):
     return body
 
 
+def get_snapshot_payload(as_json=True):
+    body = [('123', ['456']), ('789', ['012', '234'])]
+    if as_json:
+        return json.dumps(body)
+    return body
+
+
 def create_open_session(region_code, scrape_type, start, docket_item):
     session = ScrapeSession(region=region_code,
                             scrape_type=scrape_type,
@@ -225,3 +313,26 @@ def create_open_session(region_code, scrape_type, start, docket_item):
                             start=start)
     session.put()
     return session
+
+
+def get_inmate(key, inmate_id):
+    new_inmate = Inmate(id=key, inmate_id=inmate_id)
+    new_inmate.put()
+    return new_inmate
+
+
+def get_record(parent_key, record_id, latest_release_date):
+    new_record = UsNyRecord(parent=parent_key,
+                            record_id=record_id,
+                            latest_release_date=latest_release_date,
+                            is_released=False)
+    new_record.put()
+    return new_record
+
+
+def get_snapshot(parent_key, snapshot_date):
+    new_snapshot = UsNySnapshot(parent=parent_key,
+                                created_on=snapshot_date,
+                                is_released=False)
+    new_snapshot.put()
+    return new_snapshot
