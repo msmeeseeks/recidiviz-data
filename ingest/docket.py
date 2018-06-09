@@ -105,7 +105,7 @@ def load_target_list(scrape_type, region_code, params):
     Returns:
         N/A
     """
-    logging.info("Getting target list, %s/%s" % (region_code, scrape_type))
+    logging.info("Getting target list, %s/%s", region_code, scrape_type)
 
     if scrape_type == "background":
         name_list_file = regions.get_name_list_file(region_code)
@@ -190,8 +190,8 @@ def load_background_target_list(region_code, name_file, query_name, load,
         if not write_to_docket and end_of_list:
             # Name not in list, add it as a one-off docket item
             logging.info("Couldn't find user-provided name '%s' in name list, "
-                         "adding one-off docket item for the name instead."
-                         % str(query_name))
+                         "adding one-off docket item for the name instead.",
+                         str(query_name))
             names = [query_name]
             write_to_docket = True
 
@@ -363,7 +363,7 @@ def get_name_list_subset(names, query_name):
         match_index = names.index(query_name)
 
         logging.info("Found query name %s in name list, adding subsequent "
-                     "names to docket." % str(query_name))
+                     "names to docket.", str(query_name))
         subset = names[match_index:]
 
         return True, subset
@@ -465,8 +465,7 @@ def add_to_query_docket(region_code, scrape_type, docket_items):
         scrape_type: (string) Scrape type to add item to docket for
         docket_items: (list) List of payloads to add.
     """
-    logging.info("Populating query docket for %s/%s."
-                 % (region_code, scrape_type))
+    logging.info("Populating query docket for %s/%s.", region_code, scrape_type)
     q = taskqueue.Queue(DOCKET_QUEUE_NAME)
 
     tag_name = region_code + "-" + scrape_type
@@ -476,8 +475,8 @@ def add_to_query_docket(region_code, scrape_type, docket_items):
         payload = json.dumps(item)
 
         if scrape_type == "snapshot":
-            logging.debug("Attempting to add snapshot item to docket: %s"
-                          % (item[0]))
+            logging.debug("Attempting to add snapshot item to docket: %s",
+                          item[0])
             task_name = get_task_name(region_code, item[0])
             new_task = taskqueue.Task(payload=payload,
                                       method='PULL',
@@ -508,7 +507,7 @@ def add_to_query_docket(region_code, scrape_type, docket_items):
 # ########################## #
 
 
-def get_new_docket_item(region_code, scrape_type, attempt=0):
+def get_new_docket_item(region_code, scrape_type, attempt=0, back_off=5):
     """Retrieves arbitrary item from docket for the specified scrape type
 
     Retrieves an arbitrary item still in the docket (whichever docket
@@ -520,10 +519,11 @@ def get_new_docket_item(region_code, scrape_type, attempt=0):
         region_code: (string) Region code to lease item for
         scrape_type: (string) Scrape type to lease item for
         attempt: (int) # of attempts so far. After 2, returns None
+        back_off: (int) # of seconds to wait between attempts.
 
     Returns:
-        None if query returns None
         Task entity from queue
+        None if query returns None
     """
     docket_item = None
 
@@ -533,7 +533,7 @@ def get_new_docket_item(region_code, scrape_type, attempt=0):
     #   if reused with another scraper the background scrapes might need
     #   more time depending on e.g. # results for query 'John Doe'.
     q = taskqueue.Queue(DOCKET_QUEUE_NAME)
-    tag_name = region_code + "-" + scrape_type
+    tag_name = "{}-{}".format(region_code, scrape_type)
     lease_duration_seconds = 300
     num_tasks = 1
     docket_results = q.lease_tasks_by_tag(lease_duration_seconds,
@@ -542,17 +542,21 @@ def get_new_docket_item(region_code, scrape_type, attempt=0):
 
     if docket_results:
         docket_item = docket_results[0]
-        logging.info("Leased docket item %s from the docket queue."
-                     % docket_item.name)
+        logging.info("Leased docket item %s from the docket queue.",
+                     docket_item.name)
     elif attempt < 2:
-        # Datastore index may not have been updated, sleep for 5sec then retry
-        time.sleep(5)
-        return get_new_docket_item(scrape_type, attempt+1)
+        # Datastore index may not have been updated, sleep and then retry
+        time.sleep(back_off)
+        return get_new_docket_item(region_code, scrape_type,
+                                   attempt=attempt+1, back_off=back_off)
+    else:
+        logging.info("No matching docket item found in the docket queue for "
+                     "%s/%s", region_code, scrape_type)
 
     return docket_item
 
 
-def iterate_docket_item(region_code, scrape_type):
+def iterate_docket_item(region_code, scrape_type, back_off=5):
     """Leases new docket item, updates current session, returns item contents
 
     Pulls an arbitrary new item from the docket type provided, adds it to the
@@ -564,6 +568,7 @@ def iterate_docket_item(region_code, scrape_type):
     Args:
         region_code: (string) Region of docket item to retrieve
         scrape_type: (string) Scrape type of docket item to retrieve
+        back_off: (int) # of seconds to wait between attempts.
 
     Returns:
         The payload of the next docket item, if successfully retrieved and added
@@ -571,11 +576,13 @@ def iterate_docket_item(region_code, scrape_type):
         or not successfully added to the session, returns None.
     """
 
-    docket_item = get_new_docket_item(region_code, scrape_type)
+    docket_item = get_new_docket_item(region_code,
+                                      scrape_type,
+                                      back_off=back_off)
 
     if not docket_item:
-        logging.info("No items in [%s, %s] docket. Ending scrape."
-                     % region_code, scrape_type)
+        logging.info("No items in [%s, %s] docket. Ending scrape.",
+                     region_code, scrape_type)
         return None
 
     item_content = json.loads(docket_item.payload)
@@ -584,8 +591,8 @@ def iterate_docket_item(region_code, scrape_type):
                                                              region_code,
                                                              scrape_type)
     if not item_added:
-        logging.error("Failed to update session [%s, %s] with docket item %s."
-                      % region_code, scrape_type, str(item_content))
+        logging.error("Failed to update session [%s, %s] with docket item %s.",
+                      region_code, scrape_type, str(item_content))
         return None
 
     return item_content
@@ -613,8 +620,7 @@ def purge_query_docket(region, scrape_type):
     Returns:
         N/A
     """
-    logging.info("Purging existing query docket for %s/%s"
-                 % (region, scrape_type))
+    logging.info("Purging existing query docket for %s/%s", region, scrape_type)
 
     lease_seconds = 3600
     max_tasks = 1000
@@ -671,7 +677,7 @@ def purge_leased_docket_items(region_code, scrape_type):
             # Possible the docket item was deleted too long ago for the
             # task queue to recognize.
             logging.warning("Failed to remove docket item (%s) from session "
-                            "(%s):\n%s" % docket_item_name, session.key, e)
+                            "(%s):\n%s", docket_item_name, session.key, e)
 
     return
 
@@ -710,8 +716,8 @@ def remove_item_from_session_and_docket(region_code, scrape_type):
                 session.put()
             except (Timeout, TransactionFailedError, InternalError) as e:
                 logging.error("Failed to persist session [%s] after deleting "
-                              "docket item [%s]:\n%s"
-                              % session.key, docket_item_name, e)
+                              "docket item [%s]:\n%s",
+                              session.key, docket_item_name, e)
 
     return
 
@@ -771,8 +777,8 @@ def delete_docket_item(item_name):
 
     # Verify that docket item was properly deleted
     if not docket_items[0].was_deleted:
-        logging.error("Error while deleting docket item with name %s"
-                      % item_name)
+        logging.error("Error while deleting docket item with name %s",
+                      item_name)
         return False
 
     return True

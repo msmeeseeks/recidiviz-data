@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Tests for utils/environment.py."""
+"""Tests for ingest/sessions.py."""
 
 
 from datetime import datetime
