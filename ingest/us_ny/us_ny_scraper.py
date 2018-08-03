@@ -53,7 +53,7 @@ from models.record import Offense, SentenceDuration
 from ingest import sessions
 from ingest import tracker
 from ingest.models.scrape_key import ScrapeKey
-from ingest.models.scrape_session import ScrapeSession, ScrapedRecord
+from ingest.sessions import ScrapedRecord
 from us_ny_inmate import UsNyInmate
 from us_ny_record import UsNyRecord
 from us_ny_snapshot import UsNySnapshot
@@ -61,14 +61,13 @@ from utils import environment
 from utils.regions import Region
 
 from copy import deepcopy
-from datetime import datetime, date
+from datetime import date
 import dateutil.parser as parser
 import json
 import logging
 import requests
 import requests_toolbelt.adapters.appengine
 import string
-import time
 import random
 import re
 
@@ -88,38 +87,8 @@ requests.packages.urllib3.disable_warnings(
 )
 
 # TODO(andrew) - Create class to surround this with, with requirements for
-# the functions that will be called from recidiviz and worker such as setup(),
+# the functions that will be called from recidiviz and worker such as
 # start_scrape(), stop_scrape(), and resume_scrape().
-
-
-def setup(scrape_type):
-    """Cleans up old session info, creates new one. Called before each scrape.
-
-    Run prior to any specific scraping tasks for the region. Calls cleanup to
-    handle old session info that may have been left in an inconsistent state,
-    and creates a new session for this scrape.
-
-    Args:
-        scrape_type: (string) The type of scrape session to clean up / create
-
-    Returns:
-        N/A
-    """
-    logging.info("Creating new scrape session, type: %s" % scrape_type)
-
-    cleanup(scrape_type)
-    new_session = ScrapeSession(scrape_type=scrape_type, region=REGION.region_code)
-
-    try:
-        new_session.put()
-    except (Timeout, TransactionFailedError, InternalError):
-        logging.warning("Couldn't create new session entity.")
-
-    # Help avoid race condition with new session info vs updating that w/first
-    # task.
-    time.sleep(5)
-
-    return
 
 
 def start_scrape(scrape_type):
@@ -138,47 +107,18 @@ def start_scrape(scrape_type):
     if not docket_item:
         logging.error("Found no %s docket items for %s, shutting down." %
             (scrape_type, REGION.region_code))
-        cleanup(scrape_type)
+        sessions.end_session(ScrapeKey(REGION.region_code, scrape_type))
         return
 
     params = {"scrape_type": scrape_type, "content": docket_item}
     serial_params = json.dumps(params)
 
     taskqueue.add(url=SCRAPER_WORK_URL,
-                  # TODO (Issue #88): Replace this dynamic queue selection
+                  # TODO (Issue #88): Replace this with dynamic queue selection
                   queue_name=REGION.queues[0],
                   params={'region': REGION.region_code,
                           'task': "scrape_search_page",
                           'params': serial_params})
-
-    return
-
-
-def cleanup(scrape_type):
-    """Cleans up old session data
-
-    Resets relevant session info after a scraping session is concluded and
-    before another one starts. This includes both updating the ScrapeSession
-    entity for the old session, and clearing out memcache values.
-
-    Args:
-        scrape_type: (string) Session type to clean up.
-
-    Returns:
-        N/A
-    """
-    memcache.set(key=FAIL_COUNTER, value=None)
-
-    open_sessions = sessions.get_open_sessions(REGION.region_code,
-                                               scrape_type=scrape_type)
-
-    for session in open_sessions:
-        session.end = datetime.now()
-        try:
-            session.put()
-        except (Timeout, TransactionFailedError, InternalError):
-            logging.warning("Couldn't set end time on prior sessions.")
-            return
 
     return
 
@@ -202,9 +142,6 @@ def stop_scrape(scrape_types):
     Returns:
         N/A
     """
-    for scrape_type in scrape_types:
-        cleanup(scrape_type)
-
     # Check for other running scrapes, and if found kick off a delayed
     # resume for them since the taskqueue purge below will kill them.
     other_scrapes = set([])
@@ -236,9 +173,8 @@ def resume_scrape(scrape_type):
     Returns:
         N/A
     """
-    recent_sessions = sessions.get_open_sessions(REGION.region_code,
-                                                 open_only=False,
-                                                 scrape_type=scrape_type)
+    recent_sessions = sessions.get_recent_sessions(
+        ScrapeKey(REGION.region_code, scrape_type))
 
     if scrape_type == "background":
         # Background scrape
@@ -261,8 +197,9 @@ def resume_scrape(scrape_type):
         if last_scraped:
             content = last_scraped.split(', ')
         else:
-            logging.error("No earlier session with last_scraped found; cannot "
-                          "resume.")
+            logging.error("No earlier session with last_scraped found; "
+                          "cannot resume.")
+            return
 
     else:
         # Snapshot scrape
@@ -273,7 +210,7 @@ def resume_scrape(scrape_type):
 
         content = iterate_docket_item(scrape_type)
         if not content:
-            cleanup(scrape_type)
+            sessions.end_session(ScrapeKey(REGION.region_code, scrape_type))
             return
 
     params = {'scrape_type': scrape_type, 'content': content}
@@ -572,7 +509,8 @@ def scrape_search_results_page(params):
         # there is no risk of contention.
         last_scraped = results_tree.xpath(
             '//td[@headers="name"]')[0].text_content().strip()
-        update_session_result = update_last_scraped(last_scraped, scrape_type)
+        update_session_result = sessions.update_session(
+            last_scraped, ScrapeKey(REGION.region_code, scrape_type))
 
         if not update_session_result:
             return -1
@@ -930,7 +868,7 @@ def scrape_disambiguation(page_tree, query_content, scrape_type, ignore_list):
             dept_id_number = task_params['dinx_val']
 
             # Double-check that we haven't already processed this entry while
-            # scraping another disambig page for this same inmate
+            # scraping another disambig page for this same person
             current_session = sessions.get_open_sessions(REGION.region_code,
                                                          most_recent_only=True)
 
@@ -1396,39 +1334,6 @@ def calculate_age(birth_date):
     return age
 
 
-def update_last_scraped(last_scraped, scrape_type):
-    """Updates ScrapeSession entity with most recently scraped inmate
-
-    Updates the most recent open session entity with the name seen at the
-    top of the most recently scraped results page. This allows us to pause /
-    resume long-lived scrapes without losing our place.
-
-    Args:
-        last_scraped: Name at the top of the most recent page of results
-        scrape_type: Scrape session type to update
-
-    Returns:
-        True if successful
-        False if not
-    """
-    current_session = sessions.get_open_sessions(REGION.region_code,
-                                                 most_recent_only=True,
-                                                 scrape_type=scrape_type)
-    if current_session:
-        current_session.last_scraped = last_scraped
-        try:
-            current_session.put()
-        except (Timeout, TransactionFailedError, InternalError):
-            logging.warning("Couldn't persist last scraped name: %s" %
-                            last_scraped)
-            return False
-    else:
-        logging.error("No open sessions found to update.")
-        return False
-
-    return True
-
-
 def results_parsing_failure():
     """Determines cause, handles retries for parsing problems
 
@@ -1478,15 +1383,15 @@ def results_parsing_failure():
             return True
 
         if not last_scraped:
-            logging.error("Session isn't old enough to have a last_scraped name "
-                          "yet, but no search results are coming back. Finding last "
-                          "scraped name from earlier session.")
+            logging.error("Session isn't old enough to have a last_scraped "
+                          "name yet, but no search results are coming back. "
+                          "Finding last scraped name from earlier session.")
 
             # Get most recent sessions, including closed ones, and find
             # the last one to have a last_scraped name in it. These will
             # come back most-recent-first.
-            recent_sessions = sessions.get_open_sessions(
-                REGION.region_code, open_only=False, scrape_type=scrape_type)
+            recent_sessions = sessions.get_recent_sessions(
+                ScrapeKey(REGION.region_code, scrape_type))
 
             for session in recent_sessions:
                 if session.last_scraped:
