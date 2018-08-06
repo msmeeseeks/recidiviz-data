@@ -53,10 +53,10 @@ from models.record import Offense, SentenceDuration
 from ingest import sessions
 from ingest import tracker
 from ingest.models.scrape_key import ScrapeKey
+from ingest.models.snapshot import Snapshot
 from ingest.sessions import ScrapedRecord
-from us_ny_inmate import UsNyInmate
+from us_ny_person import UsNyPerson
 from us_ny_record import UsNyRecord
-from us_ny_snapshot import UsNySnapshot
 from utils import environment
 from utils.regions import Region
 
@@ -236,7 +236,7 @@ def scrape_search_page(params):
         params: Dict of parameters, includes:
             first_name: (string) First name for inmate query (empty string if
                 last-name only search)
-            last_name: (string) Last name for inmate query (required)
+            surname: (string) Last name for inmate query (required)
 
     Returns:
         Nothing if successful, -1 if fails.
@@ -344,7 +344,7 @@ def scrape_search_results_page(params):
             All results pages:
             first_name: (string) Given names for inmate query (empty string if
                 surname-only search)
-            last_name: (string) Surname for inmate query (required)
+            surname: (string) Surname for inmate query (required)
             k01: (string) A request parameter for results, scraped from form
             token: (string) DFH_STATE_TOKEN - session info from the form
             action: (string) The 'action' attr from the scraped form - URL to
@@ -561,7 +561,7 @@ def scrape_inmate(params):
                 Snapshot scrape:   ("record_id", ["records to ignore", ...])
             first_name: (string) First name for inmate query (empty string if
                 last-name only search)
-            last_name: (string) Last name for inmate query (required)
+            surname: (string) Last name for inmate query (required)
             token: (string) DFH_STATE_TOKEN - session info from scraped form
             action: (string) the 'action' attr from the scraped form -
                 URL to POST to
@@ -789,7 +789,7 @@ def scrape_disambiguation(page_tree, query_content, scrape_type, ignore_list):
     # Create an ID to group these entries with - DOCCS doesn't tell us how it
     # groups these / give us a persistent ID for inmates, but we want to know
     # each of the entries scraped from this page were about the same person.
-    group_id = generate_id(UsNyInmate)
+    group_id = generate_id(UsNyPerson)
     new_tasks = []
     department_identification_numbers = []
 
@@ -957,9 +957,10 @@ def store_record(inmate_details):
             # to the linked ones for the same inmate.
             inmate_id = inmate_details['group_id']
         else:
-            inmate_id = generate_id(UsNyInmate)
+            inmate_id = generate_id(UsNyPerson)
 
-    inmate = UsNyInmate.get_or_insert(inmate_id)
+    inmate_entity_id = REGION.region_code + inmate_id
+    inmate = UsNyPerson.get_or_insert(inmate_entity_id)
 
     # Some pre-work to massage values out of the data
     inmate_name = inmate_details['Inmate Name'].split(', ')
@@ -973,11 +974,11 @@ def store_record(inmate_details):
     inmate_race = inmate_details['Race / Ethnicity'].lower()
 
     # NY-specific fields
-    inmate.us_ny_inmate_id = inmate_id
+    inmate.us_ny_person_id = inmate_id
 
     # General Inmate fields
     if inmate_dob:
-        inmate.birthday = inmate_dob
+        inmate.birthdate = inmate_dob
     if inmate_age:
         inmate.age = inmate_age
     if inmate_sex:
@@ -986,7 +987,7 @@ def store_record(inmate_details):
         inmate.race = inmate_race
     inmate.inmate_id = inmate_id
     inmate.inmate_id_is_fuzzy = True
-    inmate.last_name = inmate_name[0]
+    inmate.surname = inmate_name[0]
     if len(inmate_name) > 1:
         inmate_given_name = inmate_name[1]
     else:
@@ -1005,7 +1006,8 @@ def store_record(inmate_details):
 
     record_id = inmate_details['DIN (Department Identification Number)']
 
-    record = UsNyRecord.get_or_insert(record_id, parent=inmate_key)
+    record_entity_id = REGION.region_code + record_id
+    record = UsNyRecord.get_or_insert(record_entity_id, parent=inmate_key)
     old_record = deepcopy(record)
 
     # Some pre-work to massage values out of the data
@@ -1060,23 +1062,10 @@ def store_record(inmate_details):
         record_offenses.append(crime)
 
     # NY-specific Inmate fields
-    #   (None)
+    inmate.us_ny_person_id = inmate_id
 
-    # NY-specific record fields
-    record.last_custody_date = last_custody
-    record.admission_type = admission_type
-    record.county_of_commit = county_of_commit
-    record.custody_status = custody_status
-    record.earliest_release_date = earliest_release_date
-    record.earliest_release_type = earliest_release_type
-    record.parole_hearing_date = parole_hearing_date
-    record.parole_hearing_type = parole_hearing_type
-    record.parole_elig_date = parole_elig_date
-    record.cond_release_date = cond_release_date
-    record.max_expir_date = max_expir_date
-    record.max_expir_date_parole = max_expir_date_parole
-    record.max_expir_date_superv = max_expir_date_superv
-    record.parole_discharge_date = parole_discharge_date
+    # us_ny specific fields
+    record.us_ny_record_id = record_id
 
     if min_sentence:
         min_sentence_duration = SentenceDuration(
@@ -1097,22 +1086,38 @@ def store_record(inmate_details):
         max_sentence_duration = None
 
     # General Record fields
+    record.record_id = record_id
+    record.record_id_is_fuzzy = False
+    record.last_custody_date = last_custody
+    record.admission_type = admission_type
+    record.county_of_commit = county_of_commit
+    record.custody_status = custody_status
+    record.earliest_release_date = earliest_release_date
+    record.earliest_release_type = earliest_release_type
+    record.parole_hearing_date = parole_hearing_date
+    record.parole_hearing_type = parole_hearing_type
+    record.parole_elig_date = parole_elig_date
+    record.cond_release_date = cond_release_date
+    record.max_expir_date = max_expir_date
+    record.max_expir_date_parole = max_expir_date_parole
+    record.max_expir_date_superv = max_expir_date_superv
+    record.parole_discharge_date = parole_discharge_date
     if record_offenses:
         record.offense = record_offenses
     record.custody_date = first_custody
     record.min_sentence_length = min_sentence_duration
     record.max_sentence_length = max_sentence_duration
-    record.birthday = inmate.birthday
+    record.birthdate = inmate.birthdate
     record.sex = inmate.sex
     record.race = inmate.race
     if last_release:
         record.latest_release_type = last_release_type
         record.latest_release_date = last_release_date
-    record.last_name = inmate.last_name
+    record.surname = inmate.surname
     record.given_names = inmate.given_names
-    record.record_id = record_id
     record.is_released = released
     record.latest_facility = scraped_facility
+    record.region = REGION
 
     try:
         record_key = record.put()
@@ -1277,7 +1282,7 @@ def generate_id(entity_kind):
     returning a new ID.
 
     Args:
-        entity_kind: (ndb model class, e.g. us_ny.UsNyInmate) Entity kind to
+        entity_kind: (ndb model class, e.g. us_ny.UsNyPerson) Entity kind to
             check uniqueness of generated id.
 
     Returns:
@@ -1547,7 +1552,7 @@ def inmate_to_record(inmate_id):
         None if query returns None
         Record ID if a record is found for the inmate in the docket item
     """
-    inmate = UsNyInmate.query(UsNyInmate.inmate_id == inmate_id).get()
+    inmate = UsNyPerson.query(UsNyPerson.inmate_id == inmate_id).get()
     if not inmate:
         return None
 
@@ -1571,14 +1576,14 @@ def record_to_snapshot(record):
     Returns:
         A Snapshot entity populated with the same details as the Record
     """
-    snapshot = UsNySnapshot(parent=record.key,
+    snapshot = Snapshot(parent=record.key,
                             latest_facility=record.latest_facility,
                             offense=record.offense,
                             custody_date=record.custody_date,
-                            birthday=record.birthday,
+                            birthdate=record.birthdate,
                             sex=record.sex,
                             race=record.race,
-                            last_name=record.last_name,
+                            surname=record.surname,
                             given_names=record.given_names,
                             latest_release_date=record.latest_release_date,
                             latest_release_type=record.latest_release_type,
@@ -1614,7 +1619,7 @@ def compare_and_set_snapshot(old_record, snapshot):
 
     Args:
         old_record: (UsNyRecord) The record entity this snapshot pertains to
-        snapshot: (UsNySnapshot) Snapshot object with details from current
+        snapshot: (Snapshot) Snapshot object with details from current
             scrape.
 
     Returns:
@@ -1622,11 +1627,11 @@ def compare_and_set_snapshot(old_record, snapshot):
         False if datastore errors
     """
     new_snapshot = False
-    snapshot_class = ndb.Model._kind_map['UsNySnapshot']
+    snapshot_class = ndb.Model._kind_map['Snapshot']
     snapshot_attrs = snapshot_class._properties
 
-    last_snapshot = UsNySnapshot.query(
-        ancestor=old_record.key).order(-UsNySnapshot.created_on).get()
+    last_snapshot = Snapshot.query(
+        ancestor=old_record.key).order(-Snapshot.created_on).get()
 
     if last_snapshot:
         for attribute in snapshot_attrs:
@@ -1635,7 +1640,7 @@ def compare_and_set_snapshot(old_record, snapshot):
                 last_value = getattr(old_record, attribute)
                 if current_value != last_value:
                     new_snapshot = True
-                    logging.info("Found change in inmate snapshot: field %s "
+                    logging.info("Found change in record snapshot: field %s "
                                  "was '%s', is now '%s'." %
                                  (attribute, last_value, current_value))
                 else:
@@ -1663,7 +1668,7 @@ def compare_and_set_snapshot(old_record, snapshot):
 
                 if offense_changed:
                     new_snapshot = True
-                    logging.info("Found change in inmate snapshot: field %s "
+                    logging.info("Found change in record snapshot: field %s "
                                  "was '%s', is now '%s'." %
                                  (attribute,
                                   old_record.offense,
