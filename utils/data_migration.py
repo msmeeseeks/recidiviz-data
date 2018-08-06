@@ -167,15 +167,15 @@ def migration_pass1(cursor=None, num_updated=0, batch_size=DEFAULT_BATCH_SIZE,
                        num_updated=num_updated,
                        test_only=test_only)
     else:
-        logging.debug("""Migration pass #1 complete with %d entities updated. You
-                         must now take the following steps and re-deploy the app
-                         prior to initiating pass 2:
-                         - DELETE recividiz_data/ingest/us_ny/us_ny_snapshot.py
-                         - DELETE MARKED FIELDS IN
-                            recividiz_data/ingest/us_ny/us_ny_record.py
-                         - UPDATE CURRENT INDICES FOR UsNyRecord IN index.yaml
-                            TO Record, KEEPING 1x INDEX FOR UsNyRecord ON record_id
-                         - UNCOMMENT NEW FIELDS IN recividiz_data/ingest/models/record.py
+        logging.debug("""Migration pass #1 complete with %d inmate entities
+                         updated. You must now take the following steps and
+                         re-deploy the app prior to initiating pass 2:
+                         - Delete the fields marked in
+                           recividiz_data/ingest/us_ny/us_ny_record.py
+                         - Update the current indices for UsNyRecord or Record
+                           in index.yaml
+                         - Uncomment new Record fields in
+                           recividiz_data/ingest/models/record.py
                       """ %
                       num_updated)
 
@@ -366,11 +366,8 @@ def migration_pass2(cursor=None, num_updated=0, batch_size=DEFAULT_BATCH_SIZE,
                        num_updated=num_updated,
                        test_only=test_only)
     else:
-        logging.debug('Migration pass #2 complete with %d entities updated. You'
-                      ' should now rename the `inmate.py` and `us_ny_inmate.py`'
-                      ' files to reflect the Person nomenclature, then the '
-                      ' migration is complete.' %
-                      num_updated)
+        logging.debug('Migration pass #2 complete with %d record entities '
+                      'updated.' % num_updated)
 
 
 def convert_temp_to_record(temp_record):
