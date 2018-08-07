@@ -16,6 +16,10 @@
 # =============================================================================
 
 
+"""us_ny record-specific functionality
+"""
+
+
 from google.appengine.ext import ndb
 from recidiviz.models.record import Record
 
@@ -61,7 +65,8 @@ class UsNyRecord(Record):
         max_expir_date_superv: (date) Last possible date of post-release
             supervision. Doesn't apply to all inmates.
         parole_discharge_date: (date) Final date of parole supervision, based on
-            the parole board's decision to end supervision before max expiration.
+            the parole board's decision to end supervision before max
+            expiration.
         (see models.record for inherited attributes)
 
     (Note: for the three 'max_...'s, the latest date is considered controlling -

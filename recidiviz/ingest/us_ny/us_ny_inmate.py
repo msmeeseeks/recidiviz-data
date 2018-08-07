@@ -18,8 +18,8 @@
 """Tools for environment variables in Google App Engine."""
 
 
-from recidiviz.models.inmate import Inmate
 from google.appengine.ext import ndb
+from recidiviz.models.inmate import Inmate
 
 
 class UsNyInmate(Inmate):

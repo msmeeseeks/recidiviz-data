@@ -16,4 +16,8 @@
 # =============================================================================
 
 
+"""us_ny specific regional functionality.
+"""
+
+
 from recidiviz.ingest.us_ny import us_ny_scraper
