@@ -60,6 +60,7 @@ from recidiviz.models.record import Offense, SentenceDuration
 from recidiviz.ingest import sessions
 from recidiviz.ingest.models.scrape_key import ScrapeKey
 from recidiviz.ingest.scraper import Scraper
+from recidiviz.ingest import scraper_utils
 from recidiviz.ingest import tracker
 from recidiviz.ingest.sessions import ScrapedRecord
 from recidiviz.ingest.us_ny.us_ny_inmate import UsNyInmate
@@ -85,10 +86,13 @@ class UsNyScraper(Scraper):
     """
 
     def __init__(self):
-        # name of the first task to spawn
-        self.INITIAL_TASK = "scrape_search_page"
-
         super(UsNyScraper, self).__init__('us_ny')
+
+
+    def get_initial_task(self):
+        """The name of the initial task to run for this scraper.
+        """
+        return 'scrape_search_page'
 
 
     def scrape_search_page(self, params):
@@ -108,15 +112,15 @@ class UsNyScraper(Scraper):
             Nothing if successful, -1 if fails.
 
         """
-        search_page = self.fetch_page(self.REGION.base_url)
+        search_page = self.fetch_page(self.get_region().base_url)
         if search_page == -1:
             return -1
 
         try:
             search_tree = html.fromstring(search_page.content)
         except XMLSyntaxError as e:
-            logging.error("Error parsing search page. Error: %s\nPage:\n\n%s" %
-                          (str(e), str(search_page.content)))
+            logging.error("Error parsing search page. Error: %s\nPage:\n\n%s",
+                          str(e), str(search_page.content))
             return -1
 
         try:
@@ -127,7 +131,7 @@ class UsNyScraper(Scraper):
             session_action = search_tree.xpath(
                 '//div[@id="content"]/form/@action')[0]
         except IndexError:
-            logging.error("Search page not understood. HTML:\n\n%s" %
+            logging.error("Search page not understood. HTML:\n\n%s",
                           search_page.content)
             return -1
 
@@ -198,7 +202,7 @@ class UsNyScraper(Scraper):
 
         """
 
-        url = self.REGION.base_url + str(params['action'])
+        url = self.get_region().base_url + str(params['action'])
         scrape_type = params['scrape_type']
         scrape_content = params['content']
 
@@ -239,7 +243,7 @@ class UsNyScraper(Scraper):
             }
 
 
-        url = self.REGION.base_url + str(params['action'])
+        url = self.get_region().base_url + str(params['action'])
         results_page = self.fetch_page(url, data=data)
         if results_page == -1:
             return -1
@@ -322,7 +326,8 @@ class UsNyScraper(Scraper):
             last_scraped = results_tree.xpath(
                 '//td[@headers="name"]')[0].text_content().strip()
             update_session_result = sessions.update_session(
-                last_scraped, ScrapeKey(self.REGION.region_code, scrape_type))
+                last_scraped, ScrapeKey(self.get_region().region_code,
+                                        scrape_type))
 
             if not update_session_result:
                 return -1
@@ -392,7 +397,7 @@ class UsNyScraper(Scraper):
 
         next_docket_item = False
 
-        url = self.REGION.base_url + str(params['action'])
+        url = self.get_region().base_url + str(params['action'])
         scrape_type = params['scrape_type']
         inmate_details = {}
         ignore_list = []
@@ -499,7 +504,7 @@ class UsNyScraper(Scraper):
 
                 # This isn't the page we were expecting
                 logging.warning("Did not find expected tables on inmates page. "
-                                "Page received: \n" +
+                                "Page received: \n%s",
                                 html.tostring(page_tree, pretty_print=True))
                 return -1
 
@@ -509,7 +514,7 @@ class UsNyScraper(Scraper):
                 # Capture table data from each details table on the page
                 for row in id_and_locale_rows:
                     row_data = row.xpath('./td')
-                    key, value = self.normalize_key_value_row(row_data)
+                    key, value = scraper_utils.normalize_key_value_row(row_data)
                     inmate_details[key] = value
 
                 for row in crimes_rows:
@@ -520,7 +525,7 @@ class UsNyScraper(Scraper):
                         pass
                     else:
                         crime_description, crime_class = (
-                            self.normalize_key_value_row(row_data))
+                            scraper_utils.normalize_key_value_row(row_data))
                         crime = {'crime': crime_description,
                                  'class': crime_class}
 
@@ -530,7 +535,7 @@ class UsNyScraper(Scraper):
 
                 for row in sentence_rows:
                     row_data = row.xpath('./td')
-                    key, value = self.normalize_key_value_row(row_data)
+                    key, value = scraper_utils.normalize_key_value_row(row_data)
                     inmate_details[key] = value
 
                 inmate_details['crimes'] = crimes
@@ -545,8 +550,8 @@ class UsNyScraper(Scraper):
 
             logging_name = "%s" % (str(params['content']))
             logging_name = logging_name.strip()
-            logging.info("(%s) Scraped inmate: %s" %
-                         (logging_name, inmate_details['Inmate Name']))
+            logging.info("(%s) Scraped inmate: %s",
+                         logging_name, inmate_details['Inmate Name'])
 
             return self.store_record(inmate_details)
 
@@ -588,7 +593,7 @@ class UsNyScraper(Scraper):
         # tell us how it groups these / give us a persistent ID for
         # inmates, but we want to know each of the entries scraped
         # from this page were about the same person.
-        group_id = self.generate_id(UsNyInmate)
+        group_id = scraper_utils.generate_id(UsNyInmate)
         new_tasks = []
         department_identification_numbers = []
 
@@ -670,7 +675,7 @@ class UsNyScraper(Scraper):
                 # entry while scraping another disambig page for this
                 # same person
                 current_session = sessions.get_open_sessions(
-                    self.REGION.region_code, most_recent_only=True)
+                    self.get_region().region_code, most_recent_only=True)
 
                 if current_session is None:
                     # The session's been closed, we should peacefully
@@ -680,29 +685,30 @@ class UsNyScraper(Scraper):
                     return None
 
                 scraped_record = ScrapedRecord.query(ndb.AND(
-                    ScrapedRecord.region == self.REGION.region_code,
+                    ScrapedRecord.region == self.get_region().region_code,
                     ScrapedRecord.record_id == dept_id_number,
                     ScrapedRecord.created_on > current_session.start)).get()
 
                 if scraped_record:
-                    logging.info("We already scraped record %s, skipping." %
+                    logging.info("We already scraped record %s, skipping.",
                                  dept_id_number)
                     continue
 
                 if dept_id_number in ignore_list:
                     logging.info(
-                        "Record %s outside of snapshot range, skipping." %
+                        "Record %s outside of snapshot range, skipping.",
                         dept_id_number)
                     continue
 
                 # Otherwise, schedule scraping it and add it to the list
                 new_scraped_record = ScrapedRecord(
-                    region=self.REGION.region_code, record_id=dept_id_number)
+                    region=self.get_region().region_code,
+                    record_id=dept_id_number)
                 try:
                     new_scraped_record.put()
                 except (Timeout, TransactionFailedError, InternalError):
                     logging.warning("Couldn't persist ScrapedRecord entry, "
-                                    "record_id: %s" % dept_id_number)
+                                    "record_id: %s", dept_id_number)
 
                 # Set the next_docket_item to True for only one inmate page
                 task_params['next_docket_item'] = first_task
@@ -756,7 +762,7 @@ class UsNyScraper(Scraper):
                 # ones for the same inmate.
                 inmate_id = inmate_details['group_id']
             else:
-                inmate_id = self.generate_id(UsNyInmate)
+                inmate_id = scraper_utils.generate_id(UsNyInmate)
 
         inmate = UsNyInmate.get_or_insert(inmate_id)
 
@@ -765,9 +771,9 @@ class UsNyScraper(Scraper):
         inmate_dob = inmate_details['Date of Birth']
         inmate_age = None
         if inmate_dob:
-            inmate_dob = self.parse_date_string(inmate_dob, inmate_id)
+            inmate_dob = scraper_utils.parse_date_string(inmate_dob, inmate_id)
             if inmate_dob:
-                inmate_age = self.calculate_age(inmate_dob)
+                inmate_age = scraper_utils.calculate_age(inmate_dob)
         inmate_sex = inmate_details['Sex'].lower()
         inmate_race = inmate_details['Race / Ethnicity'].lower()
 
@@ -791,13 +797,13 @@ class UsNyScraper(Scraper):
         else:
             inmate_given_name = ""
         inmate.given_names = inmate_given_name
-        inmate.region = self.REGION.region_code
+        inmate.region = self.get_region().region_code
 
         try:
             inmate_key = inmate.put()
         except (Timeout, TransactionFailedError, InternalError):
             # Datastore error - fail task to trigger queue retry + backoff
-            logging.warning("Couldn't persist inmate: %s" % inmate_id)
+            logging.warning("Couldn't persist inmate: %s", inmate_id)
             return -1
 
         # CRIMINAL RECORD ENTRY
@@ -809,50 +815,56 @@ class UsNyScraper(Scraper):
 
         # Some pre-work to massage values out of the data
         last_custody = inmate_details['Date Received (Current)']
-        last_custody = self.parse_date_string(last_custody, inmate_id)
+        last_custody = scraper_utils.parse_date_string(last_custody, inmate_id)
         first_custody = inmate_details['Date Received (Original)']
-        first_custody = self.parse_date_string(first_custody, inmate_id)
+        first_custody = scraper_utils.parse_date_string(first_custody,
+                                                        inmate_id)
         admission_type = inmate_details['Admission Type']
         county_of_commit = inmate_details['County of Commitment']
         custody_status = inmate_details['Custody Status']
         released = (custody_status != "IN CUSTODY")
         min_sentence = inmate_details['Aggregate Minimum Sentence']
-        min_sentence = self.parse_sentence_duration(min_sentence, inmate_id)
+        min_sentence = self.parse_sentence_duration(min_sentence,
+                                                    inmate_id)
         max_sentence = inmate_details['Aggregate Maximum Sentence']
-        max_sentence = self.parse_sentence_duration(max_sentence, inmate_id)
+        max_sentence = self.parse_sentence_duration(max_sentence,
+                                                    inmate_id)
         earliest_release_date = inmate_details['Earliest Release Date']
-        earliest_release_date = self.parse_date_string(earliest_release_date,
-                                                       inmate_id)
+        earliest_release_date = scraper_utils.parse_date_string(
+            earliest_release_date, inmate_id)
         earliest_release_type = inmate_details['Earliest Release Type']
         parole_hearing_date = inmate_details['Parole Hearing Date']
-        parole_hearing_date = self.parse_date_string(parole_hearing_date,
-                                                     inmate_id)
+        parole_hearing_date = scraper_utils.parse_date_string(
+            parole_hearing_date, inmate_id)
         parole_hearing_type = inmate_details['Parole Hearing Type']
         parole_elig_date = inmate_details['Parole Eligibility Date']
-        parole_elig_date = self.parse_date_string(parole_elig_date, inmate_id)
+        parole_elig_date = scraper_utils.parse_date_string(parole_elig_date,
+                                                           inmate_id)
         cond_release_date = inmate_details['Conditional Release Date']
-        cond_release_date = self.parse_date_string(cond_release_date, inmate_id)
+        cond_release_date = scraper_utils.parse_date_string(cond_release_date,
+                                                            inmate_id)
         max_expir_date = inmate_details['Maximum Expiration Date']
-        max_expir_date = self.parse_date_string(max_expir_date, inmate_id)
+        max_expir_date = scraper_utils.parse_date_string(max_expir_date,
+                                                         inmate_id)
         max_expir_date_parole = (
             inmate_details['Maximum Expiration Date for Parole Supervision'])
-        max_expir_date_parole = self.parse_date_string(max_expir_date_parole,
-                                                       inmate_id)
+        max_expir_date_parole = scraper_utils.parse_date_string(
+            max_expir_date_parole, inmate_id)
         max_expir_date_superv = (
             inmate_details['Post Release Supervision Maximum Expiration Date'])
-        max_expir_date_superv = self.parse_date_string(max_expir_date_superv,
-                                                       inmate_id)
+        max_expir_date_superv = scraper_utils.parse_date_string(
+            max_expir_date_superv, inmate_id)
         parole_discharge_date = inmate_details['Parole Board Discharge Date']
-        parole_discharge_date = self.parse_date_string(parole_discharge_date,
-                                                       inmate_id)
+        parole_discharge_date = scraper_utils.parse_date_string(
+            parole_discharge_date, inmate_id)
         scraped_facility = inmate_details['Housing / Releasing Facility']
         last_release = (
             inmate_details[
                 'Latest Release Date / Type (Released Inmates Only)'])
         if last_release:
             release_info = last_release.split(" ", 1)
-            last_release_date = self.parse_date_string(release_info[0],
-                                                       inmate_id)
+            last_release_date = scraper_utils.parse_date_string(release_info[0],
+                                                                inmate_id)
             last_release_type = release_info[1]
         else:
             last_release_date = None
@@ -923,7 +935,7 @@ class UsNyScraper(Scraper):
         try:
             record.put()
         except (Timeout, TransactionFailedError, InternalError):
-            logging.warning("Couldn't persist record: %s" % record_id)
+            logging.warning("Couldn't persist record: %s", record_id)
             return -1
 
         # INMATE RECORD SNAPSHOT
@@ -933,19 +945,12 @@ class UsNyScraper(Scraper):
 
         if 'group_id' in inmate_details:
             logging.info("Checked record for %s %s, inmate %s, in group %s, "
-                         "for record %s." % (
-                             inmate_name[1],
-                             inmate_name[0],
-                             inmate_id,
-                             inmate_details['group_id'],
-                             record_id))
+                         "for record %s.", inmate_name[1], inmate_name[0],
+                         inmate_id, inmate_details['group_id'], record_id)
         else:
             logging.info("Checked record for %s %s, inmate %s, (no group), for "
-                         "record %s." % (
-                             inmate_name[1],
-                             inmate_name[0],
-                             inmate_id,
-                             record_id))
+                         "record %s.", inmate_name[1], inmate_name[0],
+                         inmate_id, record_id)
 
         return None
 
@@ -991,8 +996,8 @@ class UsNyScraper(Scraper):
             if not term_string:
                 return None
             elif (not parsed_nums) or (len(parsed_nums) < 3):
-                logging.debug("Couldn't parse term string '%s' for inmate: %s" %
-                              (term_string, inmate_id))
+                logging.debug("Couldn't parse term string '%s' for inmate: %s",
+                              term_string, inmate_id)
                 return None
             else:
                 years = int(parsed_nums[0])
@@ -1031,8 +1036,8 @@ class UsNyScraper(Scraper):
                 prior_inmate = prior_inmate_key.get()
                 inmate_id = prior_inmate.inmate_id
 
-                logging.info("Found an earlier record with an inmate ID " +
-                             inmate_id + ", using that.")
+                logging.info("Found an earlier record with an inmate ID %s "
+                             ", using that.", inmate_id)
                 return inmate_id
 
         return None
@@ -1072,8 +1077,8 @@ class UsNyScraper(Scraper):
         fail_count = 0 if not fail_count else fail_count
 
         if fail_count < 3:
-            logging.warning("Couldn't parse next page of results (attempt %s). "
-                            "Failing task to force retry." % str(fail_count))
+            logging.warning("Couldn't parse next page of results (attempt %d). "
+                            "Failing task to force retry.", fail_count)
             fail_count += 1
             memcache.set(key=self.FAIL_COUNTER, value=fail_count, time=600)
             return False
@@ -1083,7 +1088,7 @@ class UsNyScraper(Scraper):
             # 'ZYTEL', who's sentenced to life and has no other crimes
             # / disambig.
             current_session = sessions.get_open_sessions(
-                self.REGION.region_code, most_recent_only=True)
+                self.get_region().region_code, most_recent_only=True)
             if current_session:
                 last_scraped = current_session.last_scraped
                 scrape_type = current_session.scrape_type
@@ -1102,13 +1107,15 @@ class UsNyScraper(Scraper):
                 # the last one to have a last_scraped name in it. These will
                 # come back most-recent-first.
                 recent_sessions = sessions.get_recent_sessions(
-                    ScrapeKey(self.REGION.region_code, scrape_type))
+                    ScrapeKey(self.get_region().region_code, scrape_type))
 
                 for session in recent_sessions:
                     if session.last_scraped:
                         last_scraped = session.last_scraped
                         break
 
+            # TODO (ohinds): we need a more general method for
+            # detecting the end of the roster.
             if last_scraped[0:3] < "ZYT":
 
                 # We haven't finished the alphabet yet. Most likely,
@@ -1250,8 +1257,8 @@ class UsNyScraper(Scraper):
                     if current_value != last_value:
                         new_snapshot = True
                         logging.info("Found change in inmate snapshot: field "
-                                     "%s was '%s', is now '%s'." %
-                                     (attribute, last_value, current_value))
+                                     "%s was '%s', is now '%s'.",
+                                     attribute, last_value, current_value)
                     else:
                         setattr(snapshot, attribute, None)
 
@@ -1280,10 +1287,8 @@ class UsNyScraper(Scraper):
                     if offense_changed:
                         new_snapshot = True
                         logging.info("Found change in inmate snapshot: field "
-                                     "%s was '%s', is now '%s'." %
-                                     (attribute,
-                                      old_record.offense,
-                                      snapshot.offense))
+                                     "%s was '%s', is now '%s'.", attribute,
+                                     old_record.offense, snapshot.offense)
                     else:
                         setattr(snapshot, attribute, [])
 
@@ -1295,7 +1300,7 @@ class UsNyScraper(Scraper):
             try:
                 snapshot.put()
             except (Timeout, TransactionFailedError, InternalError):
-                logging.warning("Couldn't store new snapshot for record %s" %
+                logging.warning("Couldn't store new snapshot for record %s",
                                 old_record.record_id)
 
         return True

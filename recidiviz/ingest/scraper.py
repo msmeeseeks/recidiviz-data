@@ -21,29 +21,23 @@ inherit from.
 """
 
 import abc
-from datetime import date
 import json
 import logging
-import string
-import random
 
-import dateutil.parser as parser
 import requests
 
 from google.appengine.ext import deferred
-from google.appengine.ext import ndb
 from google.appengine.api import taskqueue
-from recidiviz.models import env_vars
+from recidiviz.ingest import scraper_utils
 from recidiviz.ingest import sessions
 from recidiviz.ingest.models.scrape_key import ScrapeKey
 from recidiviz.ingest import tracker
-from recidiviz.utils import environment
 from recidiviz.utils.regions import Region
 
 
 class Scraper(object):
     """The base for all scraper objects. It handles basic setup, scrape
-    process control (start, pause, resume, stop), web requests, task
+    process control (start, resume, stop), web requests, task
     queueing, state tracking, and a bunch of static convenience
     methods for data manipulation.
 
@@ -56,13 +50,24 @@ class Scraper(object):
 
         self.REGION = Region(region_name)
         self.FAIL_COUNTER = (
-            self.REGION.region_code + "_next_page_fail_counter")
+            self.get_region().region_code + "_next_page_fail_counter")
         self.SCRAPER_WORK_URL = '/scraper/work'
 
 
     @abc.abstractmethod
     def inmate_id_to_record_id(self, inmate_id):
         pass
+
+
+    @abc.abstractmethod
+    def get_initial_task(self):
+        pass
+
+
+    def get_region(self):
+        """Retrieve the region object associated with this scraper.
+        """
+        return self.REGION
 
 
     def start_scrape(self, scrape_type):
@@ -80,15 +85,15 @@ class Scraper(object):
         """
         docket_item = self.iterate_docket_item(scrape_type)
         if not docket_item:
-            logging.error("Found no %s docket items for %s, shutting down." % (
-                scrape_type, self.REGION.region_code))
-            sessions.end_session(ScrapeKey(self.REGION.region_code,
+            logging.error("Found no %s docket items for %s, shutting down.",
+                          scrape_type, self.get_region().region_code)
+            sessions.end_session(ScrapeKey(self.get_region().region_code,
                                            scrape_type))
             return
 
         params = {"scrape_type": scrape_type, "content": docket_item}
 
-        self.add_task(self.INITIAL_TASK, params)
+        self.add_task(self.get_initial_task(), params)
 
 
     def stop_scrape(self, scrape_types):
@@ -116,17 +121,18 @@ class Scraper(object):
         # resume for them since the taskqueue purge below will kill them.
         other_scrapes = set([])
 
-        open_sessions = sessions.get_open_sessions(self.REGION.region_code)
+        open_sessions = sessions.get_open_sessions(
+            self.get_region().region_code)
         for session in open_sessions:
             if session.scrape_type not in scrape_types:
                 other_scrapes.add(session.scrape_type)
 
         for scrape in other_scrapes:
             logging.info("Setting 60s deferred task to resume unaffected "
-                         "scrape type: %s." % str(scrape))
+                         "scrape type: %s.", str(scrape))
             deferred.defer(self.resume_scrape, scrape, _countdown=60)
 
-        q = taskqueue.Queue(self.REGION.queues[0])
+        q = taskqueue.Queue(self.get_region().queues[0])
         q.purge()
 
 
@@ -144,7 +150,7 @@ class Scraper(object):
             N/A
         """
         recent_sessions = sessions.get_recent_sessions(ScrapeKey(
-            self.REGION.region_code, scrape_type))
+            self.get_region().region_code, scrape_type))
 
         if scrape_type == "background":
             # Background scrape
@@ -181,11 +187,11 @@ class Scraper(object):
             content = self.iterate_docket_item(scrape_type)
             if not content:
                 sessions.end_session(
-                    ScrapeKey(self.REGION.region_code, scrape_type))
+                    ScrapeKey(self.get_region().region_code, scrape_type))
                 return
 
         params = {'scrape_type': scrape_type, 'content': content}
-        self.add_task(self.INITIAL_TASK, params)
+        self.add_task(self.get_initial_task(), params)
 
 
     def fetch_page(self, url, data=None):
@@ -194,15 +200,15 @@ class Scraper(object):
         to use as POST data in a POST request to the url.
 
         Args:
-            url: URL to fetch content from
-            data: POST data to send
+            url: (string) URL to fetch content from
+            data: (string) POST data to send (optional, default None)
 
         Returns:
             The content if successful, -1 if fails.
 
         """
-        proxies = self.get_proxies()
-        headers = self.get_headers()
+        proxies = scraper_utils.get_proxies()
+        headers = scraper_utils.get_headers()
 
         try:
             if data is None:
@@ -233,7 +239,7 @@ class Scraper(object):
                     ce.response.text)
 
             logging.warning("Problem retrieving page, failing task to "
-                            "retry. \n\n%s" % log_error)
+                            "retry. \n\n%s", log_error)
             return -1
 
         return page
@@ -241,6 +247,15 @@ class Scraper(object):
 
     def add_task(self, task_name, params):
         """ Add a task to the task queue.
+
+        Args:
+            task_name: (string) name of the function in the scraper class to
+                       be invoked
+            params: (dict) parameters to be passed to the function
+
+        Returns:
+            The content if successful, -1 if fails.
+
         """
 
         params_serial = json.dumps(params)
@@ -248,8 +263,8 @@ class Scraper(object):
         taskqueue.add(url=self.SCRAPER_WORK_URL,
                       # TODO (Issue #88): Replace this with dynamic
                       # queue selection
-                      queue_name=self.REGION.queues[0],
-                      params={'region': self.REGION.region_code,
+                      queue_name=self.get_region().queues[0],
+                      params={'region': self.get_region().region_code,
                               'task': task_name,
                               'params': params_serial})
 
@@ -272,9 +287,9 @@ class Scraper(object):
         """
 
         item_content = tracker.iterate_docket_item(
-            ScrapeKey(self.REGION.region_code, scrape_type))
+            ScrapeKey(self.get_region().region_code, scrape_type))
 
-        if not item_content:
+        if item_content is None:
             return False
 
         if scrape_type == "snapshot":
@@ -284,196 +299,10 @@ class Scraper(object):
             record_id = self.inmate_id_to_record_id(item_content[0])
 
             if not record_id:
-                logging.error("Couldn't convert docket item [%s] to record"
-                              % str(item_content))
+                logging.error("Couldn't convert docket item [%s] to record",
+                              str(item_content))
                 return False
 
             return (record_id, item_content[1])
 
         return item_content
-
-
-    @staticmethod
-    def parse_date_string(date_string, inmate_id):
-        """Converts string describing date to Python date object
-
-        Dates are expressed differently in different records,
-        typically following one of these patterns:
-
-            "07/2001",
-            "12/21/1991",
-            "06/14/13", etc.
-
-        This function parses several common variants and returns a datetime.
-
-        Args:
-            date_string: (string) Scraped string containing a date
-            inmate_id: (string) Inmate ID this date is for, for logging
-
-        Returns:
-            Python date object representing the date parsed from the string, or
-            None if string wasn't one of our expected values (this is common,
-            often NONE or LIFE are put in for these if life sentence).
-
-        """
-        if date_string:
-            try:
-                result = parser.parse(date_string)
-                result = result.date()
-            except ValueError:
-                logging.debug("Couldn't parse date string '%s' for inmate: %s" %
-                              (date_string, inmate_id))
-                return None
-
-            # If month-only date, manually force date to first of the month.
-            if len(date_string.split("/")) == 2:
-                result = result.replace(day=1)
-
-        else:
-            return None
-
-        return result
-
-
-    @staticmethod
-    def generate_id(entity_kind):
-        """Generate unique, 10-digit alphanumeric ID for entity kind provided
-
-        Generates a new 10-digit alphanumeric ID, checks it for uniqueness for
-        the entity type provided, and retries if needed until unique before
-        returning a new ID.
-
-        Args:
-            entity_kind: (ndb model class, e.g. us_ny.UsNyInmate) Entity kind to
-                check uniqueness of generated id.
-
-        Returns:
-            The new ID / key name (string)
-        """
-        new_id = ''.join(random.choice(string.ascii_uppercase +
-                                       string.ascii_lowercase +
-                                       string.digits) for _ in range(10))
-
-        test_key = ndb.Key(entity_kind, new_id)
-        key_result = test_key.get()
-
-        if key_result is not None:
-            # Collision, try again
-            return Scraper.generate_id(entity_kind)
-
-        return new_id
-
-
-    @staticmethod
-    def normalize_key_value_row(row_data):
-        """Removes extraneous whitespace from scraped data
-
-        Removes extraneous (leading, trailing, internal) whitespace from scraped
-        data.
-
-        Args:
-            row_data: (list) One row of data in a list (key/value pair)
-
-        Returns:
-            Tuple of cleaned strings, in the order provided.
-        """
-        key = ' '.join(row_data[0].text_content().split())
-        value = ' '.join(row_data[1].text_content().split())
-        return key, value
-
-
-    @staticmethod
-    def calculate_age(birth_date):
-        """Converts birth date to age during current scrape.
-
-        Determines age of inmate based on her or his birth date. Note: We don't
-        know the timezone of birth, so we use local time for us. Result may be
-        off by up to a day.
-
-        Args:
-            birth_date: (date) Date of birth as reported by prison system
-
-        Returns:
-            (int) Age of inmate
-        """
-        today = date.today()
-        age = today.year - birth_date.year - ((today.month, today.day) <
-                                              (birth_date.month,
-                                               birth_date.day))
-
-        return age
-
-
-    @staticmethod
-    def get_proxies(use_test=False):
-        """Retrieves proxy username/pass from environment variables
-
-        Retrieves proxy information to use in requests to third-party
-        services. If not in production environment, defaults to test proxy
-        credentials (so problems during test runs don't risk our main proxy
-        IP's reputation).
-
-        Args:
-            use_test: (bool) Use test proxy credentials, not prod
-
-        Returns:
-            Proxies dict for requests library, in the form:
-                {'<protocol>': '<http://<proxy creds>@<proxy url>'}
-
-        Raises:
-            Exception: General exception, since scraper cannot
-            proceed without this
-
-        """
-        in_prod = environment.in_prod()
-
-        if not in_prod or use_test:
-            user_var = "test_proxy_user"
-            pass_var = "test_proxy_password"
-        else:
-            user_var = "proxy_user"
-            pass_var = "proxy_password"
-
-        proxy_url = env_vars.get_env_var("proxy_url", None)
-
-        proxy_user = env_vars.get_env_var(user_var, None)
-        proxy_password = env_vars.get_env_var(pass_var, None)
-
-        if (proxy_user is None) or (proxy_password is None):
-            raise Exception("No proxy user/pass")
-
-        proxy_credentials = proxy_user + ":" + proxy_password
-        proxy_request_url = 'http://' + proxy_credentials + "@" + proxy_url
-
-        proxies = {'http': proxy_request_url}
-
-        return proxies
-
-
-    @staticmethod
-    def get_headers():
-        """Retrieves headers (e.g., user agent string) from environment
-        variables
-
-        Retrieves user agent string information to use in requests to
-        third-party services.
-
-        Args:
-            N/A
-
-        Returns:
-            Headers dict for the requests library, in the form:
-                {'User-Agent': '<user agent string>'}
-
-        Raises:
-            Exception: General exception, since scraper cannot
-            proceed without this
-
-        """
-        user_agent_string = env_vars.get_env_var("user_agent", None)
-
-        if not user_agent_string:
-            raise Exception("No user agent string")
-
-        headers = {'User-Agent': (user_agent_string)}
-        return headers
