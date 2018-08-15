@@ -1036,8 +1036,8 @@ class UsNyScraper(Scraper):
                 prior_inmate = prior_inmate_key.get()
                 inmate_id = prior_inmate.inmate_id
 
-                logging.info("Found an earlier record with an inmate ID %s "
-                             ", using that.", inmate_id)
+                logging.info("Found an earlier record with an inmate ID %s ,"
+                             "using that.", inmate_id)
                 return inmate_id
 
         return None
@@ -1072,7 +1072,7 @@ class UsNyScraper(Scraper):
             False if calling function should 'fail' (be retried)
 
         """
-        fail_count = memcache.get(key=self.FAIL_COUNTER)
+        fail_count = memcache.get(key=self.fail_counter)
 
         fail_count = 0 if not fail_count else fail_count
 
@@ -1080,7 +1080,7 @@ class UsNyScraper(Scraper):
             logging.warning("Couldn't parse next page of results (attempt %d). "
                             "Failing task to force retry.", fail_count)
             fail_count += 1
-            memcache.set(key=self.FAIL_COUNTER, value=fail_count, time=600)
+            memcache.set(key=self.fail_counter, value=fail_count, time=600)
             return False
         else:
             # This is a hacky check for whether we finished the
@@ -1114,8 +1114,8 @@ class UsNyScraper(Scraper):
                         last_scraped = session.last_scraped
                         break
 
-            # TODO (ohinds): we need a more general method for
-            # detecting the end of the roster.
+            # TODO (#113): we need a more robust method for detecting
+            # the end of the roster.
             if last_scraped[0:3] < "ZYT":
 
                 # We haven't finished the alphabet yet. Most likely,

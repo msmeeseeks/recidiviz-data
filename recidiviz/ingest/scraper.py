@@ -47,27 +47,53 @@ class Scraper(object):
     """
 
     def __init__(self, region_name):
+        """Initialize the parent scraper object.
 
-        self.REGION = Region(region_name)
-        self.FAIL_COUNTER = (
+        Args:
+            region_name: (string) name of the region of the child scraper.
+
+        """
+
+        self.region = Region(region_name)
+        self.fail_counter = (
             self.get_region().region_code + "_next_page_fail_counter")
-        self.SCRAPER_WORK_URL = '/scraper/work'
+        self.scraper_work_url = '/scraper/work'
 
 
     @abc.abstractmethod
     def inmate_id_to_record_id(self, inmate_id):
+        """Abstract method for child classes to map an inmate ID to a DB
+        record ID.
+
+        Args: (any type) the inmate ID to transform
+
+        Returns:
+            N/A
+
+        """
         pass
 
 
     @abc.abstractmethod
     def get_initial_task(self):
+        """Abstract method for child classes to specify the name of the first
+        task to run in the scraper.
+
+        Returns:
+            The name of the function to run as the first task
+
+        """
         pass
 
 
     def get_region(self):
         """Retrieve the region object associated with this scraper.
+
+        Returns:
+            the region object
+
         """
-        return self.REGION
+        return self.region
 
 
     def start_scrape(self, scrape_type):
@@ -260,7 +286,7 @@ class Scraper(object):
 
         params_serial = json.dumps(params)
 
-        taskqueue.add(url=self.SCRAPER_WORK_URL,
+        taskqueue.add(url=self.scraper_work_url,
                       # TODO (Issue #88): Replace this with dynamic
                       # queue selection
                       queue_name=self.get_region().queues[0],
