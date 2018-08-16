@@ -1036,7 +1036,7 @@ class UsNyScraper(Scraper):
                 prior_inmate = prior_inmate_key.get()
                 inmate_id = prior_inmate.inmate_id
 
-                logging.info("Found an earlier record with an inmate ID %s ,"
+                logging.info("Found an earlier record with an inmate ID %s,"
                              "using that.", inmate_id)
                 return inmate_id
 

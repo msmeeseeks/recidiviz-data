@@ -68,7 +68,7 @@ class Scraper(object):
         Args: (any type) the inmate ID to transform
 
         Returns:
-            N/A
+            A record id mapped from the given inmate id.
 
         """
         pass
@@ -80,7 +80,7 @@ class Scraper(object):
         task to run in the scraper.
 
         Returns:
-            The name of the function to run as the first task
+            The name of the function to run as the first task.
 
         """
         pass
