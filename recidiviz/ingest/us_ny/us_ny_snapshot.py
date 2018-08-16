@@ -16,6 +16,10 @@
 # =============================================================================
 
 
+"""us_ny specific regional snapshot functionality.
+"""
+
+
 from google.appengine.ext import ndb
 from recidiviz.models.snapshot import Snapshot
 
