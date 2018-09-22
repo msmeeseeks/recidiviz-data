@@ -40,6 +40,7 @@ class UsNyRecord(Record):
     http://www.doccs.ny.gov/univinq/fpmsdoc.htm
 
     Attributes:
+        us_ny_record_id: The Record ID provided by DOCCS
         last_custody_date: (date) Most recent date inmate returned for this
             sentence (may not be the initial custody date - e.g., if parole
             was violated, may be readmitted for remainder of prison term)
@@ -72,6 +73,8 @@ class UsNyRecord(Record):
     (Note: for the three 'max_...'s, the latest date is considered controlling -
     that is, the inmate will not be released before that last date.)
     """
+    us_ny_record_id = ndb.StringProperty()
+    # TODO: REMOVE FIELDS BELOW PRIOR TO MIGRATION PASS 2
     last_custody_date = ndb.DateProperty()
     admission_type = ndb.StringProperty()
     county_of_commit = ndb.StringProperty()
@@ -86,6 +89,5 @@ class UsNyRecord(Record):
     max_expir_date_parole = ndb.DateProperty()
     max_expir_date_superv = ndb.DateProperty()
     parole_discharge_date = ndb.DateProperty()
-    # TODO: remove post-migration
     last_release_date = ndb.DateProperty()
     last_release_type = ndb.StringProperty()

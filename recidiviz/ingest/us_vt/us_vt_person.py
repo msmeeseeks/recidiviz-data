@@ -20,10 +20,10 @@
 
 
 from google.appengine.ext import ndb
-from recidiviz.models.inmate import Inmate
+from recidiviz.models.person import Person
 
 
-class UsVtPerson(Inmate):
+class UsVtPerson(Person):
     """A subclass of Inmate that adds Vermont specific fields
 
     Datastore model for a specific person incarcerated in
