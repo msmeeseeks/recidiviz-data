@@ -15,19 +15,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""The ingest portion of the Recidiviz data platform.
+"""us_vt package
 
-This includes infrastructure, logic, and models for ingesting, validating,
-normalizing, and storing records ingested from various criminal justice data
-sources.
+Vermont has a unified jail and prison system, so this package handles
+scraping and storing data of both people who would be in jail and
+prison in another state. In addition, Vermont has information on
+people on probabtion and parole.
+
+Vermont uses the JailTracker system.
+
 """
 
-
-import recidiviz.ingest.docket
-import recidiviz.ingest.models
-import recidiviz.ingest.scraper_control
-import recidiviz.ingest.sessions
-import recidiviz.ingest.tracker
-import recidiviz.ingest.us_ny
-import recidiviz.ingest.us_vt
-import recidiviz.ingest.worker
+from recidiviz.ingest.us_vt import us_vt_scraper

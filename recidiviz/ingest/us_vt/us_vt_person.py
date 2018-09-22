@@ -15,19 +15,26 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""The ingest portion of the Recidiviz data platform.
-
-This includes infrastructure, logic, and models for ingesting, validating,
-normalizing, and storing records ingested from various criminal justice data
-sources.
+"""Person model for Vermont.
 """
 
 
-import recidiviz.ingest.docket
-import recidiviz.ingest.models
-import recidiviz.ingest.scraper_control
-import recidiviz.ingest.sessions
-import recidiviz.ingest.tracker
-import recidiviz.ingest.us_ny
-import recidiviz.ingest.us_vt
-import recidiviz.ingest.worker
+from google.appengine.ext import ndb
+from recidiviz.models.inmate import Inmate
+
+
+class UsVtPerson(Inmate):
+    """A subclass of Inmate that adds Vermont specific fields
+
+    Datastore model for a specific person incarcerated in
+    Vermont. This extends the Inmate class.
+
+    Attributes:
+
+        us_vt_person_id: (string) Same as person_id, but used as
+            key for this entity type to force uniqueness / prevent
+            collisions within the us_vt records (see
+            models.inmate for inherited attributes)
+
+    """
+    us_vt_person_id = ndb.StringProperty()
