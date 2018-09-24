@@ -154,6 +154,13 @@ def to_metric(metric_key, total_records, total_recidivism):
         metric.release_facility = key_mapping["release_facility"]
     if 'stay_length' in key_mapping:
         metric.stay_length_bucket = key_mapping["stay_length"]
+    if 'offense' in key_mapping:
+        metric.offense = key_mapping["offense"]
+    if 'recidivating_offense' in key_mapping:
+        metric.recidivating_offense = key_mapping["recidivating_offense"]
+    if 'total_number_of_charges' in key_mapping:
+        metric.total_number_of_charges = key_mapping["total_number_of_charges"]
+
 
     return metric
 
