@@ -23,11 +23,11 @@ from recidiviz.models.snapshot import Snapshot
 
 
 class UsVtSnapshot(Snapshot):
-    """A subclass of Snapshot that adds New York specific fields
+    """A subclass of Snapshot that adds Vermont-specific fields
 
-    Datastore model for the New York-specific fields in snapshots of inmate
+    Datastore model for the Vermont-specific fields in snapshots of person
     information. Snapshots are generated each time the scraper runs and
-    finds a property of an Inmate or Record entity has changed in the
+    finds a property of a Person or Record entity has changed in the
     corrections system. Only that attribute (and any others which have changed
     since the last scrape) is stored in the snapshot.
 

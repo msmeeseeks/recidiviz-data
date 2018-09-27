@@ -134,7 +134,7 @@ class UsVtScraper(Scraper):
         first_roster_params = {
             'session': session,
             'start': 0,
-            'limit': 500,
+            'limit': 10,
             'scrape_type': params['scrape_type']}
 
         self.add_task('scrape_roster', first_roster_params)
@@ -223,7 +223,6 @@ class UsVtScraper(Scraper):
             'scrape_type': params['scrape_type']}
 
         self.add_task('scrape_cases', cases_params)
-
 
     def scrape_cases(self, params):
         """Scrape the case information about an individual case.
@@ -386,7 +385,7 @@ class UsVtScraper(Scraper):
         person_id = roster_data['Jacket']
         person = UsVtPerson.get_or_insert(person_id)
 
-        person.last_name = roster_data['LastName']
+        person.surname = roster_data['LastName']
         person.given_names = ' '.join([roster_data['FirstName'],
                                        roster_data['MiddleName']])
 
@@ -416,13 +415,12 @@ class UsVtScraper(Scraper):
 
         person.person_id = person_id
         person.us_vt_person_id = person_id
-        person.person_id_is_fuzzy = True
+        person.person_id_is_fuzzy = False
         person.region = self.get_region().region_code
 
         return person
 
-    @staticmethod
-    def create_record(person, agencies, roster_data, person_data,
+    def create_record(self, person, agencies, roster_data, person_data,
                       charge_data):
         """Make the record model entity, given the person entity and data
         scraped from several pages.
@@ -477,7 +475,7 @@ class UsVtScraper(Scraper):
                 warrant_number=charge['WarrantNumber'],
                 )
             record_offenses.append(offense)
-        record.offenses = record_offenses
+        record.offense = record_offenses
 
         record.status = person_data['Status']
         record.release_date = roster_data['FinalReleaseDateTime']
@@ -490,12 +488,15 @@ class UsVtScraper(Scraper):
 
         record.sex = person.sex
         record.race = person.race
-        record.last_name = person.last_name
+        record.region = self.get_region().region_code
+        record.surname = person.surname
         record.given_names = person.given_names
         record.record_id = str(roster_data['ArrestNo'])
+        record.record_id_is_fuzzy = False
 
-        record.latest_facility = agencies[0]
-        record.community_supervision_agency = agencies[1]
+        if agencies:
+            record.latest_facility = agencies[0]
+            record.community_supervision_agency = agencies[1]
 
         return record
 
@@ -562,7 +563,7 @@ class UsVtScraper(Scraper):
             return -1
 
         # create the record and persist it.
-        record = UsVtScraper.create_record(
+        record = self.create_record(
             person, agencies, roster_data, person_data, charge_data)
 
         try:
@@ -580,7 +581,7 @@ class UsVtScraper(Scraper):
         return None
 
     # pylint:disable=arguments-differ
-    def inmate_id_to_record_id(self, person_id):
+    def person_id_to_record_id(self, person_id):
         """Convert provided person_id to record_id of any record for that
         person. This is the implementation of an abstract method in Scraper.
 
@@ -617,13 +618,13 @@ class UsVtScraper(Scraper):
 
         """
         snapshot = UsVtSnapshot(
-            birthday=record.birthday,
+            birthdate=record.birthdate,
             case_worker=record.case_worker,
             community_supervision_agency=record.community_supervision_agency,
             custody_date=record.custody_date,
+            earliest_release_date=record.earliest_release_date,
             given_names=record.given_names,
             is_released=record.is_released,
-            last_name=record.last_name,
             latest_facility=record.latest_facility,
             latest_release_date=record.latest_release_date,
             latest_release_type=record.latest_release_type,
@@ -633,9 +634,11 @@ class UsVtScraper(Scraper):
             parent=record.key,
             parole_officer=record.parole_officer,
             race=record.race,
+            region=record.region,
             release_date=record.release_date,
             sex=record.sex,
             status=record.status,
+            surname=record.surname
         )
 
         return snapshot

@@ -33,20 +33,20 @@ class UsNyRecord(Record):
     sentence for N years for those crimes, this would be described in a single
     Record.
 
-    UsNyRecord entities are stored as children of their respective inmate
-    entities. There may be multiple records per inmate.
+    UsNyRecord entities are stored as children of their respective Person
+    entities. There may be multiple records per person.
 
     See 'DOCCS Data Definitions' for full descriptions:
     http://www.doccs.ny.gov/univinq/fpmsdoc.htm
 
     Attributes:
         us_ny_record_id: The Record ID provided by DOCCS
-        last_custody_date: (date) Most recent date inmate returned for this
+        last_custody_date: (date) Most recent date person returned for this
             sentence (may not be the initial custody date - e.g., if parole
             was violated, may be readmitted for remainder of prison term)
         admission_type: (string) 'New commitment' is beginning to serve a term,
             other reasons are usually after term has started (e.g. parole issue)
-        county_of_commit: (string) County the inmate was convicted/committed in
+        county_of_commit: (string) County the person was convicted/committed in
         custody_status: (string) Scraped string on custody status (more granular
             than just 'released' / 'not-released')
         earliest_release_date: (date) Earliest date to be released based on
@@ -55,22 +55,22 @@ class UsNyRecord(Record):
             release date.
         parole_hearing_date: (date) Date of next hearing before Parole Board
         parole_hearing_type: (string) Type of hearing for next PB appearance.
-        parole_elig_date: (date) Date inmate will be eligible for parole
+        parole_elig_date: (date) Date person will be eligible for parole
         cond_release_date: (date) Release date based on prison discretion for
             'good time off' based on behavior. Releases prisoner on parole, but
             bypasses PB review.
         max_expir_date: (date) Date of release if no PB or conditional release,
             maximum obligation to the state.
         max_expir_date_parole: (date) Last possible date of ongoing parole
-            supervision. Doesn't apply to all inmates.
+            supervision. Doesn't apply to all persons.
         max_expir_date_superv: (date) Last possible date of post-release
-            supervision. Doesn't apply to all inmates.
+            supervision. Doesn't apply to all persons.
         parole_discharge_date: (date) Final date of parole supervision, based on
             the parole board's decision to end supervision before max
             expiration.
         (see models.record for inherited attributes)
 
     (Note: for the three 'max_...'s, the latest date is considered controlling -
-    that is, the inmate will not be released before that last date.)
+    that is, the person will not be released before that last date.)
     """
     us_ny_record_id = ndb.StringProperty()

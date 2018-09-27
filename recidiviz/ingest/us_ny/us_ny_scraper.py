@@ -24,20 +24,20 @@ Region-specific notes:
     - DOCCS returns the nearest match alphabetically, and then all subsequent
       names in the alphabet.
         - As a result, the us-ny names list is one name, 'aaardvark', since
-          this query will return all inmates in the DOCCS system.
-    - DOCCS attempts to de-duplicate inmates, and show a disambiguation page
+          this query will return all people in the DOCCS system.
+    - DOCCS attempts to de-duplicate people, and show a disambiguation page
       for multiple records it believes to be of the same person.
 
 Background scraping procedure:
     1. A starting search page (to get session vars) --> (search, see 2)
     2. A results list (4x/page) --> (parse, see 2a - 2c)
-        (2a) A list of inmate results --> (follow, each entry leads to 3)
+        (2a) A list of person results --> (follow, each entry leads to 3)
         (2b) The 'next page' of results for the query --> (follow it, see 2)
         (2c) The main search page --> Reached end of the list, stop scrape
     3. EITHER
         (3a) A disambiguation page (which record would you like to see for this
-             inmate?)
-        (3b) A details page for the inmate, about a specific incarceration
+             person?)
+        (3b) A details page for the person, about a specific incarceration
              event
 """
 
@@ -87,9 +87,9 @@ class UsNyScraper(Scraper):
 
         Args:
             params: Dict of parameters, includes:
-                first_name: (string) First name for inmate query
+                first_name: (string) First name for person query
                     (empty string if last-name only search)
-                surname: (string) Last name for inmate query (required)
+                surname: (string) Last name for person query (required)
 
         Returns:
             Nothing if successful, -1 if fails.
@@ -129,7 +129,7 @@ class UsNyScraper(Scraper):
         if params["scrape_type"] == "background":
             task_name = "scrape_search_results_page"
         else:
-            task_name = "scrape_inmate"
+            task_name = "scrape_person"
 
         self.add_task(task_name, search_results_params)
 
@@ -138,7 +138,7 @@ class UsNyScraper(Scraper):
     def scrape_search_results_page(self, params):
         """Scrapes page of search results, follows each listing and 'Next page'
 
-        Fetches search results page, parses results to extract inmate listings
+        Fetches search results page, parses results to extract person listings
         and params for the next page of results. Enqueues tasks to scrape both
         the individual listings and next page of results.
 
@@ -168,9 +168,9 @@ class UsNyScraper(Scraper):
                     scraped from form
 
                 All results pages:
-                first_name: (string) Given names for inmate query
+                first_name: (string) Given names for person query
                     (empty string if surname-only search)
-                surname: (string) Surname for inmate query (required)
+                surname: (string) Surname for person query (required)
                 k01: (string) A request parameter for results, scraped from form
                 token: (string) DFH_STATE_TOKEN - session info from the form
                 action: (string) The 'action' attr from the scraped
@@ -184,8 +184,6 @@ class UsNyScraper(Scraper):
             Nothing if successful, -1 if fails.
 
         """
-
-        url = self.get_region().base_url + str(params['action'])
         scrape_type = params['scrape_type']
         scrape_content = params['content']
 
@@ -269,7 +267,7 @@ class UsNyScraper(Scraper):
             result_params['content'] = scrape_content
             result_params['scrape_type'] = scrape_type
 
-            self.add_task('scrape_inmate', result_params)
+            self.add_task('scrape_person', result_params)
 
         # Parse the 'next' button's embedded form
         next_params = {}
@@ -332,12 +330,12 @@ class UsNyScraper(Scraper):
 
         return None
 
-    # INMATE PAGES #
+    # PERSON PAGES #
 
-    def scrape_inmate(self, params):
-        """Fetches inmate listing page, parses results
+    def scrape_person(self, params):
+        """Fetches person listing page, parses results
 
-        Fetches inmate listing page. This sometimes turns out to be a
+        Fetches person listing page. This sometimes turns out to be a
         disambiguation page, as there may be multiple incarceration
         records in DOCCS for the person we've selected. If so, shunts
         details over to scrape_disambiguation(). If actual results
@@ -352,9 +350,9 @@ class UsNyScraper(Scraper):
                 content: (tuple) Search target, stored as a tuple:
                     Background scrape: ("surname", "given names")
                     Snapshot scrape:   ("record_id", ["records to ignore", ...])
-                first_name: (string) First name for inmate query
+                first_name: (string) First name for person query
                     (empty string if last-name only search)
-                surname: (string) Last name for inmate query (required)
+                surname: (string) Last name for person query (required)
                 token: (string) DFH_STATE_TOKEN - session info from scraped form
                 action: (string) the 'action' attr from the scraped form -
                     URL to POST to
@@ -369,7 +367,7 @@ class UsNyScraper(Scraper):
                     params (result: {dinx_name: dinx_val})
                 dinx_val: (dict val) value for the dinx_name parameter
                 ---params below only apply if we did NOT arrive from a
-                    disambiguation page / this inmate only has one listing---
+                    disambiguation page / this person only has one listing---
                 clicki: (string) a request parameter for results,
                 scraped from the form
 
@@ -382,7 +380,7 @@ class UsNyScraper(Scraper):
 
         url = self.get_region().base_url + str(params['action'])
         scrape_type = params['scrape_type']
-        inmate_details = {}
+        person_details = {}
         ignore_list = []
 
         # Create a request using the provided params. How we structure
@@ -416,8 +414,8 @@ class UsNyScraper(Scraper):
         elif 'group_id' in params:
             # Arriving from disambiguation page
             next_docket_item = params['next_docket_item']
-            inmate_details['group_id'] = params['group_id']
-            inmate_details['linked_records'] = params['linked_records']
+            person_details['group_id'] = params['group_id']
+            person_details['linked_records'] = params['linked_records']
 
             data = {
                 'M12_SEL_DINI': params['dini'],
@@ -448,13 +446,13 @@ class UsNyScraper(Scraper):
                 params['dinx_name']: params['dinx_val'],
             }
 
-        inmate_page = self.fetch_page(url, data=data)
-        if inmate_page == -1:
+        person_page = self.fetch_page(url, data=data)
+        if person_page == -1:
             return -1
 
-        page_tree = html.fromstring(inmate_page.content)
+        page_tree = html.fromstring(person_page.content)
 
-        # First, test if we got a disambiguation page (inmate has had more than
+        # First, test if we got a disambiguation page (person has had more than
         # one stay in prison system, page wants to know which you want to see)
         details_page = page_tree.xpath('//div[@id="ii"]')
 
@@ -486,7 +484,7 @@ class UsNyScraper(Scraper):
                     actual_first_row_sentences != expected_first_row_sentences):
 
                 # This isn't the page we were expecting
-                logging.warning("Did not find expected tables on inmates page."
+                logging.warning("Did not find expected tables on person page."
                                 " Page received: \n%s",
                                 html.tostring(page_tree, pretty_print=True))
                 return -1
@@ -499,7 +497,7 @@ class UsNyScraper(Scraper):
                     row_data = row.xpath('./td')
                     key, value = scraper_utils.normalize_key_value_row(
                         row_data)
-                    inmate_details[key] = value
+                    person_details[key] = value
 
                 for row in crimes_rows:
                     row_data = row.xpath('./td')
@@ -521,9 +519,9 @@ class UsNyScraper(Scraper):
                     row_data = row.xpath('./td')
                     key, value = scraper_utils.normalize_key_value_row(
                         row_data)
-                    inmate_details[key] = value
+                    person_details[key] = value
 
-                inmate_details['crimes'] = crimes
+                    person_details['crimes'] = crimes
 
             # Kick off next docket item if this concludes our last one
             if next_docket_item:
@@ -535,10 +533,10 @@ class UsNyScraper(Scraper):
 
             logging_name = "%s" % (str(params['content']))
             logging_name = logging_name.strip()
-            logging.info("(%s) Scraped inmate: %s",
-                         logging_name, inmate_details['Inmate Name'])
+            logging.info("(%s) Scraped person: %s",
+                         logging_name, person_details['Inmate Name'])
 
-            return self.store_record(inmate_details)
+            return self.store_record(person_details)
 
         else:
             # We're on a disambiguation page, not an actual details
@@ -552,10 +550,10 @@ class UsNyScraper(Scraper):
 
     def scrape_disambiguation(self, page_tree, query_content,
                               scrape_type, ignore_list):
-        """Scraped record disambiguation page for an inmate in DOCCS
+        """Scraped record disambiguation page for a person in DOCCS
 
-        In attempting to fetch an inmate, the scrape_inmate received a
-        disambig page - asking which incarceration event for that inmate they
+        In attempting to fetch a person, the scrape_person received a
+        disambig page - asking which incarceration event for that person they
         wanted. This function takes that result page, parses it, and enqueues a
         new task to scrape each entry from the disambig page.
 
@@ -575,7 +573,7 @@ class UsNyScraper(Scraper):
         """
         # Create an ID to group these entries with - DOCCS doesn't
         # tell us how it groups these / give us a persistent ID for
-        # inmates, but we want to know each of the entries scraped
+        # persons, but we want to know each of the entries scraped
         # from this page were about the same person.
         group_id = scraper_utils.generate_id(UsNyPerson)
         new_tasks = []
@@ -584,7 +582,7 @@ class UsNyScraper(Scraper):
         # We detect the end of a normal 'background' scrape by noting
         # that we're at the end of the alphabet. In the case of
         # snapshot scrapes, that won't be the case - so we add a
-        # marker into one and only one of the inmate scrapes that
+        # marker into one and only one of the person scrapes that
         # signifies we should kick off the next task.
         first_task = True if scrape_type == "snapshot" else False
 
@@ -592,7 +590,7 @@ class UsNyScraper(Scraper):
         result_list = page_tree.xpath('//div[@id="content"]/table/tr/td/form')
 
         if not result_list:
-            logging.warning("Malformed inmate or disambig page, failing task "
+            logging.warning("Malformed person or disambig page, failing task "
                             "to re-queue.")
             # We got a page we didn't expect - results_parsing_failure will
             # attempt to disambiguate why.
@@ -694,7 +692,7 @@ class UsNyScraper(Scraper):
                     logging.warning("Couldn't persist ScrapedRecord entry, "
                                     "record_id: %s", dept_id_number)
 
-                # Set the next_docket_item to True for only one inmate page
+                # Set the next_docket_item to True for only one person page
                 task_params['next_docket_item'] = first_task
                 first_task = False
 
@@ -703,11 +701,11 @@ class UsNyScraper(Scraper):
                 task_params[
                     'linked_records'] = department_identification_numbers
                 task_params['scrape_type'] = scrape_type
-                self.add_task('scrape_inmate', task_params)
+                self.add_task('scrape_person', task_params)
 
         return None
 
-    def store_record(self, inmate_details):
+    def store_record(self, person_details):
         """Store scraped data from a results page
 
         We've scraped an incarceration details page, and want to store
@@ -715,155 +713,154 @@ class UsNyScraper(Scraper):
         the scraped data, and feeds it into the datastore in a way
         that can be indexed / queried in the future.
 
+        TODO (#133): Decompose this into store_record and create_record methods.
+
         Args:
-            inmate_details: (dict) Key/value results parsed from the scrape
+            person_details: (dict) Key/value results parsed from the scrape
 
         Returns:
             Nothing if successful, -1 if fails.
 
         """
 
-        # INMATE LISTING
+        # PERSON LISTING
 
         department_identification_numbers = []
-        if 'linked_records' in inmate_details:
+        if 'linked_records' in person_details:
             department_identification_numbers.extend(
-                inmate_details['linked_records'])
+                person_details['linked_records'])
         else:
             department_identification_numbers.append(
-                inmate_details['DIN (Department Identification Number)'])
+                person_details['DIN (Department Identification Number)'])
 
-        old_id = self.link_inmate(department_identification_numbers)
+        old_id = self.link_person(department_identification_numbers)
 
         if old_id:
-            inmate_id = old_id
+            person_id = old_id
         else:
-            if 'group_id' in inmate_details:
+            if 'group_id' in person_details:
                 # If we find no prior records, use the group_id
                 # generated earlier in this scraping session as the
-                # inmate_id, so as to tie this record to the linked
-                # ones for the same inmate.
-                inmate_id = inmate_details['group_id']
+                # person_id, so as to tie this record to the linked
+                # ones for the same person.
+                person_id = person_details['group_id']
             else:
-                inmate_id = scraper_utils.generate_id(UsNyPerson)
+                person_id = scraper_utils.generate_id(UsNyPerson)
 
-        inmate_entity_id = self.get_region().region_code + inmate_id
-        inmate = UsNyPerson.get_or_insert(inmate_entity_id)
+        person_entity_id = self.get_region().region_code + person_id
+        person = UsNyPerson.get_or_insert(person_entity_id)
 
         # Some pre-work to massage values out of the data
-        inmate_name = inmate_details['Inmate Name'].split(', ')
-        inmate_dob = inmate_details['Date of Birth']
-        inmate_age = None
-        if inmate_dob:
-            inmate_dob = scraper_utils.parse_date_string(inmate_dob, inmate_id)
-            if inmate_dob:
-                inmate_age = scraper_utils.calculate_age(inmate_dob)
-        inmate_sex = inmate_details['Sex'].lower()
-        inmate_race = inmate_details['Race / Ethnicity'].lower()
+        person_name = person_details['Inmate Name'].split(', ')
+        person_dob = person_details['Date of Birth']
+        person_age = None
+        if person_dob:
+            person_dob = scraper_utils.parse_date_string(person_dob, person_id)
+            if person_dob:
+                person_age = scraper_utils.calculate_age(person_dob)
+        person_sex = person_details['Sex'].lower()
+        person_race = person_details['Race / Ethnicity'].lower()
 
         # NY-specific fields
-        inmate.us_ny_person_id = inmate_id
+        person.us_ny_person_id = person_id
 
-        # General Inmate fields
-        if inmate_dob:
-            inmate.birthdate = inmate_dob
-        if inmate_age:
-            inmate.age = inmate_age
-        if inmate_sex:
-            inmate.sex = inmate_sex
-        if inmate_race:
-            inmate.race = inmate_race
-        inmate.inmate_id = inmate_id
-        inmate.inmate_id_is_fuzzy = True
-        inmate.surname = inmate_name[0]
-        if len(inmate_name) > 1:
-            inmate_given_name = inmate_name[1]
+        # General Person fields
+        if person_dob:
+            person.birthdate = person_dob
+        if person_age:
+            person.age = person_age
+        if person_sex:
+            person.sex = person_sex
+        if person_race:
+            person.race = person_race
+        person.person_id = person_id
+        person.person_id_is_fuzzy = True
+        person.surname = person_name[0]
+        if len(person_name) > 1:
+            person_given_name = person_name[1]
         else:
-            inmate_given_name = ""
-        inmate.given_names = inmate_given_name
-        inmate.region = self.get_region().region_code
+            person_given_name = ""
+        person.given_names = person_given_name
+        person.region = self.get_region().region_code
 
         try:
-            inmate_key = inmate.put()
+            person_key = person.put()
         except (Timeout, TransactionFailedError, InternalError):
             # Datastore error - fail task to trigger queue retry + backoff
-            logging.warning("Couldn't persist inmate: %s", inmate_id)
+            logging.warning("Couldn't persist person: %s", person_id)
             return -1
 
         # CRIMINAL RECORD ENTRY
 
-        record_id = inmate_details['DIN (Department Identification Number)']
+        record_id = person_details['DIN (Department Identification Number)']
 
         record_entity_id = self.get_region().region_code + record_id
-        record = UsNyRecord.get_or_insert(record_entity_id, parent=inmate_key)
+        record = UsNyRecord.get_or_insert(record_entity_id, parent=person_key)
         old_record = deepcopy(record)
 
         # Some pre-work to massage values out of the data
-        last_custody = inmate_details['Date Received (Current)']
-        last_custody = scraper_utils.parse_date_string(last_custody, inmate_id)
-        first_custody = inmate_details['Date Received (Original)']
+        last_custody = person_details['Date Received (Current)']
+        last_custody = scraper_utils.parse_date_string(last_custody, person_id)
+        first_custody = person_details['Date Received (Original)']
         first_custody = scraper_utils.parse_date_string(first_custody,
-                                                        inmate_id)
-        admission_type = inmate_details['Admission Type']
-        county_of_commit = inmate_details['County of Commitment']
-        custody_status = inmate_details['Custody Status']
+                                                        person_id)
+        admission_type = person_details['Admission Type']
+        county_of_commit = person_details['County of Commitment']
+        custody_status = person_details['Custody Status']
         released = (custody_status != "IN CUSTODY")
-        min_sentence = inmate_details['Aggregate Minimum Sentence']
+        min_sentence = person_details['Aggregate Minimum Sentence']
         min_sentence = self.parse_sentence_duration(min_sentence,
-                                                    inmate_id)
-        max_sentence = inmate_details['Aggregate Maximum Sentence']
+                                                    person_id)
+        max_sentence = person_details['Aggregate Maximum Sentence']
         max_sentence = self.parse_sentence_duration(max_sentence,
-                                                    inmate_id)
-        earliest_release_date = inmate_details['Earliest Release Date']
+                                                    person_id)
+        earliest_release_date = person_details['Earliest Release Date']
         earliest_release_date = scraper_utils.parse_date_string(
-            earliest_release_date, inmate_id)
-        earliest_release_type = inmate_details['Earliest Release Type']
-        parole_hearing_date = inmate_details['Parole Hearing Date']
+            earliest_release_date, person_id)
+        earliest_release_type = person_details['Earliest Release Type']
+        parole_hearing_date = person_details['Parole Hearing Date']
         parole_hearing_date = scraper_utils.parse_date_string(
-            parole_hearing_date, inmate_id)
-        parole_hearing_type = inmate_details['Parole Hearing Type']
-        parole_elig_date = inmate_details['Parole Eligibility Date']
+            parole_hearing_date, person_id)
+        parole_hearing_type = person_details['Parole Hearing Type']
+        parole_elig_date = person_details['Parole Eligibility Date']
         parole_elig_date = scraper_utils.parse_date_string(parole_elig_date,
-                                                           inmate_id)
-        cond_release_date = inmate_details['Conditional Release Date']
+                                                           person_id)
+        cond_release_date = person_details['Conditional Release Date']
         cond_release_date = scraper_utils.parse_date_string(cond_release_date,
-                                                            inmate_id)
-        max_expir_date = inmate_details['Maximum Expiration Date']
+                                                            person_id)
+        max_expir_date = person_details['Maximum Expiration Date']
         max_expir_date = scraper_utils.parse_date_string(max_expir_date,
-                                                         inmate_id)
+                                                         person_id)
         max_expir_date_parole = (
-            inmate_details['Maximum Expiration Date for Parole Supervision'])
+            person_details['Maximum Expiration Date for Parole Supervision'])
         max_expir_date_parole = scraper_utils.parse_date_string(
-            max_expir_date_parole, inmate_id)
+            max_expir_date_parole, person_id)
         max_expir_date_superv = (
-            inmate_details['Post Release Supervision Maximum Expiration Date'])
+            person_details['Post Release Supervision Maximum Expiration Date'])
         max_expir_date_superv = scraper_utils.parse_date_string(
-            max_expir_date_superv, inmate_id)
-        parole_discharge_date = inmate_details['Parole Board Discharge Date']
+            max_expir_date_superv, person_id)
+        parole_discharge_date = person_details['Parole Board Discharge Date']
         parole_discharge_date = scraper_utils.parse_date_string(
-            parole_discharge_date, inmate_id)
-        scraped_facility = inmate_details['Housing / Releasing Facility']
+            parole_discharge_date, person_id)
+        scraped_facility = person_details['Housing / Releasing Facility']
         last_release = (
-            inmate_details[
+            person_details[
                 'Latest Release Date / Type (Released Inmates Only)'])
         if last_release:
             release_info = last_release.split(" ", 1)
             last_release_date = scraper_utils.parse_date_string(
-                release_info[0], inmate_id)
+                release_info[0], person_id)
             last_release_type = release_info[1]
         else:
             last_release_date = None
             last_release_type = None
 
         record_offenses = []
-        for crime in inmate_details['crimes']:
+        for crime in person_details['crimes']:
             crime = Offense(
                 crime_description=crime['crime'],
                 crime_class=crime['class'])
             record_offenses.append(crime)
-
-        # NY-specific Inmate fields
-        inmate.us_ny_person_id = inmate_id
 
         # us_ny specific fields
         record.us_ny_record_id = record_id
@@ -887,37 +884,37 @@ class UsNyScraper(Scraper):
             max_sentence_duration = None
 
         # General Record fields
-        record.last_custody_date = last_custody
         record.admission_type = admission_type
+        record.birthdate = person.birthdate
+        record.cond_release_date = cond_release_date
         record.county_of_commit = county_of_commit
+        record.custody_date = first_custody
         record.custody_status = custody_status
         record.earliest_release_date = earliest_release_date
         record.earliest_release_type = earliest_release_type
-        record.parole_hearing_date = parole_hearing_date
-        record.parole_hearing_type = parole_hearing_type
-        record.parole_elig_date = parole_elig_date
-        record.cond_release_date = cond_release_date
+        record.is_released = released
+        record.last_custody_date = last_custody
+        if last_release:
+            record.latest_release_date = last_release_date
+            record.latest_release_type = last_release_type
+        record.latest_facility = scraped_facility
         record.max_expir_date = max_expir_date
         record.max_expir_date_parole = max_expir_date_parole
         record.max_expir_date_superv = max_expir_date_superv
+        record.max_sentence_length = max_sentence_duration
+        record.min_sentence_length = min_sentence_duration
+        record.parole_elig_date = parole_elig_date
         record.parole_discharge_date = parole_discharge_date
+        record.parole_hearing_date = parole_hearing_date
+        record.parole_hearing_type = parole_hearing_type
         if record_offenses:
             record.offense = record_offenses
-        record.custody_date = first_custody
-        record.min_sentence_length = min_sentence_duration
-        record.max_sentence_length = max_sentence_duration
-        record.birthdate = inmate.birthdate
-        record.sex = inmate.sex
-        record.race = inmate.race
-        if last_release:
-            record.latest_release_type = last_release_type
-            record.latest_release_date = last_release_date
-        record.surname = inmate.surname
-        record.given_names = inmate.given_names
+        record.race = person.race
         record.record_id = record_id
-        record.is_released = released
-        record.latest_facility = scraped_facility
         record.region = self.get_region()
+        record.sex = person.sex
+        record.surname = person.surname
+        record.given_names = person.given_names
 
         try:
             record.put()
@@ -925,23 +922,23 @@ class UsNyScraper(Scraper):
             logging.warning("Couldn't persist record: %s", record_id)
             return -1
 
-        # INMATE RECORD SNAPSHOT
+        # PERSON RECORD SNAPSHOT
         new_snapshot = self.record_to_snapshot(record)
 
         self.compare_and_set_snapshot(old_record, new_snapshot)
 
-        if 'group_id' in inmate_details:
-            logging.info("Checked record for %s %s, inmate %s, in group %s, "
-                         "for record %s.", inmate_name[1], inmate_name[0],
-                         inmate_id, inmate_details['group_id'], record_id)
+        if 'group_id' in person_details:
+            logging.info("Checked record for %s %s, person %s, in group %s, "
+                         "for record %s.", person_name[1], person_name[0],
+                         person_id, person_details['group_id'], record_id)
         else:
-            logging.info("Checked record for %s %s, inmate %s, (no group), for"
-                         " record %s.", inmate_name[1], inmate_name[0],
-                         inmate_id, record_id)
+            logging.info("Checked record for %s %s, person %s, (no group), for"
+                         " record %s.", person_name[1], person_name[0],
+                         person_id, record_id)
 
         return None
 
-    def parse_sentence_duration(self, term_string, inmate_id):
+    def parse_sentence_duration(self, term_string, person_id):
         """Converts string describing sentence duration to
         models.SentenceDuration
 
@@ -958,7 +955,7 @@ class UsNyScraper(Scraper):
 
         Args:
             term_string: (string) Scraped sentence duration string
-            inmate_id: (string) Inmate ID this date is for, for logging
+            person_id: (string) Person ID this date is for, for logging
 
         Returns:
             dict of values -
@@ -982,8 +979,8 @@ class UsNyScraper(Scraper):
             if not term_string:
                 return None
             elif (not parsed_nums) or (len(parsed_nums) < 3):
-                logging.debug("Couldn't parse term string '%s' for inmate: %s",
-                              term_string, inmate_id)
+                logging.debug("Couldn't parse term string '%s' for person: %s",
+                              term_string, person_id)
                 return None
             else:
                 years = int(parsed_nums[0])
@@ -997,19 +994,19 @@ class UsNyScraper(Scraper):
 
         return result
 
-    def link_inmate(self, record_list):
+    def link_person(self, record_list):
         """Checks for prior records matching newly scraped ones, returns
-        inmate ID
+        person ID
 
         Matches DIN (record IDs) to previously scraped records, looks
-        up associated inmates, then returns that inmate_id so we can
-        update the same person rather than duplicating the inmate.
+        up associated persons, then returns that person_id so we can
+        update the same person rather than duplicating them.
 
         Args:
             record_list: (list of strings) List of DINs (record IDs) to check
 
         Returns:
-            The found inmate_id from prior instance, or None if not found
+            The found person_id from prior instance, or None if not found
 
         """
 
@@ -1017,13 +1014,13 @@ class UsNyScraper(Scraper):
             query = UsNyRecord.query(UsNyRecord.record_id == linked_record)
             result = query.get()
             if result:
-                prior_inmate_key = result.key.parent()
-                prior_inmate = prior_inmate_key.get()
-                inmate_id = prior_inmate.inmate_id
+                prior_person_key = result.key.parent()
+                prior_person = prior_person_key.get()
+                person_id = prior_person.person_id
 
-                logging.info("Found an earlier record with an inmate ID %s,"
-                             "using that.", inmate_id)
-                return inmate_id
+                logging.info("Found an earlier record with a person ID %s,"
+                             "using that.", person_id)
+                return person_id
 
         return None
 
@@ -1031,7 +1028,7 @@ class UsNyScraper(Scraper):
         """Determines cause, handles retries for parsing problems
 
         We didn't get the page we expected while retrieving a results,
-        inmate, or disambiguation page. We retry three times (keeping
+        person, or disambiguation page. We retry three times (keeping
         track in memcache), which is long enough for most transient
         errors to go away.
 
@@ -1047,9 +1044,6 @@ class UsNyScraper(Scraper):
         scraping session, purge all other tasks in the queue, and kick
         off a new scraping session to get new state in DOCCS to
         continue scraping using.
-
-        Args:
-            None
 
         Returns:
             True if calling function should 'succeed' (not be retried)
@@ -1129,33 +1123,33 @@ class UsNyScraper(Scraper):
 
             return True
 
-    def inmate_id_to_record_id(self, inmate_id):
-        """Convert provided inmate_id to record_id of any record for that inmate
+    def person_id_to_record_id(self, person_id):
+        """Convert provided person_id to record_id of any record for that person
 
-        The general snapshot logic creates dockets of inmate IDs to snapshot,
-        but in the us_ny case this means 'fuzzy' inmate IDs, which were
+        The general snapshot logic creates dockets of person IDs to snapshot,
+        but in the us_ny case this means 'fuzzy' person IDs, which were
         generated as a substitute for anything state-provided. Since we can't
         search DOCCS with those, we need to convert them to record IDs instead,
         which DOCCS does allow querying by.
 
-        We only need one DOCCS record ID per inmate ID, because DOCCS
+        We only need one DOCCS record ID per person ID, because DOCCS
         will take any record ID query to the disambiguation page for
-        that inmate if they have more records than just the one
+        that person if they have more records than just the one
         searched for.
 
         Args:
-            inmate_id: (string) Inmate ID for the inmate
+            person_id: (string) Person ID for the person
 
         Returns:
             None if query returns None
-            Record ID if a record is found for the inmate in the docket item
+            Record ID if a record is found for the person in the docket item
 
         """
-        inmate = UsNyPerson.query(UsNyPerson.inmate_id == inmate_id).get()
-        if not inmate:
+        person = UsNyPerson.query(UsNyPerson.person_id == person_id).get()
+        if not person:
             return None
 
-        record = UsNyRecord.query(ancestor=inmate.key).get()
+        record = UsNyRecord.query(ancestor=person.key).get()
         if not record:
             return None
 
@@ -1177,33 +1171,34 @@ class UsNyScraper(Scraper):
         """
         snapshot = Snapshot(
             parent=record.key,
-            latest_facility=record.latest_facility,
-            offense=record.offense,
-            custody_date=record.custody_date,
-            birthdate=record.birthdate,
-            sex=record.sex,
-            race=record.race,
-            surname=record.surname,
-            given_names=record.given_names,
-            latest_release_date=record.latest_release_date,
-            latest_release_type=record.latest_release_type,
-            is_released=record.is_released,
-            min_sentence_length=record.min_sentence_length,
-            max_sentence_length=record.max_sentence_length,
-            last_custody_date=record.last_custody_date,
             admission_type=record.admission_type,
+            birthdate=record.birthdate,
+            cond_release_date=record.cond_release_date,
             county_of_commit=record.county_of_commit,
+            custody_date=record.custody_date,
             custody_status=record.custody_status,
             earliest_release_date=record.earliest_release_date,
             earliest_release_type=record.earliest_release_type,
+            is_released=record.is_released,
+            last_custody_date=record.last_custody_date,
+            latest_facility=record.latest_facility,
+            latest_release_date=record.latest_release_date,
+            latest_release_type=record.latest_release_type,
+            max_expir_date=record.max_expir_date,
+            max_expir_date_parole=record.max_expir_date_parole,
+            max_expir_date_superv=record.max_expir_date_superv,
+            max_sentence_length=record.max_sentence_length,
+            min_sentence_length=record.min_sentence_length,
+            offense=record.offense,
+            parole_discharge_date=record.parole_discharge_date,
+            parole_elig_date=record.parole_elig_date,
             parole_hearing_date=record.parole_hearing_date,
             parole_hearing_type=record.parole_hearing_type,
-            parole_elig_date=record.parole_elig_date,
-            cond_release_date=record.cond_release_date,
-            max_expir_date=record.max_expir_date,
-            max_expir_date_superv=record.max_expir_date_superv,
-            max_expir_date_parole=record.max_expir_date_parole,
-            parole_discharge_date=record.parole_discharge_date)
+            race=record.race,
+            region=record.region,
+            sex=record.sex,
+            surname=record.surname,
+            given_names=record.given_names)
 
         return snapshot
 

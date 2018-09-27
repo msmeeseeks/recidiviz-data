@@ -19,22 +19,7 @@
 
 
 from google.appengine.ext import ndb
-from recidiviz.models.person import Inmate, Person
-
-
-class UsNyInmate(Inmate):
-    """A subclass of Inmate that adds New York specific fields
-
-    Datastore model for a specific person in the New York state prison system
-    (DOCCS). This extends the Inmate class.
-
-    Attributes:
-        us_ny_inmate_id: (string) Same as inmate_id, but used as key for this
-            entity type to force uniqueness / prevent collisions within the
-            us_ny records
-        (see models.inmate for inherited attributes)
-    """
-    us_ny_inmate_id = ndb.StringProperty()
+from recidiviz.models.person import Person
 
 
 class UsNyPerson(Person):

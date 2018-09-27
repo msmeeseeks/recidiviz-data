@@ -24,17 +24,17 @@ from recidiviz.models.person import Person
 
 
 class UsVtPerson(Person):
-    """A subclass of Inmate that adds Vermont specific fields
+    """A subclass of Person that adds Vermont specific fields
 
     Datastore model for a specific person incarcerated in
-    Vermont. This extends the Inmate class.
+    Vermont. This extends the Person class.
 
     Attributes:
 
         us_vt_person_id: (string) Same as person_id, but used as
             key for this entity type to force uniqueness / prevent
             collisions within the us_vt records (see
-            models.inmate for inherited attributes)
+            models.person for inherited attributes)
 
     """
     us_vt_person_id = ndb.StringProperty()
