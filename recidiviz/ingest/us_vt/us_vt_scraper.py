@@ -430,6 +430,11 @@ class UsVtScraper(Scraper):
             person: (Person entity) person model entity created from
                 scraped data.
 
+            agencies: (tuple) a tuple where the first entry is the name of the
+                residential facility with custody over this person (or None) and
+                the second entry is the probation or parole office in charge of
+                supervising this person (or None)
+
             roster_data: (list of key/value pairs) information scraped
                 from the person's roster entry.
 

@@ -59,6 +59,8 @@ class Scraper(object):
 
     """
 
+    __metaclass__ = abc.ABCMeta
+
     def __init__(self, region_name):
         """Initialize the parent scraper object.
 
@@ -166,7 +168,7 @@ class Scraper(object):
                          "scrape type: %s.", str(scrape))
             deferred.defer(self.resume_scrape, scrape, _countdown=60)
 
-        q = taskqueue.Queue(self.get_region().queues[0])
+        q = taskqueue.Queue(self.get_region().queue)
         q.purge()
 
     def resume_scrape(self, scrape_type):
@@ -182,9 +184,6 @@ class Scraper(object):
         Returns:
             N/A
         """
-        recent_sessions = sessions.get_recent_sessions(ScrapeKey(
-            self.get_region().region_code, scrape_type))
-
         if scrape_type == "background":
             # Background scrape
 
@@ -198,6 +197,9 @@ class Scraper(object):
             # the docket un-leased. It will get deleted the next time
             # we start a new background scrape.
 
+            recent_sessions = sessions.get_recent_sessions(ScrapeKey(
+                self.get_region().region_code, scrape_type))
+
             last_scraped = None
             for session in recent_sessions:
                 if session.last_scraped:
@@ -209,6 +211,7 @@ class Scraper(object):
             else:
                 logging.error("No earlier session with last_scraped found; "
                               "cannot resume.")
+                return
 
         else:
             # Snapshot scrape
@@ -256,18 +259,18 @@ class Scraper(object):
                               "\n\nMethod: {1}"
                               "\n\nBody: \n{2} ")
                 log_error = log_error.format(
-                    ce.request.headers,
+                    Scraper.flatten_headers(ce.request.headers),
                     ce.request.method,
                     ce.request.body)
 
-            if ce.response:
+            if ce.response is not None:
                 log_error += ("\n\nResponse: \n{0} / {1}"
                               "\n\nHeaders: \n{2}"
                               "\n\nText: \n{3}")
                 log_error = log_error.format(
                     ce.response.status_code,
                     ce.response.reason,
-                    ce.response.headers,
+                    Scraper.flatten_headers(ce.response.headers),
                     ce.response.text)
 
             logging.warning("Problem retrieving page, failing task to "
@@ -275,6 +278,21 @@ class Scraper(object):
             return -1
 
         return page
+
+    @staticmethod
+    def flatten_headers(headers):
+        """Flattens a dict of headers into a string for formatting.
+
+        Args:
+            headers: (dict) The headers dict to format
+
+        Returns:
+            The flattened dict as a string.
+        """
+        if headers is None:
+            return ''
+        return ', '.join("%s=%r" % (key, value)
+                         for (key, value) in headers.iteritems())
 
     def add_task(self, task_name, params):
         """ Add a task to the task queue.
