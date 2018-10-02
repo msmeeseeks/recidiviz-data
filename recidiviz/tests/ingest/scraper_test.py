@@ -19,12 +19,12 @@
 
 
 import json
-import requests
 
 from mock import patch
 from recidiviz.ingest.scraper import Scraper
 from recidiviz.ingest.sessions import ScrapeSession
 from recidiviz.ingest.models.scrape_key import ScrapeKey
+import requests
 
 
 class TestAbstractScraper(object):
@@ -184,6 +184,8 @@ class TestStopScraper(object):
     def test_stop_scrape_other_scrapes_to_defer(self, mock_regions,
                                                 mock_sessions, mock_deferred,
                                                 mock_queue):
+        """Tests that the stop_scrape method will defer launching of other
+        scrape types we didn't mean to stop."""
         region = "us_sd"
         scrape_type = "background"
         queue_name = "us_sd_scraper"
@@ -216,6 +218,7 @@ class TestResumeScrape(object):
     @patch("recidiviz.utils.regions.load_region_manifest")
     def test_resume_scrape_background(self, mock_regions, mock_sessions,
                                       mock_taskqueue):
+        """Tests the resume_scrape flow for background scraping."""
         region = "us_nd"
         scrape_type = "background"
         queue_name = "us_nd_scraper"
@@ -342,6 +345,7 @@ class TestFetchPage(object):
     @patch("recidiviz.utils.regions.load_region_manifest")
     def test_fetch_page(self, mock_regions, mock_proxies, mock_headers,
                         mock_requests):
+        """Tests that fetch_page returns the fetched data payload."""
         url = "/around/the/world"
         region = "us_sd"
         queue_name = "us_sd_scraper"
@@ -369,6 +373,8 @@ class TestFetchPage(object):
     @patch("recidiviz.utils.regions.load_region_manifest")
     def test_fetch_page_post(self, mock_regions, mock_proxies, mock_headers,
                              mock_requests):
+        """Tests that fetch_page returns the fetched data payload returned
+        from post requests."""
         url = "/around/the/world"
         body = {'foo': 'bar'}
         region = "us_sd"
@@ -398,6 +404,7 @@ class TestFetchPage(object):
     @patch("recidiviz.utils.regions.load_region_manifest")
     def test_fetch_page_error(self, mock_regions, mock_proxies, mock_headers,
                               mock_requests):
+        """Tests that fetch_page successfully handles error responses."""
         url = "/around/the/world"
         region = "us_sd"
         queue_name = "us_sd_scraper"
