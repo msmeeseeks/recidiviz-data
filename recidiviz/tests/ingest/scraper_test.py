@@ -21,10 +21,11 @@
 import json
 
 from mock import patch
+import requests
+
 from recidiviz.ingest.scraper import Scraper
 from recidiviz.ingest.sessions import ScrapeSession
 from recidiviz.ingest.models.scrape_key import ScrapeKey
-import requests
 
 
 class TestAbstractScraper(object):
