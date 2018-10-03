@@ -258,10 +258,10 @@ class Scraper(object):
             if request is not None:
                 request_error = ("\n\nRequest headers: \n{0}"
                                  "\n\nMethod: {1}"
-                                 "\n\nBody: \n{2} ").format(
-                    request.headers,
-                    request.method,
-                    request.body)
+                                 "\n\nBody: \n{2} ")\
+                    .format(request.headers,
+                            request.method,
+                            request.body)
 
                 log_error += request_error
 
@@ -269,11 +269,11 @@ class Scraper(object):
             if response is not None:
                 response_error = ("\n\nResponse: \n{0} / {1}"
                                   "\n\nHeaders: \n{2}"
-                                  "\n\nText: \n{3}").format(
-                    response.status_code,
-                    response.reason,
-                    response.headers,
-                    response.text)
+                                  "\n\nText: \n{3}")\
+                    .format(response.status_code,
+                            response.reason,
+                            response.headers,
+                            response.text)
 
                 log_error += response_error
 
