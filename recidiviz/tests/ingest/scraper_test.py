@@ -424,7 +424,7 @@ class TestFetchPage(object):
         error_response = requests.Response()
         error_response.status_code = 500
         error_response.reason = 'SERVER_ERROR'
-        error_response.headers = None
+        error_response.headers = {}
         exception_response = requests.exceptions.RequestException(
             request=original_request, response=error_response)
         mock_requests.side_effect = exception_response

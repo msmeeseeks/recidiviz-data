@@ -254,45 +254,34 @@ class Scraper(object):
         except requests.exceptions.RequestException as ce:
             log_error = "Error: {0}".format(ce)
 
-            if ce.request:
-                log_error += ("\n\nRequest headers: \n{0}"
-                              "\n\nMethod: {1}"
-                              "\n\nBody: \n{2} ")
-                log_error = log_error.format(
-                    Scraper.flatten_headers(ce.request.headers),
-                    ce.request.method,
-                    ce.request.body)
+            request = ce.request
+            if request is not None:
+                request_error = ("\n\nRequest headers: \n{0}"
+                                 "\n\nMethod: {1}"
+                                 "\n\nBody: \n{2} ").format(
+                    request.headers,
+                    request.method,
+                    request.body)
 
-            if ce.response is not None:
-                log_error += ("\n\nResponse: \n{0} / {1}"
-                              "\n\nHeaders: \n{2}"
-                              "\n\nText: \n{3}")
-                log_error = log_error.format(
-                    ce.response.status_code,
-                    ce.response.reason,
-                    Scraper.flatten_headers(ce.response.headers),
-                    ce.response.text)
+                log_error += request_error
+
+            response = ce.response
+            if response is not None:
+                response_error = ("\n\nResponse: \n{0} / {1}"
+                                  "\n\nHeaders: \n{2}"
+                                  "\n\nText: \n{3}").format(
+                    response.status_code,
+                    response.reason,
+                    response.headers,
+                    response.text)
+
+                log_error += response_error
 
             logging.warning("Problem retrieving page, failing task to "
                             "retry. \n\n%s", log_error)
             return -1
 
         return page
-
-    @staticmethod
-    def flatten_headers(headers):
-        """Flattens a dict of headers into a string for formatting.
-
-        Args:
-            headers: (dict) The headers dict to format
-
-        Returns:
-            The flattened dict as a string.
-        """
-        if headers is None:
-            return ''
-        return ', '.join("%s=%r" % (key, value)
-                         for (key, value) in headers.iteritems())
 
     def add_task(self, task_name, params):
         """ Add a task to the task queue.
