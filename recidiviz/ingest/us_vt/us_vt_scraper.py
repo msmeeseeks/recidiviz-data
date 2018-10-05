@@ -36,7 +36,7 @@ import logging
 import re
 
 from lxml import html
-from lxml.etree import XMLSyntaxError # pylint:disable=no-name-in-module
+from lxml.etree import LxmlError
 
 from google.appengine.ext import ndb
 from google.appengine.ext.db import InternalError
@@ -57,7 +57,6 @@ class UsVtScraper(Scraper):
     """
 
     def __init__(self):
-
         self.front_url = '/jailtracker/index/Vermont'
         self.roster_url = ('(S({session}))//(S({session}))/JailTracker/'
                            'GetInmates?start={start}&limit={limit}'
@@ -102,15 +101,18 @@ class UsVtScraper(Scraper):
 
             # The session key is in a string parameter in a javascript
             # call that initializes the jailtracker system.
-            body_script = html.tostring(
-                html_tree.xpath("//body/div/script")[0])
             try:
+                body_script = html.tostring(
+                    html_tree.xpath("//body/div/script")[0])
+
                 session_key = re.search(
                     r"JailTracker.Web.Settings.init\('(.*)'",
                     body_script).group(1)
-            except AttributeError:
+            except Exception, exception:
                 logging.error("Error, could not parse session key from the "
-                              "front page HTML")
+                              "front page HTML. Error: %s\nPage:\n\n%s",
+                              exception, html_tree)
+                logging.error(exception)
                 return None
 
             return session_key
@@ -122,7 +124,7 @@ class UsVtScraper(Scraper):
 
         try:
             front_tree = html.fromstring(front_page.content)
-        except XMLSyntaxError as e:
+        except LxmlError as e:
             logging.error("Error parsing front page. Error: %s\nPage:\n\n%s",
                           e, front_page.content)
             return -1
@@ -163,6 +165,8 @@ class UsVtScraper(Scraper):
             limit=params['limit'])
 
         roster_response = self.fetch_page(url)
+        if roster_response == -1:
+            return -1
 
         roster = json.loads(roster_response.content)
 
@@ -214,6 +218,9 @@ class UsVtScraper(Scraper):
             session=params['session'],
             arrest=params['roster_entry']['ArrestNo'])
         person_response = self.fetch_page(url)
+        if person_response == -1:
+            return -1
+
         person = json.loads(person_response.content)
 
         cases_params = {
@@ -223,6 +230,7 @@ class UsVtScraper(Scraper):
             'scrape_type': params['scrape_type']}
 
         self.add_task('scrape_cases', cases_params)
+        return None
 
     def scrape_cases(self, params):
         """Scrape the case information about an individual case.
@@ -240,6 +248,9 @@ class UsVtScraper(Scraper):
             session=params['session'],
             arrest=params['roster_entry']['ArrestNo'])
         cases_response = self.fetch_page(url)
+        if cases_response == -1:
+            return -1
+
         cases = json.loads(cases_response.content)
 
         charges_params = {
@@ -250,6 +261,7 @@ class UsVtScraper(Scraper):
             'scrape_type': params['scrape_type']}
 
         self.add_task('scrape_charges', charges_params)
+        return None
 
     def scrape_charges(self, params):
         """Scrape the charge information about an individual charge.
@@ -271,10 +283,15 @@ class UsVtScraper(Scraper):
         data = {'arrestNo': params['roster_entry']['ArrestNo']}
 
         charges_response = self.fetch_page(url, data=data)
+        if charges_response == -1:
+            return -1
+
         charges = json.loads(charges_response.content)
 
-        self.store_record(params['roster_entry'], params['person'],
-                          params['cases'], charges)
+        return self.store_record(params['roster_entry'],
+                                 params['person'],
+                                 params['cases'], charges)
+
 
     @staticmethod
     def extract_agencies(person_data, person_id):

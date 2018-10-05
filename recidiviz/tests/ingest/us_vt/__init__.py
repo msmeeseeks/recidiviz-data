@@ -14,34 +14,3 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
-
-
-regions:
-
-  us_ny:
-    agency_name: Department of Corrections and Community Supervision
-    agency_type: prison
-    base_url: http://nysdoccslookup.doccs.ny.gov
-    entity_kinds:
-      person: UsNyPerson
-      record: UsNyRecord
-    names_file: us_ny_names.csv
-    queue: us-ny-scraper
-    region_code: us_ny
-    region_name: New York State
-    scraper_package: us_ny
-    timezone: America/New_York
-  us_vt:
-    region_name: UsVt
-    agency_name: Vermont Department of Corrections
-    region_code: us_vt
-    agency_type: unified
-    queue: us-vt-scraper
-    base_url: https://omsweb.public-safety-cloud.com/jtclientweb
-    names_file: us_ny_names.csv
-    entity_kinds:
-      inmate: UsVtInmate
-      record: UsVtRecord
-      snapshot: UsVtSnapshot
-    scraper_package: us_vt
-    timezone: America/New_York
