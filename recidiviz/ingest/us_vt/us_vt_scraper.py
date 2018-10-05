@@ -36,7 +36,7 @@ import logging
 import re
 
 from lxml import html
-from lxml.etree import LxmlError
+from lxml.etree import LxmlError  # pylint: disable=no-name-in-module
 
 from google.appengine.ext import ndb
 from google.appengine.ext.db import InternalError

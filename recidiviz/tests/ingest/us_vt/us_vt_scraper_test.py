@@ -247,12 +247,15 @@ class DeserializedJson(callee.Matcher):
 
 
 class TestScrapeFrontPage(object):
+    """Tests for the UsVtScraper.scrape_front_page functionality."""
 
     @responses.activate
     @patch("google.appengine.api.taskqueue.add")
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_expected_html(self, mock_proxies, mock_headers, mock_taskqueue):
+        """Tests the happy path case."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
 
@@ -288,6 +291,8 @@ class TestScrapeFrontPage(object):
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_unexpected_html_no_session_key(self, mock_proxies, mock_headers):
+        """Tests the case where there's no session key in the HTML."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
 
@@ -310,6 +315,8 @@ class TestScrapeFrontPage(object):
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_invalid_html(self, mock_proxies, mock_headers):
+        """Tests the case where there's an invalid response body."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
 
@@ -332,6 +339,8 @@ class TestScrapeFrontPage(object):
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_error_response(self, mock_proxies, mock_headers):
+        """Tests the case where the server returns an actual error."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
 
@@ -352,6 +361,7 @@ class TestScrapeFrontPage(object):
 
 
 class TestScrapeRoster(object):
+    """Tests for the UsVtScraper.scrape_roster functionality."""
 
     @responses.activate
     @patch("google.appengine.api.taskqueue.add")
@@ -359,6 +369,7 @@ class TestScrapeRoster(object):
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_expected_json_done_with_roster(self, mock_proxies, mock_headers,
                                             mock_taskqueue):
+        """Tests the happy path case."""
         scraper = UsVtScraper()
         scrape_type = 'background'
 
@@ -412,6 +423,9 @@ class TestScrapeRoster(object):
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_expected_json_more_roster_to_go(self, mock_proxies, mock_headers,
                                              mock_taskqueue):
+        """Tests the happy path case where there is still another roster
+        segment to scrape."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
 
@@ -481,6 +495,8 @@ class TestScrapeRoster(object):
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_error_response(self, mock_proxies, mock_headers):
+        """Tests the case where the server returns an error response."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
 
@@ -511,13 +527,15 @@ class TestScrapeRoster(object):
 
 
 class TestScrapePerson(object):
+    """Tests for the UsVtScraper.scrape_person functionality."""
 
     @responses.activate
     @patch("google.appengine.api.taskqueue.add")
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
-    def test_expected_json(self, mock_proxies, mock_headers,
-                           mock_taskqueue):
+    def test_expected_json(self, mock_proxies, mock_headers, mock_taskqueue):
+        """Tests the happy path case."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
         roster_entry = ROSTER_PAGE_JSON['data'][0]
@@ -565,6 +583,8 @@ class TestScrapePerson(object):
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_error_response(self, mock_proxies, mock_headers):
+        """Tests the case where the server returns an error response."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
         roster_entry = ROSTER_PAGE_JSON['data'][0]
@@ -594,13 +614,15 @@ class TestScrapePerson(object):
 
 
 class TestScrapeCases(object):
+    """Tests for the UsVtScraper.scrape_cases functionality."""
 
     @responses.activate
     @patch("google.appengine.api.taskqueue.add")
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
-    def test_expected_json(self, mock_proxies, mock_headers,
-                           mock_taskqueue):
+    def test_expected_json(self, mock_proxies, mock_headers, mock_taskqueue):
+        """Tests the happy path case."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
         roster_entry = ROSTER_PAGE_JSON['data'][0]
@@ -651,6 +673,8 @@ class TestScrapeCases(object):
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_error_response(self, mock_proxies, mock_headers):
+        """Tests the case where the server returns an error response."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
         roster_entry = ROSTER_PAGE_JSON['data'][0]
@@ -682,12 +706,15 @@ class TestScrapeCases(object):
 
 
 class TestScrapeCharges(object):
+    """Tests for the UsVtScraper.scrape_charges functionality."""
 
     @responses.activate
     @patch("recidiviz.ingest.us_vt.us_vt_scraper.UsVtScraper.store_record")
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_expected_json(self, mock_proxies, mock_headers, mock_store_record):
+        """Tests the happy path case."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
         roster_entry = ROSTER_PAGE_JSON['data'][0]
@@ -726,6 +753,8 @@ class TestScrapeCharges(object):
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_error_response(self, mock_proxies, mock_headers):
+        """Tests the case where the server returns an error response."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
         roster_entry = ROSTER_PAGE_JSON['data'][0]
@@ -762,6 +791,8 @@ class TestScrapeCharges(object):
     @patch("recidiviz.ingest.scraper_utils.get_headers")
     @patch("recidiviz.ingest.scraper_utils.get_proxies")
     def test_error_on_save(self, mock_proxies, mock_headers, mock_store_record):
+        """Tests the case where there is an error while saving the records."""
+
         scraper = UsVtScraper()
         scrape_type = 'background'
         roster_entry = ROSTER_PAGE_JSON['data'][0]
