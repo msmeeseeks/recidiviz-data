@@ -292,7 +292,6 @@ class UsVtScraper(Scraper):
                                  params['person'],
                                  params['cases'], charges)
 
-
     @staticmethod
     def extract_agencies(person_data, person_id):
         """Get the list of agencies with jurisdiction over this person. There
@@ -380,7 +379,7 @@ class UsVtScraper(Scraper):
             else:  # Not an agency
                 last_was_agency = False
 
-        return (facility, parole_agency)
+        return facility, parole_agency
 
     def create_person(self, roster_data, person_data):
         """Make the person model entity, given data scraped from the roster
@@ -405,6 +404,8 @@ class UsVtScraper(Scraper):
         person.surname = roster_data['LastName']
         person.given_names = ' '.join([roster_data['FirstName'],
                                        roster_data['MiddleName']])
+        person.alias = person_data['Alias']
+        person.suffix = person_data['Suffix']
 
         # Note that we do not try to guess a birthday here, which may
         # lead to problems with age estimation later.
@@ -602,7 +603,6 @@ class UsVtScraper(Scraper):
 
         return None
 
-    # pylint:disable=arguments-differ
     def person_id_to_record_id(self, person_id):
         """Convert provided person_id to record_id of any record for that
         person. This is the implementation of an abstract method in Scraper.
@@ -640,7 +640,6 @@ class UsVtScraper(Scraper):
 
         """
         snapshot = UsVtSnapshot(
-            birthdate=record.birthdate,
             case_worker=record.case_worker,
             community_supervision_agency=record.community_supervision_agency,
             custody_date=record.custody_date,
@@ -649,9 +648,6 @@ class UsVtScraper(Scraper):
             is_released=record.is_released,
             latest_facility=record.latest_facility,
             latest_release_date=record.latest_release_date,
-            latest_release_type=record.latest_release_type,
-            max_sentence_length=record.max_sentence_length,
-            min_sentence_length=record.min_sentence_length,
             offense=record.offense,
             parent=record.key,
             parole_officer=record.parole_officer,
