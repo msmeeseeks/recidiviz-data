@@ -26,6 +26,7 @@ import callee
 import responses
 
 from google.appengine.ext import ndb
+from google.appengine.ext.db import InternalError
 from google.appengine.ext import testbed
 
 import requests
@@ -176,7 +177,12 @@ PERSON_JSON = {
 }
 
 # So far, all case data has been empty. See us_vt_scraper.store_record.
-CASES_JSON = {}
+CASES_JSON = {
+    "data": [],
+    "totalCount": 0,
+    "error": "",
+    "success": "true"
+}
 
 CHARGES_JSON = {
     "data": [
@@ -242,6 +248,11 @@ CHARGES_JSON = {
     "error": "",
     "success": True
 }
+
+
+def test_get_initial_task():
+    scraper = UsVtScraper()
+    assert scraper.get_initial_task() == 'scrape_front_page'
 
 
 class DeserializedJson(callee.Matcher):
@@ -1314,13 +1325,105 @@ class TestExtractAgencies(object):
         return scraper.extract_agencies(person_json, person.person_id)
 
 
-def test_get_initial_task():
-    scraper = UsVtScraper()
-    assert scraper.get_initial_task() == 'scrape_front_page'
+class TestStoreRecord(object):
+    """Tests for the store_record method."""
+
+    def setup_method(self, _test_method):
+        # noinspection PyAttributeOutsideInit
+        self.testbed = testbed.Testbed()
+        self.testbed.activate()
+        self.testbed.init_datastore_v3_stub()
+        self.testbed.init_memcache_stub()
+        ndb.get_context().clear_cache()
+
+        # root_path must be set the the location of queue.yaml.
+        # Otherwise, only the 'default' queue will be available.
+        self.testbed.init_taskqueue_stub(root_path='.')
+
+        # noinspection PyAttributeOutsideInit
+        self.taskqueue_stub = self.testbed.get_stub(
+            testbed.TASKQUEUE_SERVICE_NAME)
+
+    def teardown_method(self, _test_method):
+        self.testbed.deactivate()
+
+    def test_store_record(self):
+        """Tests the happy path for store_record."""
+        roster_data = ROSTER_PAGE_JSON['data'][0]
+        person_data = PERSON_JSON
+        case_data = CASES_JSON
+        charge_data = CHARGES_JSON
+
+        scraper = UsVtScraper()
+        result = scraper.store_record(roster_data, person_data,
+                                      case_data, charge_data)
+
+        assert result is None
+
+        person = UsVtPerson.get_by_id("5551")
+        assert person.person_id == "5551"
+
+        records = Record.query(ancestor=person.key).fetch()
+        assert len(records) == 1
+        assert records[0].record_id == "555"
+
+        snapshots = UsVtSnapshot.query(ancestor=records[0].key).fetch()
+        assert len(snapshots) == 1
+
+    def test_found_case_data(self):
+        roster_data = ROSTER_PAGE_JSON['data'][0]
+        person_data = PERSON_JSON
+        case_data = CASES_JSON
+        case_data['data'] = [{"Field": "Docket", "Value": "Appellate"}]
+        charge_data = CHARGES_JSON
+
+        scraper = UsVtScraper()
+        result = scraper.store_record(roster_data, person_data,
+                                      case_data, charge_data)
+
+        assert result is None
+
+    @patch("recidiviz.ingest.us_vt.us_vt_person.UsVtPerson.put")
+    def test_error_saving_person(self, mock_put):
+        mock_put.side_effect = InternalError()
+
+        roster_data = ROSTER_PAGE_JSON['data'][0]
+        person_data = PERSON_JSON
+        case_data = CASES_JSON
+        charge_data = CHARGES_JSON
+
+        scraper = UsVtScraper()
+        result = scraper.store_record(roster_data, person_data,
+                                      case_data, charge_data)
+
+        assert result == -1
+        mock_put.assert_called_with()
+
+    @patch("recidiviz.models.record.Record.put")
+    def test_error_saving_record(self, mock_put):
+        mock_put.side_effect = InternalError()
+
+        roster_data = ROSTER_PAGE_JSON['data'][0]
+        person_data = PERSON_JSON
+        case_data = CASES_JSON
+        charge_data = CHARGES_JSON
+
+        scraper = UsVtScraper()
+        result = scraper.store_record(roster_data, person_data,
+                                      case_data, charge_data)
+
+        assert result == -1
+        mock_put.assert_called_with()
+
+        person = UsVtPerson.get_by_id("5551")
+        assert person.person_id == "5551"
 
 
-def test_compare_and_set_snapshot():
-    pass
+class TestCompareAndSetSnapshot(object):
+    """Tests for the compare_and_set_snapshot method."""
+
+    def test_compare_and_set_snapshot(self):
+        pass
 
 
 def setup_mocks(mock_proxies, mock_headers, mock_taskqueue=None):
