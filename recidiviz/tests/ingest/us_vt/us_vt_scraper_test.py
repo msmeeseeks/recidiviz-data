@@ -1422,8 +1422,235 @@ class TestStoreRecord(object):
 class TestCompareAndSetSnapshot(object):
     """Tests for the compare_and_set_snapshot method."""
 
-    def test_compare_and_set_snapshot(self):
-        pass
+    def setup_method(self, _test_method):
+        # noinspection PyAttributeOutsideInit
+        self.testbed = testbed.Testbed()
+        self.testbed.activate()
+        self.testbed.init_datastore_v3_stub()
+        self.testbed.init_memcache_stub()
+        ndb.get_context().clear_cache()
+
+        # root_path must be set the the location of queue.yaml.
+        # Otherwise, only the 'default' queue will be available.
+        self.testbed.init_taskqueue_stub(root_path='.')
+
+        # noinspection PyAttributeOutsideInit
+        self.taskqueue_stub = self.testbed.get_stub(
+            testbed.TASKQUEUE_SERVICE_NAME)
+
+    def teardown_method(self, _test_method):
+        self.testbed.deactivate()
+
+    def test_first_snapshot_for_record(self):
+        """Tests the happy path for compare_and_set_snapshot."""
+        scraper = UsVtScraper()
+
+        record = self.prepare_record(scraper)
+        snapshot = scraper.record_to_snapshot(record)
+
+        scraper.compare_and_set_snapshot(record, snapshot)
+        snapshots = UsVtSnapshot.query(ancestor=record.key).fetch()
+        assert len(snapshots) == 1
+
+    def test_no_changes(self):
+        """Tests that a lack of changes in any field does not lead to a new
+        snapshot."""
+        scraper = UsVtScraper()
+
+        record = self.prepare_record(scraper)
+        snapshot = scraper.record_to_snapshot(record)
+
+        scraper.compare_and_set_snapshot(record, snapshot)
+        snapshots = UsVtSnapshot.query(ancestor=record.key).fetch()
+        assert len(snapshots) == 1
+
+        # There should still only be one snapshot, because nothing changes
+        scraper.compare_and_set_snapshot(record, snapshot)
+        snapshots = UsVtSnapshot.query(ancestor=record.key).fetch()
+        assert len(snapshots) == 1
+
+    def test_changes_in_flat_field(self):
+        """Tests that changes in a flat field lead to a new snapshot."""
+        scraper = UsVtScraper()
+
+        record = self.prepare_record(scraper)
+        snapshot = scraper.record_to_snapshot(record)
+
+        scraper.compare_and_set_snapshot(record, snapshot)
+        snapshots = UsVtSnapshot.query(ancestor=record.key).fetch()
+        assert len(snapshots) == 1
+
+        second_snapshot = scraper.record_to_snapshot(record)
+        second_snapshot.latest_facility = "ANOTHER FACILITY"
+
+        scraper.compare_and_set_snapshot(record, second_snapshot)
+        snapshots = UsVtSnapshot.query(ancestor=record.key).fetch()
+        assert len(snapshots) == 2
+
+        self.assert_proper_fields_set(snapshots[1], ["latest_facility"])
+
+    def test_changes_in_nested_field_offense(self):
+        """Tests that changes in a nested field, i.e. offense,
+        lead to a new snapshot."""
+        scraper = UsVtScraper()
+
+        record = self.prepare_record(scraper)
+        snapshot = scraper.record_to_snapshot(record)
+
+        scraper.compare_and_set_snapshot(record, snapshot)
+        snapshots = UsVtSnapshot.query(ancestor=record.key).fetch()
+        assert len(snapshots) == 1
+
+        second_snapshot = scraper.record_to_snapshot(record)
+        updated_offenses = [
+            # This one changed status=Sentenced to status=Commuted
+            UsVtOffense(
+                arresting_agency="",
+                arrest_code="ESC",
+                arrest_date=None,
+                bond_amount=0.00,
+                bond_type=None,
+                case_number="1111-11-11 Aaaa",
+                control_number="0",
+                court_time=datetime(2017, 2, 4, 14, 4, 0),
+                court_type="Criminal",
+                crime_class="12345",
+                crime_description="ESCAPE OR WALKAWAY - F",
+                crime_type="F",
+                modifier=None,
+                number_of_counts=1,
+                status="Commuted",
+                warrant_number=""
+            ),
+            # This one remained the same
+            UsVtOffense(
+                arresting_agency="",
+                arrest_code="SA",
+                arrest_date=None,
+                bond_amount=0.00,
+                bond_type=None,
+                case_number="2222-22-22 Bbbb",
+                control_number="0",
+                court_time=datetime(2007, 3, 11, 17, 30, 0),
+                court_type="Criminal",
+                crime_class="67890",
+                crime_description="SIMPLE ASSAULT",
+                crime_type="M",
+                modifier=None,
+                number_of_counts=1,
+                status="Sentenced",
+                warrant_number=""
+            ),
+            # This one remained the same
+            UsVtOffense(
+                arresting_agency="",
+                arrest_code="BURGUN",
+                arrest_date=None,
+                bond_amount=0.00,
+                bond_type=None,
+                case_number="3333-33-33 Cccc",
+                control_number="0",
+                court_time=datetime(2009, 3, 23, 22, 21, 0),
+                court_type="Criminal",
+                crime_class="45678",
+                crime_description="BURGLARY",
+                crime_type="F",
+                modifier=None,
+                number_of_counts=1,
+                status="Sentenced",
+                warrant_number=""
+            )
+        ]
+        second_snapshot.offense = updated_offenses
+
+        scraper.compare_and_set_snapshot(record, second_snapshot)
+        snapshots = UsVtSnapshot.query(ancestor=record.key).fetch()
+        assert len(snapshots) == 2
+
+        self.assert_proper_fields_set(snapshots[1], [])
+
+        new_offenses = snapshots[1].offense
+        assert new_offenses == updated_offenses
+
+    @patch("recidiviz.ingest.us_vt.us_vt_snapshot.UsVtSnapshot.put")
+    def test_error_saving_snapshot(self, mock_put):
+        mock_put.side_effect = InternalError()
+
+        scraper = UsVtScraper()
+
+        record = self.prepare_record(scraper)
+        snapshot = scraper.record_to_snapshot(record)
+
+        result = scraper.compare_and_set_snapshot(record, snapshot)
+        assert not result
+
+        mock_put.assert_called_with()
+
+    @staticmethod
+    def prepare_record(scraper):
+        """Prepares a Record suitable for comparing snapshots to."""
+        roster_data = ROSTER_PAGE_JSON['data'][0]
+        person_data = {
+            "Agency": "ST. ALBANS PROBATION & PAROLE",
+            "Last Name": "FRIGHTERSON",
+            "First Name": "BOO",
+            "Middle Name": "",
+            "Suffix": "",
+            "Current Age": "32",
+            "Booking Date": "9/15/2014 2:53:00 PM",
+            "Date Released": "",
+            "Race": "White",
+            "Sex": "F",
+            "Alias": "Casper",
+            "Parole Officer": "Ghost, Friendly",
+            "Case Worker": "",
+            "Min Release": "05/02/2018",
+            "Max Release": "05/02/2018",
+            "Status": "Sentenced"
+        }
+        charge_data = CHARGES_JSON['data']
+
+        person = UsVtPerson(
+            id="5551",
+            person_id="5551",
+            surname="LANTERN",
+            given_names="JACK O",
+            alias="Casper",
+            suffix="",
+            age=32,
+            sex="female",
+            race="white",
+            us_vt_person_id="5551",
+            person_id_is_fuzzy=False,
+            region="us_vt"
+        )
+        person.put()
+
+        agencies = scraper.extract_agencies(PERSON_JSON['data'],
+                                            person.person_id)
+
+        record = scraper.create_record(person, agencies,
+                                       roster_data, person_data, charge_data)
+        record.put()
+
+        before_compare = UsVtSnapshot.query(ancestor=record.key).fetch()
+        assert not before_compare
+
+        return record
+
+    @staticmethod
+    def assert_proper_fields_set(snapshot, fields):
+        # pylint:disable=protected-access
+        snapshot_class = ndb.Model._kind_map['UsVtSnapshot']
+        snapshot_attrs = snapshot_class._properties
+        for attribute in snapshot_attrs:
+            # Offense defaults to an empty array, so it's always set
+            if attribute not in ["class", "created_on", "offense"]\
+                    and attribute not in fields:
+                assert getattr(snapshot, attribute) is None
+
+            if attribute in fields:
+                assert getattr(snapshot, attribute) is not None
 
 
 def setup_mocks(mock_proxies, mock_headers, mock_taskqueue=None):

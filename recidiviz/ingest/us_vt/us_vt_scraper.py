@@ -747,5 +747,6 @@ class UsVtScraper(Scraper):
             except (Timeout, TransactionFailedError, InternalError):
                 logging.warning("Couldn't store new snapshot for record %s",
                                 old_record.record_id)
+                return False
 
         return True
