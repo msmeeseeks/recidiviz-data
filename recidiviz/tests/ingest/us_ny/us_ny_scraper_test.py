@@ -17,11 +17,14 @@
 
 """Tests for the New York scraper: ingest/us_ny/us_ny_scraper.py."""
 
+import json
+import os
 from datetime import date
 from datetime import datetime
 
 from lxml import html
 from mock import patch
+import responses
 
 from google.appengine.api import memcache
 from google.appengine.ext import ndb
@@ -35,226 +38,252 @@ from recidiviz.ingest.us_ny.us_ny_record import UsNyRecord
 from recidiviz.ingest.us_ny.us_ny_scraper import UsNyScraper
 from recidiviz.models.record import Offense, SentenceDuration
 from recidiviz.models.snapshot import Snapshot
+from recidiviz.tests.ingest.matchers import DeserializedJson
 
 
-PERSON_PAGE = """
-<div id="ii">
-    <h2 class="aligncenter">Inmate Information</h2>
-    <p class="err"></p>
-    <table cellpadding="2" cellspacing="0" summary="Inmate Identifying and
-     location information">
-      <caption>Identifying and Location Information<br>
-       <span class="pcap">As of 10/11/18</span></caption>
-      <tbody><tr>
-        <td scope="row" id="t1a">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#din" 
-            title="Definition of DIN (Department Identification Number)">
-         DIN (Department Identification Number)</a></td>
-        <td headers="t1a">1234567 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1b">Inmate Name</td>
-        <td headers="t1b">SIMPSON, BART                            &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1c">Sex</td>
-        <td headers="t1c">MALE   &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1d">Date of Birth</td>
-        <td headers="t1d">04/22/1972 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1e">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#raceth" 
-            title="Definition of Race / Ethnicity">
-         Race / Ethnicity</a></td>
-        <td headers="t1e">WHITE                  &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1f">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#custstat" 
-            title="Definition of  Custody Status">
-         Custody Status</a></td>
-        <td headers="t1f">RELEASED       &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1g">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#fac" 
-            title="Definition of Housing / Releasing Facility">
-         Housing / Releasing Facility</a></td>
-        <td headers="t1g">QUEENSBORO                &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1h">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#origdate" 
-            title="Definition of Date Received (Original)">
-         Date Received (Original)</a></td>
-        <td headers="t1h">05/16/1991 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1i">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#currdate" 
-            title="Definition of Date Received (Current)">
-         Date Received (Current)</a></td>
-        <td headers="t1i">05/10/2013 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1j">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#admtype" 
-            title="Definition of Admission Type">
-         Admission Type</a></td>
-        <td headers="t1j"> &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1k">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#county" 
-            title="Definition of County of Commitment">
-         County of Commitment</a></td>
-        <td headers="t1k">KINGS        &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t1l">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#reldate" 
-            title="Definition of Latest Release Date / Type (Released Inmates
-         Only)">
-         Latest Release Date / Type (Released Inmates Only)</a></td>
-        <td headers="t1l">04/07/14 PAROLE DIV OF PAROLE        &nbsp;</td>
-      </tr>
-    </tbody></table>
-    <table cellpadding="2" cellspacing="0" summary="Inmate crimes of
-     conviction">
-      <caption>Crimes of Conviction<br>
-       <span class="pcap">If all 4
-       <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#crime" 
-          title="Definition of Crime">
-       crime</a> fields contain data, there may be additional crimes not shown
-       here. In this case, the crimes shown here are those with the longest
-       sentences.<br>
-       As of 10/11/18</span></caption>
-      <tbody><tr>
-        <th scope="col" id="crime">Crime</th>
-        <th scope="col" id="class">Class</th>
-      </tr>
-      <tr>
-        <td headers="crime"> MANSLAUGHTER 1ST               
-         &nbsp;</td>
-        <td headers="class">B  &nbsp;</td>
-      </tr>
-      <tr>
-        <td headers="crime">  ARMED ROBBERY
-         &nbsp;</td>
-        <td headers="class">B &nbsp;</td>
-      </tr>
-      <tr>
-        <td headers="crime">  
-         &nbsp;</td>
-        <td headers="class"> &nbsp;</td>
-      </tr>
-      <tr>
-        <td headers="crime">  
-         &nbsp;</td>
-        <td headers="class"> &nbsp;</td>
-      </tr>
-    </tbody></table>
-    <table cellpadding="2" cellspacing="0" summary="Inmate sentence terms and
-     release dates">
-      <caption>Sentence Terms and Release Dates<br>
-       <span class="pcap">Under certain circumstances, an inmate may be
-       released prior to serving his or her minimum term and before the
-       earliest release date shown for the inmate.<br>
-       As of 10/11/18</span></caption>
-      <tbody><tr>
-        <td scope="row" id="t3a">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#agg" 
-            title="Definition of Aggregate Minimum Sentence">
-         Aggregate Minimum Sentence</a></td>
-        <td headers="t3a">0008 Years, 04 Months,
-         00 Days</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3b">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#agg" 
-            title="Definition of Aggregate Maximum Sentence">
-         Aggregate Maximum Sentence</a></td>
-        <td headers="t3b">0025 Years, 00 Months,
-         00 Days</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3c">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#erd" 
-            title="Definition of Earliest Release Date">
-         Earliest Release Date</a></td>
-        <td headers="t3c">07/04/1998 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3d">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#ert" 
-            title="Definition of Earliest Release Type">
-         Earliest Release Type</a></td>
-        <td headers="t3d"> &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3e">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#phd" 
-            title="Definition of Parole Hearing Date">
-         Parole Hearing Date</a></td>
-        <td headers="t3e">02/2014 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3f">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#pht" 
-            title="Definition of Parole Hearing Type">
-         Parole Hearing Type</a></td>
-        <td headers="t3f">PAROLE VIOLATOR ASSESSED EXPIRATION       &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3g">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#pe" 
-            title="Definition of Parole Eligibility Date">
-         Parole Eligibility Date</a></td>
-        <td headers="t3g">06/28/1998 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3h">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#cr" 
-            title="Definition of Conditional Release Date">
-         Conditional Release Date</a></td>
-        <td headers="t3h">08/13/2014 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3i">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#me" 
-            title="Definition of Maximum Expiration Date">
-         Maximum Expiration Date</a></td>
-        <td headers="t3i">06/01/2015 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3j">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#meps" 
-            title="Definition of Maximum Expiration Date for 
-            Parole Supervision">
-         Maximum Expiration Date for Parole Supervision</a></td>
-        <td headers="t3j">02/2019 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3k">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#prsme" 
-            title="Definition of Post Release Supervision Maximum 
-            Expiration Date">
-         Post Release Supervision Maximum Expiration Date</a></td>
-        <td headers="t3k">01/01/2020 &nbsp;</td>
-      </tr>
-      <tr>
-        <td scope="row" id="t3l">
-         <a href="http://www.doccs.ny.gov/univinq/fpmsdoc.htm#pbdisch" 
-            title="Definition of Parole Board Discharge Date">
-         Parole Board Discharge Date</a></td>
-        <td headers="t3l"> 06/2008 &nbsp;</td>
-      </tr>
-    </tbody></table>
-  </div>
-  """
+SEARCH_PAGE = open(os.path.join(os.path.dirname(__file__),
+                                'fixtures',
+                                'search_page.html')).read()
+
+SEARCH_RESULTS_PAGE = open(os.path.join(os.path.dirname(__file__),
+                                        'fixtures',
+                                        'search_results_page.html')).read()
+
+
+PERSON_PAGE = open(os.path.join(os.path.dirname(__file__),
+                                'fixtures',
+                                'person_page.html')).read()
+
+
+class TestScrapeSearchPage(object):
+    """Tests for the scrape_search_page method."""
+
+    @responses.activate
+    @patch("google.appengine.api.taskqueue.add")
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_expected_html_background(self,
+                                      mock_proxies,
+                                      mock_headers,
+                                      mock_taskqueue):
+        """Tests the happy path case for background scrapes."""
+        scraper = UsNyScraper()
+        scrape_type = 'background'
+
+        setup_mocks(mock_proxies, mock_headers, mock_taskqueue)
+
+        responses.add(responses.GET, 'http://nysdoccslookup.doccs.ny.gov',
+                      body=SEARCH_PAGE, status=200)
+
+        result = scraper.scrape_search_page({'scrape_type': scrape_type,
+                                             'content': 'AAARDVARK'})
+        assert result is None
+
+        verify_mocks(mock_proxies, mock_headers, mock_taskqueue, 1)
+
+        task_params = json.dumps({'first_page': True,
+                                  'k01': 'WINQ000',
+                                  'token': 'abcdefgh',
+                                  'action': '/GCA00P00/WIQ1/WINQ000',
+                                  'scrape_type': scrape_type,
+                                  'content': 'AAARDVARK'})
+        mock_taskqueue.assert_called_with(url=scraper.scraper_work_url,
+                                          queue_name='us-ny-scraper',
+                                          params={
+                                              'region': 'us_ny',
+                                              'task':
+                                                  'scrape_search_results_page',
+                                              'params': task_params
+                                          })
+
+    @responses.activate
+    @patch("google.appengine.api.taskqueue.add")
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_expected_html_snapshot(self,
+                                    mock_proxies,
+                                    mock_headers,
+                                    mock_taskqueue):
+        """Tests the happy path case for snapshot scrapes."""
+        scraper = UsNyScraper()
+        scrape_type = 'snapshot'
+
+        setup_mocks(mock_proxies, mock_headers, mock_taskqueue)
+
+        responses.add(responses.GET, 'http://nysdoccslookup.doccs.ny.gov',
+                      body=SEARCH_PAGE, status=200)
+
+        result = scraper.scrape_search_page({'scrape_type': scrape_type,
+                                             'content': ('123abc', [])})
+        assert result is None
+
+        verify_mocks(mock_proxies, mock_headers, mock_taskqueue, 1)
+
+        task_params = json.dumps({'first_page': True,
+                                  'k01': 'WINQ000',
+                                  'token': 'abcdefgh',
+                                  'action': '/GCA00P00/WIQ1/WINQ000',
+                                  'scrape_type': scrape_type,
+                                  'content': ('123abc', [])})
+        mock_taskqueue.assert_called_with(url=scraper.scraper_work_url,
+                                          queue_name='us-ny-scraper',
+                                          params={
+                                              'region': 'us_ny',
+                                              'task':
+                                                  'scrape_person',
+                                              'params': task_params
+                                          })
+
+    @responses.activate
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_unexpected_html_no_session_key(self, mock_proxies, mock_headers):
+        """Tests the case where there's no sesion key in the HTML."""
+        scraper = UsNyScraper()
+        scrape_type = 'background'
+
+        setup_mocks(mock_proxies, mock_headers)
+
+        responses.add(responses.GET, 'http://nysdoccslookup.doccs.ny.gov',
+                      body='<p>This is valid but unexpected</p>', status=200)
+
+        result = scraper.scrape_search_page({'scrape_type': scrape_type})
+        assert result == -1
+
+        verify_mocks(mock_proxies, mock_headers)
+
+    @responses.activate
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_invalid_html(self, mock_proxies, mock_headers):
+        """Tests the case where there's an invalid response body."""
+        scraper = UsNyScraper()
+        scrape_type = 'snapshot'
+
+        setup_mocks(mock_proxies, mock_headers)
+
+        responses.add(responses.GET, 'http://nysdoccslookup.doccs.ny.gov',
+                      body='<!<!', status=200)
+
+        result = scraper.scrape_search_page({'scrape_type': scrape_type})
+        assert result == -1
+
+        verify_mocks(mock_proxies, mock_headers)
+
+    def test_error_response(self):
+        pass
+
+
+class TestScrapeSearchResultsPage(object):
+    """Tests for the scrape_search_results_page method."""
+
+    @responses.activate
+    @patch("recidiviz.ingest.sessions.update_session")
+    @patch("google.appengine.api.taskqueue.add")
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_expected_html_first_page(self,
+                                      mock_proxies,
+                                      mock_headers,
+                                      mock_taskqueue,
+                                      mock_session):
+        """Tests the happy path case for first page search result scrapes."""
+        scraper = UsNyScraper()
+        scrape_type = 'background'
+        action = '/GCA00P00/WIQ1/WINQ000'
+
+        setup_mocks(mock_proxies, mock_headers, mock_taskqueue)
+        mock_session.return_value = True
+
+        responses.add(responses.POST, 'http://nysdoccslookup.doccs.ny.gov'
+                      + action,
+                      body=SEARCH_RESULTS_PAGE, status=200)
+
+        result = scraper.scrape_search_results_page({
+            'first_page': True,
+            'k01': 'WINQ000',
+            'token': 'abcdefgh',
+            'action': '/GCA00P00/WIQ1/WINQ000',
+            'scrape_type': scrape_type,
+            'content': ('AAARDVARK', '')
+        })
+        assert result is None
+
+        verify_mocks(mock_proxies, mock_headers, mock_taskqueue, 5)
+        mock_session.assert_called_with('AARDVARK, ARTHUR',
+                                        ScrapeKey('us_ny', scrape_type))
+
+        dinis = ['1111aaa', '2222bbb', '3333ccc', '4444ddd']
+
+        next_search_task_params = {
+            'action': '/GCA00P00/WIQ3/WINQ130',
+            'clicki': 'Y',
+            'dini': '',
+            'k01': 'WINQ130',
+            'k02': '1234567',
+            'k03': '',
+            'k04': '1',
+            'k05': '2',
+            'k06': '1',
+            'token': 'abcdefgh',
+            'map_token': '',
+            'next': 'Next 4 Inmate Names',
+            'content': ['AAARDVARK', ''],
+            'scrape_type': scrape_type
+        }
+        mock_taskqueue.assert_any_call(
+            url=scraper.scraper_work_url,
+            queue_name='us-ny-scraper',
+            params={
+                'region': 'us_ny',
+                'task': 'scrape_search_results_page',
+                'params': DeserializedJson(next_search_task_params)
+            }
+        )
+
+        for dini in dinis:
+            task_params = {
+                'action': '/GCA00P00/WIQ3/WINQ130',
+                'clicki': '',
+                'dini': dini,
+                'k01': 'WINQ130',
+                'k02': '1234567',
+                'k03': '',
+                'k04': '1',
+                'k05': '2',
+                'k06': '1',
+                'token': 'abcdefgh',
+                'map_token': '',
+                'dinx_name': 'din' + dini[0],
+                'dinx_val': dini,
+                'content': ['AAARDVARK', ''],
+                'scrape_type': scrape_type
+            }
+
+            mock_taskqueue.assert_any_call(
+                url=scraper.scraper_work_url,
+                queue_name='us-ny-scraper',
+                params={
+                    'region': 'us_ny',
+                    'task': 'scrape_person',
+                    'params': DeserializedJson(task_params)
+                }
+            )
+
+    def test_expected_html_subsequent_page(self):
+        pass
+
+    def test_error_response(self):
+        pass
+
+    def test_subsequent_page_no_session_to_update(self):
+        pass
+
+    def test_subsequent_page_parsing_failure(self):
+        pass
+
+    def test_subsequent_page_parsing_failure_exhausted_attempts(self):
+        pass
 
 
 def test_get_initial_task():
@@ -1006,3 +1035,21 @@ class TestResultsParsingFailure(object):
 
         mock_sessions.assert_called_with('us_ny', most_recent_only=True)
         mock_stop_scrape.assert_called_with([scrape_type])
+
+
+def setup_mocks(mock_proxies, mock_headers, mock_taskqueue=None):
+    proxies = {'http': 'http://user:password@proxy.biz/'}
+    mock_proxies.return_value = proxies
+    headers = {'User-Agent': 'test_user_agent'}
+    mock_headers.return_value = headers
+
+    if mock_taskqueue is not None:
+        mock_taskqueue.return_value = None
+
+
+def verify_mocks(mock_proxies, mock_headers, mock_taskqueue=None, task_calls=0):
+    mock_proxies.assert_called_with()
+    mock_headers.assert_called_with()
+
+    if mock_taskqueue is not None and task_calls > 0:
+        assert len(mock_taskqueue.mock_calls) == task_calls

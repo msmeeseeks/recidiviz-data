@@ -46,7 +46,6 @@ import logging
 import re
 
 from lxml import html
-from lxml.etree import XMLSyntaxError  # pylint:disable=no-name-in-module
 
 from google.appengine.ext import deferred
 from google.appengine.ext import ndb
@@ -101,7 +100,7 @@ class UsNyScraper(Scraper):
 
         try:
             search_tree = html.fromstring(search_page.content)
-        except XMLSyntaxError as e:
+        except Exception as e:
             logging.error("Error parsing search page. Error: %s\nPage:\n\n%s",
                           str(e), str(search_page.content))
             return -1
@@ -231,42 +230,33 @@ class UsNyScraper(Scraper):
         results_tree = html.fromstring(results_page.content)
 
         # Parse the rows in the search results list
-        result_list = results_tree.xpath('//table[@id="dinlist"]/tr/td/form')
+        result_list = results_tree.xpath('//table[@id="dinlist"]'
+                                         '/tbody/tr/td/form')
 
         for row in result_list:
-            result_params = {}
-
-            # Parse result rows, pull form info to follow link
-            result_params['action'] = row.xpath('attribute::action')[0]
-            result_params['clicki'] = row.xpath(
-                './div/input[@name="M13_PAGE_CLICKI"]/@value')[0]
-            result_params['dini'] = row.xpath(
-                './div/input[@name="M13_SEL_DINI"]/@value')[0]
-            result_params['k01'] = row.xpath(
-                './div/input[@name="K01"]/@value')[0]
-            result_params['k02'] = row.xpath(
-                './div/input[@name="K02"]/@value')[0]
-            result_params['k03'] = row.xpath(
-                './div/input[@name="K03"]/@value')[0]
-            result_params['k04'] = row.xpath(
-                './div/input[@name="K04"]/@value')[0]
-            result_params['k05'] = row.xpath(
-                './div/input[@name="K05"]/@value')[0]
-            result_params['k06'] = row.xpath(
-                './div/input[@name="K06"]/@value')[0]
-            result_params['token'] = row.xpath(
-                './div/input[@name="DFH_STATE_TOKEN"]/@value')[0]
-            result_params['map_token'] = row.xpath(
-                './div/input[@name="DFH_MAP_STATE_TOKEN"]/@value')[0]
-            result_params['dinx_name'] = row.xpath(
-                './div/input[@type="submit"]/@name')[0]
-            result_params['dinx_val'] = row.xpath(
-                './div/input[@type="submit"]/@value')[0]
+            result_params = {
+                'action': row.xpath('attribute::action')[0],
+                'clicki': row.xpath(
+                    './div/input[@name="M13_PAGE_CLICKI"]/@value')[0],
+                'dini': row.xpath(
+                    './div/input[@name="M13_SEL_DINI"]/@value')[0],
+                'k01': row.xpath('./div/input[@name="K01"]/@value')[0],
+                'k02': row.xpath('./div/input[@name="K02"]/@value')[0],
+                'k03': row.xpath('./div/input[@name="K03"]/@value')[0],
+                'k04': row.xpath('./div/input[@name="K04"]/@value')[0],
+                'k05': row.xpath('./div/input[@name="K05"]/@value')[0],
+                'k06': row.xpath('./div/input[@name="K06"]/@value')[0],
+                'token': row.xpath(
+                    './div/input[@name="DFH_STATE_TOKEN"]/@value')[0],
+                'map_token': row.xpath(
+                    './div/input[@name="DFH_MAP_STATE_TOKEN"]/@value')[0],
+                'dinx_name': row.xpath('./div/input[@type="submit"]/@name')[0],
+                'dinx_val': row.xpath('./div/input[@type="submit"]/@value')[0],
+                'content': scrape_content,
+                'scrape_type': scrape_type
+            }
 
             # Enqueue tasks to follow link / get results
-            result_params['content'] = scrape_content
-            result_params['scrape_type'] = scrape_type
-
             self.add_task('scrape_person', result_params)
 
         # Parse the 'next' button's embedded form

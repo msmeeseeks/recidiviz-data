@@ -22,7 +22,6 @@ from copy import deepcopy
 from datetime import datetime
 
 from mock import patch
-import callee
 import responses
 
 from google.appengine.ext import ndb
@@ -36,6 +35,7 @@ from recidiviz.ingest.us_vt.us_vt_record import UsVtOffense
 from recidiviz.ingest.us_vt.us_vt_scraper import UsVtScraper
 from recidiviz.ingest.us_vt.us_vt_snapshot import UsVtSnapshot
 from recidiviz.models.record import Record
+from recidiviz.tests.ingest.matchers import DeserializedJson
 
 SESSION = 'e47fszhY4nYPfTEGEoZ9QU3R'
 SCRAPE_TYPE = 'background'
@@ -253,22 +253,6 @@ CHARGES_JSON = {
 def test_get_initial_task():
     scraper = UsVtScraper()
     assert scraper.get_initial_task() == 'scrape_front_page'
-
-
-class DeserializedJson(callee.Matcher):
-    """An argument Matcher which can match serialized json against a
-    deserialized object for comparison by deserializing the json.
-
-    This is useful here because we pass around serialized json as strings that
-    could have its fields in any order within the string, and we want to match
-    it against the actual object that the json represents.
-    """
-
-    def __init__(self, comparison_object):
-        self.comparison = comparison_object
-
-    def match(self, value):
-        return json.loads(value) == self.comparison
 
 
 class TestScrapeFrontPage(object):
