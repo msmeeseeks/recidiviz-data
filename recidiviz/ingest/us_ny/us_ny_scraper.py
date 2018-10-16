@@ -108,7 +108,7 @@ class UsNyScraper(Scraper):
 
         try:
             # Extract said tokens and construct the URL for searches
-            session_K01 = search_tree.cssselect('[name=K01]')[0].get("value")
+            session_k01 = search_tree.cssselect('[name=K01]')[0].get("value")
             session_token = search_tree.cssselect(
                 '[name=DFH_STATE_TOKEN]')[0].get("value")
             session_action = search_tree.xpath(
@@ -120,7 +120,7 @@ class UsNyScraper(Scraper):
 
         search_results_params = {
             'first_page': True,
-            'k01': session_K01,
+            'k01': session_k01,
             'token': session_token,
             'action': session_action,
             'scrape_type': params['scrape_type'],
@@ -457,71 +457,7 @@ class UsNyScraper(Scraper):
         details_page = page_tree.xpath('//div[@id="ii"]')
 
         if details_page:
-
-            # Create xpath selectors for the parts of the page we want
-            # to scrape
-            id_and_locale_rows = details_page[0].xpath(
-                "./table[contains(@summary, 'Identifying')]/tr")
-            crimes_rows = details_page[0].xpath(
-                "./table[contains(@summary, 'crimes')]/tr")
-            sentence_rows = details_page[0].xpath(
-                "./table[contains(@summary, 'sentence')]/tr")
-
-            # Make sure the tables on the page are what we're expecting
-            expected_first_row_id = "DIN (Department Identification Number)"
-            expected_first_row_crimes = "Crime"
-            expected_first_row_sentences = "Aggregate Minimum Sentence"
-
-            actual_first_row_id = (
-                id_and_locale_rows[0].xpath("./td")[0].text_content().strip())
-            actual_first_row_crimes = (
-                crimes_rows[0].xpath("./th")[0].text_content().strip())
-            actual_first_row_sentences = (
-                sentence_rows[0].xpath("./td")[0].text_content().strip())
-
-            if (actual_first_row_id != expected_first_row_id or
-                    actual_first_row_crimes != expected_first_row_crimes or
-                    actual_first_row_sentences != expected_first_row_sentences):
-
-                # This isn't the page we were expecting
-                logging.warning("Did not find expected tables on person page."
-                                " Page received: \n%s",
-                                html.tostring(page_tree, pretty_print=True))
-                return -1
-
-            else:
-                crimes = []
-
-                # Capture table data from each details table on the page
-                for row in id_and_locale_rows:
-                    row_data = row.xpath('./td')
-                    key, value = scraper_utils.normalize_key_value_row(
-                        row_data)
-                    person_details[key] = value
-
-                for row in crimes_rows:
-                    row_data = row.xpath('./td')
-
-                    # One row is the table headers / has no <td> elements
-                    if not row_data:
-                        pass
-                    else:
-                        crime_description, crime_class = (
-                            scraper_utils.normalize_key_value_row(row_data))
-                        crime = {'crime': crime_description,
-                                 'class': crime_class}
-
-                        # Only add to the list if row is non-empty
-                        if crime['crime']:
-                            crimes.append(crime)
-
-                for row in sentence_rows:
-                    row_data = row.xpath('./td')
-                    key, value = scraper_utils.normalize_key_value_row(
-                        row_data)
-                    person_details[key] = value
-
-                    person_details['crimes'] = crimes
+            person_details = self.gather_details(page_tree, details_page)
 
             # Kick off next docket item if this concludes our last one
             if next_docket_item:
@@ -705,26 +641,114 @@ class UsNyScraper(Scraper):
 
         return None
 
-    def store_record(self, person_details):
-        """Store scraped data from a results page
+    @staticmethod
+    def gather_details(page_tree, details_page):
+        """Gathers all of the details about a person and their particular
+        record into a dictionary.
 
-        We've scraped an incarceration details page, and want to store
-        the data we found. This function does some post-processing on
-        the scraped data, and feeds it into the datastore in a way
-        that can be indexed / queried in the future.
-
-        TODO (#133): Decompose this into store_record and create_record methods.
+        Returns a dictionary containing all of the information we will need
+        to save entities in the database, gathered from the given HTML page
+        tree.
 
         Args:
-            person_details: (dict) Key/value results parsed from the scrape
+            page_tree: lxml.html parsed object of the person page
+            details_page: lxml.html parsed div from the person page, which
+                contains all of the actual data to scrape
 
         Returns:
-            Nothing if successful, -1 if fails.
-
+            A dict containing all of the scraped fields, or -1 if we have any
+            issue parsing the page tree, i.e. it has an unexpected structure.
         """
+        person_details = {}
 
-        # PERSON LISTING
+        # Create xpath selectors for the parts of the page we want to scrape
+        id_and_locale_rows = details_page[0].xpath(
+            "./table[contains(@summary, 'Identifying')]/tbody/tr")
+        crimes_rows = details_page[0].xpath(
+            "./table[contains(@summary, 'crimes')]/tbody/tr")
+        sentence_rows = details_page[0].xpath(
+            "./table[contains(@summary, 'sentence')]/tbody/tr")
 
+        # Make sure the tables on the page are what we're expecting
+        expected_first_row_id = "DIN (Department Identification Number)"
+        expected_first_row_crimes = "Crime"
+        expected_first_row_sentences = "Aggregate Minimum Sentence"
+
+        if not id_and_locale_rows or not crimes_rows or not sentence_rows:
+            # This isn't the page we were expecting
+            logging.warning("Did not find expected tables on "
+                            "person page. Page received: \n%s",
+                            html.tostring(page_tree, pretty_print=True))
+            return -1
+
+        actual_first_row_id = (
+            id_and_locale_rows[0].xpath("./td")[0].text_content().strip())
+        actual_first_row_crimes = (
+            crimes_rows[0].xpath("./th")[0].text_content().strip())
+        actual_first_row_sentences = (
+            sentence_rows[0].xpath("./td")[0].text_content().strip())
+
+        if (actual_first_row_id != expected_first_row_id or
+                actual_first_row_crimes != expected_first_row_crimes or
+                actual_first_row_sentences != expected_first_row_sentences):
+
+            # This isn't the page we were expecting
+            logging.warning("Did not find expected content in tables on "
+                            "person page. Page received: \n%s",
+                            html.tostring(page_tree, pretty_print=True))
+            return -1
+
+        crimes = []
+
+        # Capture table data from each details table on the page
+        for row in id_and_locale_rows:
+            row_data = row.xpath('./td')
+            key, value = scraper_utils.normalize_key_value_row(
+                row_data)
+            person_details[key] = value
+
+        for row in crimes_rows:
+            row_data = row.xpath('./td')
+
+            # One row is the table headers / has no <td> elements
+            if not row_data:
+                pass
+            else:
+                crime_description, crime_class = (
+                    scraper_utils.normalize_key_value_row(row_data))
+                crime = {'crime': crime_description,
+                         'class': crime_class}
+
+                # Only add to the list if row is non-empty
+                if crime['crime']:
+                    crimes.append(crime)
+
+        for row in sentence_rows:
+            row_data = row.xpath('./td')
+            key, value = scraper_utils.normalize_key_value_row(
+                row_data)
+            person_details[key] = value
+
+            person_details['crimes'] = crimes
+
+        return person_details
+
+    def create_person(self, person_details):
+        """Creates a Person from the details scraped from the person page.
+
+        Instantiates a UsNyPerson entity and sets its fields based on data
+        in the given dict. If a person already exists with this person's
+        proposed id, then we fetch that person from the database and update it.
+
+        This method does not actually save the updated entity to the database.
+        It is transient upon return.
+
+        Args:
+            person_details: (dict) all of the scraped details to save
+
+        Returns:
+            A UsNyPerson entity ready to be saved to the database.
+        """
         department_identification_numbers = []
         if 'linked_records' in person_details:
             department_identification_numbers.extend(
@@ -783,19 +807,40 @@ class UsNyScraper(Scraper):
         person.given_names = person_given_name
         person.region = self.get_region().region_code
 
-        try:
-            person_key = person.put()
-        except (Timeout, TransactionFailedError, InternalError):
-            # Datastore error - fail task to trigger queue retry + backoff
-            logging.warning("Couldn't persist person: %s", person_id)
-            return -1
+        return person
 
-        # CRIMINAL RECORD ENTRY
+    def create_record(self, person, person_key, person_details):
+        """Creates a Record from the details scraped from the person page.
+
+        Instantiates a UsNyRecord entity and sets its fields based on data
+        in the given dict. If a record already exists with this records's
+        proposed id, then we fetch that record from the database and update it.
+
+        This returns a tuple. If a record did already exist with the proposed
+        id, then it is returned in its previous state as the first entry in the
+        tuple. Otherwise, the first entry in the tuple is a fresh record with
+        no fields set. Regardless, the second entry is the fully updated record.
+
+        This method does not actually save the updated entity to the database.
+        It is transient upon return.
+
+        Args:
+            person: (UsNyPerson) the person created from the same details
+            person_key: (ndb.Key) the NDB Key of the saved person entity,
+                for establishing ancestry between Person and Record
+            person_details: (dict) all of the scraped details to save
+
+        Returns:
+            A tuple of (old_record, record) as described above.
+        """
+        person_id = person.person_id
 
         record_id = person_details['DIN (Department Identification Number)']
 
         record_entity_id = self.get_region().region_code + record_id
         record = UsNyRecord.get_or_insert(record_entity_id, parent=person_key)
+
+        # Capture the state of the record from before we updated it
         old_record = deepcopy(record)
 
         # Some pre-work to massage values out of the data
@@ -911,10 +956,44 @@ class UsNyScraper(Scraper):
             record.offense = record_offenses
         record.race = person.race
         record.record_id = record_id
-        record.region = self.get_region()
+        record.region = self.get_region().region_code
         record.sex = person.sex
         record.surname = person.surname
         record.given_names = person.given_names
+
+        return old_record, record
+
+    def store_record(self, person_details):
+        """Store scraped data from a results page
+
+        We've scraped an incarceration details page, and want to store
+        the data we found. This function does some post-processing on
+        the scraped data, and feeds it into the datastore in a way
+        that can be indexed / queried in the future.
+
+        TODO (#133): Decompose this into store_record and create_record methods.
+
+        Args:
+            person_details: (dict) Key/value results parsed from the scrape
+
+        Returns:
+            Nothing if successful, -1 if fails.
+
+        """
+        person = self.create_person(person_details)
+        person_id = person.person_id
+
+        try:
+            person_key = person.put()
+        except (Timeout, TransactionFailedError, InternalError):
+            # Datastore error - fail task to trigger queue retry + backoff
+            logging.warning("Couldn't persist person: %s", person_id)
+            return -1
+
+        old_record, record = self.create_record(person,
+                                                person_key,
+                                                person_details)
+        record_id = record.record_id
 
         try:
             record.put()
@@ -922,23 +1001,22 @@ class UsNyScraper(Scraper):
             logging.warning("Couldn't persist record: %s", record_id)
             return -1
 
-        # PERSON RECORD SNAPSHOT
         new_snapshot = self.record_to_snapshot(record)
-
         self.compare_and_set_snapshot(old_record, new_snapshot)
 
         if 'group_id' in person_details:
             logging.info("Checked record for %s %s, person %s, in group %s, "
-                         "for record %s.", person_name[1], person_name[0],
+                         "for record %s.", person.given_names, person.surname,
                          person_id, person_details['group_id'], record_id)
         else:
             logging.info("Checked record for %s %s, person %s, (no group), for"
-                         " record %s.", person_name[1], person_name[0],
+                         " record %s.", person.given_names, person.surname,
                          person_id, record_id)
 
         return None
 
-    def parse_sentence_duration(self, term_string, person_id):
+    @staticmethod
+    def parse_sentence_duration(term_string, person_id):
         """Converts string describing sentence duration to
         models.SentenceDuration
 
@@ -994,7 +1072,8 @@ class UsNyScraper(Scraper):
 
         return result
 
-    def link_person(self, record_list):
+    @staticmethod
+    def link_person(record_list):
         """Checks for prior records matching newly scraped ones, returns
         person ID
 
@@ -1155,7 +1234,8 @@ class UsNyScraper(Scraper):
 
         return record.record_id
 
-    def record_to_snapshot(self, record):
+    @staticmethod
+    def record_to_snapshot(record):
         """Mirrors record fields into a Snapshot instance
 
         Takes in a new Record entity, and mirrors its fields into a
@@ -1202,11 +1282,14 @@ class UsNyScraper(Scraper):
 
         return snapshot
 
-    def compare_and_set_snapshot(self, old_record, snapshot):
+    @staticmethod
+    def compare_and_set_snapshot(old_record, snapshot):
         """Check for updates since last scrape, if found persist new snapshot
         Checks the last snapshot taken for this record, and if fields
         have changed since the last time the record was updated (or
         the record has no old snapshots) stores new snapshot.
+
+        TODO: #121 this function should be abstracted into the Scraper class.
 
         The new snapshot will only include those fields which have changed.
         Args:
@@ -1280,5 +1363,6 @@ class UsNyScraper(Scraper):
             except (Timeout, TransactionFailedError, InternalError):
                 logging.warning("Couldn't store new snapshot for record %s",
                                 old_record.record_id)
+                return False
 
         return True
