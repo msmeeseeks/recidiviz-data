@@ -38,7 +38,6 @@ import re
 from lxml import html
 from lxml.etree import XMLSyntaxError # pylint:disable=no-name-in-module
 
-from google.appengine.ext import ndb
 from google.appengine.ext.db import InternalError
 from google.appengine.ext.db import Timeout, TransactionFailedError
 
@@ -642,92 +641,3 @@ class UsVtScraper(Scraper):
         )
 
         return snapshot
-
-    def compare_and_set_snapshot(self, old_record, snapshot):
-        """Check for updates since last scrape, if found persist new snapshot
-        Checks the last snapshot taken for this record, and if fields
-        have changed since the last time the record was updated (or
-        the record has no old snapshots) stores new snapshot.
-
-        TODO: #121 this function should be abstracted into the Scraper class.
-
-        The new snapshot will only include those fields which have changed.
-        Args:
-            old_record: (UsVtRecord) The record entity this
-                snapshot pertains to
-            snapshot: (UsVtSnapshot) Snapshot object with details from
-                current scrape.
-        Returns:
-            True if successful
-            False if datastore errors
-
-        """
-        new_snapshot = False
-
-        # pylint:disable=protected-access
-        snapshot_class = ndb.Model._kind_map['UsVtSnapshot']
-        snapshot_attrs = snapshot_class._properties
-
-        last_snapshot = UsVtSnapshot.query(
-            ancestor=old_record.key).order(
-                -UsVtSnapshot.created_on).get()
-
-        if last_snapshot:
-            for attribute in snapshot_attrs:
-                if attribute not in ["class", "created_on", "offense"]:
-                    current_value = getattr(snapshot, attribute)
-                    last_value = getattr(old_record, attribute)
-                    if current_value != last_value:
-                        new_snapshot = True
-                        logging.info("Found change in person snapshot: field "
-                                     "%s was '%s', is now '%s'.",
-                                     attribute, last_value, current_value)
-                    else:
-                        setattr(snapshot, attribute, None)
-
-                elif attribute == "offense":
-                    # Offenses have to be treated differently -
-                    # setting them to None means an empty list or
-                    # tuple instead of None, and an unordered list of
-                    # them can't be compared to another unordered list
-                    # of them.
-                    #
-                    # TODO #123 instead of storing the entire list if
-                    # anything has changed, do a smarter diff on the
-                    # nested fields.
-                    offense_changed = False
-
-                    # Check if any new offenses have been added
-                    for charge in snapshot.offense:
-                        if charge in old_record.offense:
-                            pass
-                        else:
-                            offense_changed = True
-
-                    # Check if any old offenses have been removed
-                    for charge in old_record.offense:
-                        if charge in snapshot.offense:
-                            pass
-                        else:
-                            offense_changed = True
-
-                    if offense_changed:
-                        new_snapshot = True
-                        logging.info("Found change in person snapshot: field "
-                                     "%s was '%s', is now '%s'.", attribute,
-                                     old_record.offense, snapshot.offense)
-                    else:
-                        setattr(snapshot, attribute, [])
-
-        else:
-            # This is the first snapshot, store everything
-            new_snapshot = True
-
-        if new_snapshot:
-            try:
-                snapshot.put()
-            except (Timeout, TransactionFailedError, InternalError):
-                logging.warning("Couldn't store new snapshot for record %s",
-                                old_record.record_id)
-
-        return True
