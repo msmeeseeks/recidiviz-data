@@ -31,6 +31,8 @@ from google.appengine.ext import ndb
 from google.appengine.ext.db import InternalError
 from google.appengine.ext import testbed
 
+import requests
+
 from recidiviz.ingest.models.scrape_key import ScrapeKey
 from recidiviz.ingest.sessions import ScrapeSession
 from recidiviz.ingest.us_ny.us_ny_person import UsNyPerson
@@ -39,20 +41,17 @@ from recidiviz.ingest.us_ny.us_ny_scraper import UsNyScraper
 from recidiviz.models.record import Offense, SentenceDuration
 from recidiviz.models.snapshot import Snapshot
 from recidiviz.tests.ingest.matchers import DeserializedJson
+from recidiviz.tests.ingest import fixtures
 
 
-SEARCH_PAGE = open(os.path.join(os.path.dirname(__file__),
-                                'fixtures',
-                                'search_page.html')).read()
+SEARCH_PAGE = fixtures.as_string('us_ny', 'search_page.html')
 
-SEARCH_RESULTS_PAGE = open(os.path.join(os.path.dirname(__file__),
-                                        'fixtures',
-                                        'search_results_page.html')).read()
+SEARCH_RESULTS_PAGE = fixtures.as_string('us_ny', 'search_results_page.html')
 
+SEARCH_RESULTS_PAGE_MISSING_NEXT = fixtures.as_string(
+    'us_ny', 'search_results_page_missing_next.html')
 
-PERSON_PAGE = open(os.path.join(os.path.dirname(__file__),
-                                'fixtures',
-                                'person_page.html')).read()
+PERSON_PAGE = fixtures.as_string('us_ny', 'person_page.html')
 
 
 class TestScrapeSearchPage(object):
@@ -170,12 +169,46 @@ class TestScrapeSearchPage(object):
 
         verify_mocks(mock_proxies, mock_headers)
 
-    def test_error_response(self):
-        pass
+    @responses.activate
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_error_response(self, mock_proxies, mock_headers):
+        """Tests the case where the server returns an actual error."""
+        scraper = UsNyScraper()
+        scrape_type = 'snapshot'
+
+        setup_mocks(mock_proxies, mock_headers)
+
+        responses.add(responses.GET, 'http://nysdoccslookup.doccs.ny.gov',
+                      body=requests.exceptions.RequestException(), status=400)
+
+        result = scraper.scrape_search_page({'scrape_type': scrape_type})
+        assert result == -1
+
+        verify_mocks(mock_proxies, mock_headers)
 
 
 class TestScrapeSearchResultsPage(object):
     """Tests for the scrape_search_results_page method."""
+
+    def setup_method(self, _test_method):
+        # noinspection PyAttributeOutsideInit
+        self.testbed = testbed.Testbed()
+        self.testbed.activate()
+        self.testbed.init_datastore_v3_stub()
+        self.testbed.init_memcache_stub()
+        ndb.get_context().clear_cache()
+
+        # root_path must be set the the location of queue.yaml.
+        # Otherwise, only the 'default' queue will be available.
+        self.testbed.init_taskqueue_stub(root_path='.')
+
+        # noinspection PyAttributeOutsideInit
+        self.taskqueue_stub = self.testbed.get_stub(
+            testbed.TASKQUEUE_SERVICE_NAME)
+
+    def teardown_method(self, _test_method):
+        self.testbed.deactivate()
 
     @responses.activate
     @patch("recidiviz.ingest.sessions.update_session")
@@ -213,7 +246,76 @@ class TestScrapeSearchResultsPage(object):
         mock_session.assert_called_with('AARDVARK, ARTHUR',
                                         ScrapeKey('us_ny', scrape_type))
 
-        dinis = ['1111aaa', '2222bbb', '3333ccc', '4444ddd']
+        next_search_task_params = {
+            'action': '/GCA00P00/WIQ3/WINQ130',
+            'clicki': 'Y',
+            'dini': '',
+            'k01': 'WINQ130',
+            'k02': '1234567',
+            'k03': '',
+            'k04': '1',
+            'k05': '2',
+            'k06': '1',
+            'token': 'abcdefgh',
+            'map_token': '',
+            'next': 'Next 4 Inmate Names',
+            'content': ['AAARDVARK', ''],
+            'scrape_type': scrape_type
+        }
+        mock_taskqueue.assert_any_call(
+            url=scraper.scraper_work_url,
+            queue_name='us-ny-scraper',
+            params={
+                'region': 'us_ny',
+                'task': 'scrape_search_results_page',
+                'params': DeserializedJson(next_search_task_params)
+            }
+        )
+        self.assert_scrape_person_calls(scraper, scrape_type, mock_taskqueue)
+
+    @responses.activate
+    @patch("recidiviz.ingest.sessions.update_session")
+    @patch("google.appengine.api.taskqueue.add")
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_expected_html_subsequent_page(self,
+                                           mock_proxies,
+                                           mock_headers,
+                                           mock_taskqueue,
+                                           mock_session):
+        """Tests the happy path case subsequent page search result scrapes."""
+        scraper = UsNyScraper()
+        scrape_type = 'background'
+        action = '/GCA00P00/WIQ3/WINQ130'
+
+        setup_mocks(mock_proxies, mock_headers, mock_taskqueue)
+        mock_session.return_value = True
+
+        responses.add(responses.POST, 'http://nysdoccslookup.doccs.ny.gov'
+                      + action,
+                      body=SEARCH_RESULTS_PAGE, status=200)
+
+        result = scraper.scrape_search_results_page({
+            'action': action,
+            'clicki': 'Y',
+            'dini': '',
+            'k01': 'WINQ130',
+            'k02': '1234567',
+            'k03': '',
+            'k04': '1',
+            'k05': '2',
+            'k06': '1',
+            'token': 'abcdefgh',
+            'map_token': '',
+            'next': 'Next 4 Inmate Names',
+            'content': ['AAARDVARK', ''],
+            'scrape_type': scrape_type
+        })
+        assert result is None
+
+        verify_mocks(mock_proxies, mock_headers, mock_taskqueue, 5)
+        mock_session.assert_called_with('AARDVARK, ARTHUR',
+                                        ScrapeKey('us_ny', scrape_type))
 
         next_search_task_params = {
             'action': '/GCA00P00/WIQ3/WINQ130',
@@ -240,6 +342,148 @@ class TestScrapeSearchResultsPage(object):
                 'params': DeserializedJson(next_search_task_params)
             }
         )
+        self.assert_scrape_person_calls(scraper, scrape_type, mock_taskqueue)
+
+    @responses.activate
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_error_response(self, mock_proxies, mock_headers):
+        """Tests the case where the server returns an actual error."""
+        scraper = UsNyScraper()
+        scrape_type = 'snapshot'
+        action = '/GCA00P00/WIQ1/WINQ000'
+
+        setup_mocks(mock_proxies, mock_headers)
+
+        responses.add(responses.POST, 'http://nysdoccslookup.doccs.ny.gov'
+                      + action,
+                      body=requests.exceptions.RequestException(), status=400)
+
+        result = scraper.scrape_search_results_page({
+            'first_page': True,
+            'k01': 'WINQ000',
+            'token': 'abcdefgh',
+            'action': '/GCA00P00/WIQ1/WINQ000',
+            'scrape_type': scrape_type,
+            'content': ('AAARDVARK', '')
+        })
+        assert result == -1
+
+        verify_mocks(mock_proxies, mock_headers)
+
+    @responses.activate
+    @patch("recidiviz.ingest.sessions.update_session")
+    @patch("google.appengine.api.taskqueue.add")
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_subsequent_page_no_session_to_update(self,
+                                                  mock_proxies,
+                                                  mock_headers,
+                                                  mock_taskqueue,
+                                                  mock_session):
+        """Tests the subsequent page case where there is no session to update.
+        """
+        scraper = UsNyScraper()
+        scrape_type = 'background'
+        action = '/GCA00P00/WIQ3/WINQ130'
+
+        setup_mocks(mock_proxies, mock_headers, mock_taskqueue)
+        mock_session.return_value = None
+
+        responses.add(responses.POST, 'http://nysdoccslookup.doccs.ny.gov'
+                      + action,
+                      body=SEARCH_RESULTS_PAGE, status=200)
+
+        result = scraper.scrape_search_results_page({
+            'action': action,
+            'clicki': 'Y',
+            'dini': '',
+            'k01': 'WINQ130',
+            'k02': '1234567',
+            'k03': '',
+            'k04': '1',
+            'k05': '2',
+            'k06': '1',
+            'token': 'abcdefgh',
+            'map_token': '',
+            'next': 'Next 4 Inmate Names',
+            'content': ['AAARDVARK', ''],
+            'scrape_type': scrape_type
+        })
+        assert result == -1
+
+        verify_mocks(mock_proxies, mock_headers, mock_taskqueue, 4)
+        mock_session.assert_called_with('AARDVARK, ARTHUR',
+                                        ScrapeKey('us_ny', scrape_type))
+        self.assert_scrape_person_calls(scraper, scrape_type, mock_taskqueue)
+
+    @responses.activate
+    @patch("google.appengine.api.taskqueue.add")
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_subsequent_page_parsing_failure(self,
+                                             mock_proxies,
+                                             mock_headers,
+                                             mock_taskqueue):
+        """Tests the subsequent page case where there is an issue parsing
+        variables to scrape the next page."""
+        self.do_test_with_parsing_failure(
+            0, -1, mock_proxies, mock_headers, mock_taskqueue)
+
+    @responses.activate
+    @patch("google.appengine.api.taskqueue.add")
+    @patch("recidiviz.ingest.scraper_utils.get_headers")
+    @patch("recidiviz.ingest.scraper_utils.get_proxies")
+    def test_subsequent_page_parsing_failure_exhausted_retries(self,
+                                                               mock_proxies,
+                                                               mock_headers,
+                                                               mock_taskqueue):
+        """Tests the subsequent page case where there is an issue parsing
+        variables to scrape the next page and we have exhausted retries."""
+        self.do_test_with_parsing_failure(
+            3, None, mock_proxies, mock_headers, mock_taskqueue)
+
+    def do_test_with_parsing_failure(self,
+                                     failure_count,
+                                     expected_result,
+                                     mock_proxies,
+                                     mock_headers,
+                                     mock_taskqueue):
+        scraper = UsNyScraper()
+        scrape_type = 'background'
+        action = '/GCA00P00/WIQ3/WINQ130'
+
+        setup_mocks(mock_proxies, mock_headers, mock_taskqueue)
+
+        responses.add(responses.POST, 'http://nysdoccslookup.doccs.ny.gov'
+                      + action,
+                      body=SEARCH_RESULTS_PAGE_MISSING_NEXT, status=200)
+
+        memcache.set(scraper.fail_counter, failure_count)
+
+        result = scraper.scrape_search_results_page({
+            'action': action,
+            'clicki': 'Y',
+            'dini': '',
+            'k01': 'WINQ130',
+            'k02': '1234567',
+            'k03': '',
+            'k04': '1',
+            'k05': '2',
+            'k06': '1',
+            'token': 'abcdefgh',
+            'map_token': '',
+            'next': 'Next 4 Inmate Names',
+            'content': ['AAARDVARK', ''],
+            'scrape_type': scrape_type
+        })
+        assert result == expected_result
+
+        verify_mocks(mock_proxies, mock_headers, mock_taskqueue, 4)
+        self.assert_scrape_person_calls(scraper, scrape_type, mock_taskqueue)
+
+    def assert_scrape_person_calls(self, scraper, scrape_type, mock_taskqueue):
+        dinis = ['1111aaa', '2222bbb', '3333ccc', '4444ddd']
 
         for dini in dinis:
             task_params = {
@@ -269,21 +513,6 @@ class TestScrapeSearchResultsPage(object):
                     'params': DeserializedJson(task_params)
                 }
             )
-
-    def test_expected_html_subsequent_page(self):
-        pass
-
-    def test_error_response(self):
-        pass
-
-    def test_subsequent_page_no_session_to_update(self):
-        pass
-
-    def test_subsequent_page_parsing_failure(self):
-        pass
-
-    def test_subsequent_page_parsing_failure_exhausted_attempts(self):
-        pass
 
 
 def test_get_initial_task():
