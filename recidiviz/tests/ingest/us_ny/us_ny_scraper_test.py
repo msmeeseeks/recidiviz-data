@@ -18,7 +18,6 @@
 """Tests for the New York scraper: ingest/us_ny/us_ny_scraper.py."""
 
 import json
-import os
 from datetime import date
 from datetime import datetime
 
@@ -449,6 +448,7 @@ class TestScrapeSearchResultsPage(object):
                                      mock_proxies,
                                      mock_headers,
                                      mock_taskqueue):
+        """Performs the legwork for the two parsing failure test cases above."""
         scraper = UsNyScraper()
         scrape_type = 'background'
         action = '/GCA00P00/WIQ3/WINQ130'
