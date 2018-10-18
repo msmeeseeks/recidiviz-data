@@ -36,7 +36,7 @@ import logging
 import re
 
 from lxml import html
-from lxml.etree import XMLSyntaxError # pylint:disable=no-name-in-module
+from lxml.etree import LxmlError  # pylint: disable=no-name-in-module
 
 from google.appengine.ext.db import InternalError
 from google.appengine.ext.db import Timeout, TransactionFailedError
@@ -56,7 +56,6 @@ class UsVtScraper(Scraper):
     """
 
     def __init__(self):
-
         self.front_url = '/jailtracker/index/Vermont'
         self.roster_url = ('(S({session}))//(S({session}))/JailTracker/'
                            'GetInmates?start={start}&limit={limit}'
@@ -101,15 +100,18 @@ class UsVtScraper(Scraper):
 
             # The session key is in a string parameter in a javascript
             # call that initializes the jailtracker system.
-            body_script = html.tostring(
-                html_tree.xpath("//body/div/script")[0])
             try:
+                body_script = html.tostring(
+                    html_tree.xpath("//body/div/script")[0])
+
                 session_key = re.search(
                     r"JailTracker.Web.Settings.init\('(.*)'",
                     body_script).group(1)
-            except AttributeError:
+            except Exception, exception:
                 logging.error("Error, could not parse session key from the "
-                              "front page HTML")
+                              "front page HTML. Error: %s\nPage:\n\n%s",
+                              exception, html_tree)
+                logging.error(exception)
                 return None
 
             return session_key
@@ -121,7 +123,7 @@ class UsVtScraper(Scraper):
 
         try:
             front_tree = html.fromstring(front_page.content)
-        except XMLSyntaxError as e:
+        except LxmlError as e:
             logging.error("Error parsing front page. Error: %s\nPage:\n\n%s",
                           e, front_page.content)
             return -1
@@ -162,6 +164,8 @@ class UsVtScraper(Scraper):
             limit=params['limit'])
 
         roster_response = self.fetch_page(url)
+        if roster_response == -1:
+            return -1
 
         roster = json.loads(roster_response.content)
 
@@ -213,6 +217,9 @@ class UsVtScraper(Scraper):
             session=params['session'],
             arrest=params['roster_entry']['ArrestNo'])
         person_response = self.fetch_page(url)
+        if person_response == -1:
+            return -1
+
         person = json.loads(person_response.content)
 
         cases_params = {
@@ -222,6 +229,7 @@ class UsVtScraper(Scraper):
             'scrape_type': params['scrape_type']}
 
         self.add_task('scrape_cases', cases_params)
+        return None
 
     def scrape_cases(self, params):
         """Scrape the case information about an individual case.
@@ -239,6 +247,9 @@ class UsVtScraper(Scraper):
             session=params['session'],
             arrest=params['roster_entry']['ArrestNo'])
         cases_response = self.fetch_page(url)
+        if cases_response == -1:
+            return -1
+
         cases = json.loads(cases_response.content)
 
         charges_params = {
@@ -249,6 +260,7 @@ class UsVtScraper(Scraper):
             'scrape_type': params['scrape_type']}
 
         self.add_task('scrape_charges', charges_params)
+        return None
 
     def scrape_charges(self, params):
         """Scrape the charge information about an individual charge.
@@ -270,10 +282,14 @@ class UsVtScraper(Scraper):
         data = {'arrestNo': params['roster_entry']['ArrestNo']}
 
         charges_response = self.fetch_page(url, data=data)
+        if charges_response == -1:
+            return -1
+
         charges = json.loads(charges_response.content)
 
-        self.store_record(params['roster_entry'], params['person'],
-                          params['cases'], charges)
+        return self.store_record(params['roster_entry'],
+                                 params['person'],
+                                 params['cases'], charges)
 
     @staticmethod
     def extract_agencies(person_data, person_id):
@@ -362,7 +378,7 @@ class UsVtScraper(Scraper):
             else:  # Not an agency
                 last_was_agency = False
 
-        return (facility, parole_agency)
+        return facility, parole_agency
 
     def create_person(self, roster_data, person_data):
         """Make the person model entity, given data scraped from the roster
@@ -387,6 +403,8 @@ class UsVtScraper(Scraper):
         person.surname = roster_data['LastName']
         person.given_names = ' '.join([roster_data['FirstName'],
                                        roster_data['MiddleName']])
+        person.alias = person_data['Alias']
+        person.suffix = person_data['Suffix']
 
         # Note that we do not try to guess a birthday here, which may
         # lead to problems with age estimation later.
@@ -428,6 +446,11 @@ class UsVtScraper(Scraper):
 
             person: (Person entity) person model entity created from
                 scraped data.
+
+            agencies: (tuple) a tuple where the first entry is the name of the
+                residential facility with custody over this person (or None) and
+                the second entry is the probation or parole office in charge of
+                supervising this person (or None)
 
             roster_data: (list of key/value pairs) information scraped
                 from the person's roster entry.
@@ -579,7 +602,6 @@ class UsVtScraper(Scraper):
 
         return None
 
-    # pylint:disable=arguments-differ
     def person_id_to_record_id(self, person_id):
         """Convert provided person_id to record_id of any record for that
         person. This is the implementation of an abstract method in Scraper.
@@ -617,7 +639,6 @@ class UsVtScraper(Scraper):
 
         """
         snapshot = UsVtSnapshot(
-            birthdate=record.birthdate,
             case_worker=record.case_worker,
             community_supervision_agency=record.community_supervision_agency,
             custody_date=record.custody_date,
@@ -626,9 +647,6 @@ class UsVtScraper(Scraper):
             is_released=record.is_released,
             latest_facility=record.latest_facility,
             latest_release_date=record.latest_release_date,
-            latest_release_type=record.latest_release_type,
-            max_sentence_length=record.max_sentence_length,
-            min_sentence_length=record.min_sentence_length,
             offense=record.offense,
             parent=record.key,
             parole_officer=record.parole_officer,
