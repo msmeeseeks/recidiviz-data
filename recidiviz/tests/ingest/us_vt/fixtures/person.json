@@ -1,0 +1,75 @@
+{
+    "totalCount":16,
+    "data":[
+        {
+            "Field":"Agency:",
+            "Value":"ST. ALBANS PROBATION & PAROLE"
+        },
+        {
+            "Field":null,
+            "Value":"LOCAL COUNTY JAIL"
+        },
+        {
+            "Field":"Last Name:",
+            "Value":"FRIGHTERSON"
+        },
+        {
+            "Field":"First Name:",
+            "Value":"BOO"
+        },
+        {
+            "Field":"Middle Name:",
+            "Value":""
+        },
+        {
+            "Field":"Suffix:",
+            "Value":""
+        },
+        {
+            "Field":"Current Age:",
+            "Value":"32"
+        },
+        {
+            "Field":"Booking Date:",
+            "Value":"9/15/2014 2:53:00 PM"
+        },
+        {
+            "Field":"Date Released:",
+            "Value":""
+        },
+        {
+            "Field":"Race:",
+            "Value":"White"
+        },
+        {
+            "Field":"Sex:",
+            "Value":"F"
+        },
+        {
+            "Field":"Alias:",
+            "Value":"Casper"
+        },
+        {
+            "Field":"Parole Officer:",
+            "Value":"Ghost, Friendly"
+        },
+        {
+            "Field":"Case Worker:",
+            "Value":""
+        },
+        {
+            "Field":"Min Release:",
+            "Value":"05/02/2018"
+        },
+        {
+            "Field":"Max Release:",
+            "Value":"05/02/2018"
+        },
+        {
+            "Field":"Status:",
+            "Value":"Sentenced"
+        }
+    ],
+    "success":true,
+    "error":""
+}

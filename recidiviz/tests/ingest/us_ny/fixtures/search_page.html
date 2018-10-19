@@ -1,0 +1,80 @@
+<div id="content">
+    <form method="post" action="/GCA00P00/WIQ1/WINQ000">
+        <div class="border">
+            <input type="hidden" name="K01" value="WINQ000">
+            <input type="hidden" name="DFH_STATE_TOKEN" value="abcdefgh">
+            <input type="hidden" name="DFH_MAP_STATE_TOKEN" value="">
+            <div class="pair">
+                <label for="M00_LAST_NAMEI">Last Name:</label>
+                <input type="text" size="18" maxlength="18"
+                       name="M00_LAST_NAMEI"
+                       value="" id="M00_LAST_NAMEI">
+            </div>
+            <div class="pair">
+                <label for="M00_FIRST_NAMEI">First Name:</label>
+                <input type="text" size="11" maxlength="11"
+                       name="M00_FIRST_NAMEI"
+                       value="" id="M00_FIRST_NAMEI">
+            </div>
+            <div class="pair">
+                <label for="M00_MID_NAMEI">Middle Init:</label>
+                <input type="text" size="1" maxlength="1" name="M00_MID_NAMEI"
+                       value=""
+                       id="M00_MID_NAMEI">
+            </div>
+            <div class="pair">
+                <label for="M00_NAME_SUFXI">Name Suffix:</label>
+                <input type="text" size="3" maxlength="3" name="M00_NAME_SUFXI"
+                       value=""
+                       id="M00_NAME_SUFXI"> (SR, JR, etc.)
+            </div>
+            <div class="pair">
+                <label for="M00_DOBCCYYI">Birth Year:</label>
+                <input type="text" size="4" maxlength="4" name="M00_DOBCCYYI"
+                       value=""
+                       id="M00_DOBCCYYI"> (Optional, see above)
+            </div>
+            <div class="pair">
+                <label for="M00_DIN_FLD1I">DIN:<span class="hide"> Two digit number
+         </span></label>
+                <input type="text" size="2" maxlength="2" name="M00_DIN_FLD1I"
+                       value=""
+                       id="M00_DIN_FLD1I" onfocus="select()"
+                       onkeyup="KeyPress(this,event,2,'WINQM00.form.M00_DIN_FLD2I.focus()')">
+                -
+                <label for="M00_DIN_FLD2I" class="hide">One character
+                    alpha</label>
+                <input type="text" size="1" maxlength="1" name="M00_DIN_FLD2I"
+                       value=""
+                       id="M00_DIN_FLD2I" onfocus="select()"
+                       onkeyup="KeyPress(this,event,1,'WINQM00.form.M00_DIN_FLD3I.focus()')">
+                -
+                <label for="M00_DIN_FLD3I" class="hide">Four digit
+                    number</label>
+                <input type="text" size="4" maxlength="4" name="M00_DIN_FLD3I"
+                       value=""
+                       id="M00_DIN_FLD3I" onfocus="select()">
+                (Department ID Number, format 99-A-9999, example 95-A-9876)
+            </div>
+            <div class="pair">
+                <label for="M00_NYSID_FLD1I">NYSID:<span class="hide"> Eight digit
+         number</span></label>
+                <input type="text" size="8" maxlength="8" name="M00_NYSID_FLD1I"
+                       value="" id="M00_NYSID_FLD1I" onfocus="select()"
+                       onkeyup="KeyPress(this,event,8,'WINQM00.form.M00_NYSID_FLD2I.focus()')">
+                -
+                <label for="M00_NYSID_FLD2I" class="hide">One character
+                    alpha</label>
+                <input type="text" size="1" maxlength="1" name="M00_NYSID_FLD2I"
+                       value="" id="M00_NYSID_FLD2I" onfocus="select()">
+                (For Criminal Justice Use Only; New York State ID Number)
+            </div>
+            <div class="aligncenter ">
+                <input type="submit" value="Submit">
+                <input type="button"
+                       onclick="javascript: location.href=location.href;"
+                       value="Reset">
+            </div>
+        </div>
+    </form>
+</div>

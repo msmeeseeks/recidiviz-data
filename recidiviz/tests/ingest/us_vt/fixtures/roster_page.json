@@ -1,0 +1,43 @@
+{
+    "totalCount":3,
+    "data":[
+        {
+            "Jacket":"5551",
+            "MiddleName":"O",
+            "FirstName":"JACK",
+            "FinalReleaseDateTime":null,
+            "ArrestNo":555,
+            "AgencyName":"St. Albans Probation & Parole",
+            "OriginalBookDateTime":"2018-09-19",
+            "RowIndex":2,
+            "LastName":"LANTERN",
+            "Suffix":"III"
+        },
+        {
+            "Jacket":"7772",
+            "MiddleName":"LOWS",
+            "FirstName":"HAL",
+            "FinalReleaseDateTime":null,
+            "ArrestNo":777,
+            "AgencyName":"Burlington Probation & Parole",
+            "OriginalBookDateTime":"2015-03-18",
+            "RowIndex":1,
+            "LastName":"EVE",
+            "Suffix":""
+        },
+        {
+            "Jacket":"9993",
+            "MiddleName":"",
+            "FirstName":"BOO",
+            "FinalReleaseDateTime":null,
+            "ArrestNo":999,
+            "AgencyName":"Rutland Probation & Parole",
+            "OriginalBookDateTime":"2013-08-16",
+            "RowIndex":3,
+            "LastName":"FRIGHTERSON",
+            "Suffix":""
+        }
+    ],
+    "success":true,
+    "error":""
+}

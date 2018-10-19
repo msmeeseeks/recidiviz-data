@@ -22,7 +22,6 @@ from copy import deepcopy
 from datetime import datetime
 
 from mock import patch
-import callee
 import responses
 
 from google.appengine.ext import ndb
@@ -36,239 +35,27 @@ from recidiviz.ingest.us_vt.us_vt_record import UsVtOffense
 from recidiviz.ingest.us_vt.us_vt_scraper import UsVtScraper
 from recidiviz.ingest.us_vt.us_vt_snapshot import UsVtSnapshot
 from recidiviz.models.record import Record
+from recidiviz.tests.ingest import fixtures
+from recidiviz.tests.ingest.matchers import DeserializedJson
 
 SESSION = 'e47fszhY4nYPfTEGEoZ9QU3R'
 SCRAPE_TYPE = 'background'
 
-FRONT_PAGE_HTML = """
-<html xmlns="http://www.w3.org/1999/xhtml">
-    <body id="ext-gen5">
-    <div id="page">
-        <script type="text/javascript">
-            Ext.onReady(function() {
-                   JailTracker.Web.Settings.init('e47fszhY4nYPfTEGEoZ9QU3R'
-                                          , 'False' == 'True' ? true : false
-                                          , 'True' == 'True' ? true : false);
-            });
-        </script>
-    </div>
-    </body>
-</html>
-"""
+FRONT_PAGE_HTML = fixtures.as_string('us_vt', 'front_page.html')
 
-ROSTER_PAGE_JSON = {
-    "data": [
-        {
-            "RowIndex": 2,
-            "AgencyName": "St. Albans Probation & Parole",
-            "ArrestNo": 555,
-            "Jacket": "5551",
-            "FirstName": "JACK",
-            "MiddleName": "O",
-            "LastName": "LANTERN",
-            "Suffix": "III",
-            "OriginalBookDateTime": "2018-09-19",
-            "FinalReleaseDateTime": None
-        },
-        {
-            "RowIndex": 1,
-            "AgencyName": "Burlington Probation & Parole",
-            "ArrestNo": 777,
-            "Jacket": "7772",
-            "FirstName": "HAL",
-            "MiddleName": "LOWS",
-            "LastName": "EVE",
-            "Suffix": "",
-            "OriginalBookDateTime": "2015-03-18",
-            "FinalReleaseDateTime": None
-        },
-        {
-            "RowIndex": 3,
-            "AgencyName": "Rutland Probation & Parole",
-            "ArrestNo": 999,
-            "Jacket": "9993",
-            "FirstName": "BOO",
-            "MiddleName": "",
-            "LastName": "FRIGHTERSON",
-            "Suffix": "",
-            "OriginalBookDateTime": "2013-08-16",
-            "FinalReleaseDateTime": None
-        }
-    ],
-    "totalCount": 3,
-    "error": "",
-    "success": True
-}
+ROSTER_PAGE_JSON = fixtures.as_dict('us_vt', 'roster_page.json')
 
-PERSON_JSON = {
-    "data": [
-        {
-            "Field": "Agency:",
-            "Value": "ST. ALBANS PROBATION & PAROLE"
-        },
-        {
-            "Field": None,
-            "Value": "LOCAL COUNTY JAIL"
-        },
-        {
-            "Field": "Last Name:",
-            "Value": "FRIGHTERSON"
-        },
-        {
-            "Field": "First Name:",
-            "Value": "BOO"
-        },
-        {
-            "Field": "Middle Name:",
-            "Value": ""
-        },
-        {
-            "Field": "Suffix:",
-            "Value": ""
-        },
-        {
-            "Field": "Current Age:",
-            "Value": "32"
-        },
-        {
-            "Field": "Booking Date:",
-            "Value": "9/15/2014 2:53:00 PM"
-        },
-        {
-            "Field": "Date Released:",
-            "Value": ""
-        },
-        {
-            "Field": "Race:",
-            "Value": "White"
-        },
-        {
-            "Field": "Sex:",
-            "Value": "F"
-        },
-        {
-            "Field": "Alias:",
-            "Value": "Casper"
-        },
-        {
-            "Field": "Parole Officer:",
-            "Value": "Ghost, Friendly"
-        },
-        {
-            "Field": "Case Worker:",
-            "Value": ""
-        },
-        {
-            "Field": "Min Release:",
-            "Value": "05/02/2018"
-        },
-        {
-            "Field": "Max Release:",
-            "Value": "05/02/2018"
-        },
-        {
-            "Field": "Status:",
-            "Value": "Sentenced"
-        }
-    ],
-    "totalCount": 16,
-    "error": "",
-    "success": True
-}
+PERSON_JSON = fixtures.as_dict('us_vt', 'person.json')
 
 # So far, all case data has been empty. See us_vt_scraper.store_record.
-CASES_JSON = {
-    "data": [],
-    "totalCount": 0,
-    "error": "",
-    "success": "true"
-}
+CASES_JSON = fixtures.as_dict('us_vt', 'cases.json')
 
-CHARGES_JSON = {
-    "data": [
-        {
-            "ChargeId": 12345,
-            "CaseNo": "1111-11-11 Aaaa",
-            "CrimeType": "F",
-            "Counts": 1,
-            "Modifier": None,
-            "ControlNumber": "0",
-            "WarrantNumber": "",
-            "ArrestCode": "ESC",
-            "ChargeDescription": "ESCAPE OR WALKAWAY - F",
-            "BondType": None,
-            "BondAmount": 0.00,
-            "CourtType": "Criminal",
-            "CourtTime": "Feb  4 2017  2:04PM",
-            "ChargeStatus": "Sentenced",
-            "OffenseDate": "2014-09-18",
-            "ArrestDate": "",
-            "ArrestingAgency": ""
-        },
-        {
-            "ChargeId": 67890,
-            "CaseNo": "2222-22-22 Bbbb",
-            "CrimeType": "M",
-            "Counts": 1,
-            "Modifier": None,
-            "ControlNumber": "0",
-            "WarrantNumber": "",
-            "ArrestCode": "SA",
-            "ChargeDescription": "SIMPLE ASSAULT",
-            "BondType": None,
-            "BondAmount": 0.00,
-            "CourtType": "Criminal",
-            "CourtTime": "Mar 11 2007  5:30PM",
-            "ChargeStatus": "Sentenced",
-            "OffenseDate": "2005-06-12",
-            "ArrestDate": "",
-            "ArrestingAgency": ""
-        },
-        {
-            "ChargeId": 45678,
-            "CaseNo": "3333-33-33 Cccc",
-            "CrimeType": "F",
-            "Counts": 1,
-            "Modifier": None,
-            "ControlNumber": "0",
-            "WarrantNumber": "",
-            "ArrestCode": "BURGUN",
-            "ChargeDescription": "BURGLARY",
-            "BondType": None,
-            "BondAmount": 0.00,
-            "CourtType": "Criminal",
-            "CourtTime": "Mar 23 2009 10:21PM",
-            "ChargeStatus": "Sentenced",
-            "OffenseDate": "2006-01-23",
-            "ArrestDate": "",
-            "ArrestingAgency": ""
-        }
-    ],
-    "totalCount": 3,
-    "error": "",
-    "success": True
-}
+CHARGES_JSON = fixtures.as_dict('us_vt', 'charges.json')
 
 
 def test_get_initial_task():
     scraper = UsVtScraper()
     assert scraper.get_initial_task() == 'scrape_front_page'
-
-
-class DeserializedJson(callee.Matcher):
-    """An argument Matcher which can match serialized json against a
-    deserialized object for comparison by deserializing the json.
-
-    This is useful here because we pass around serialized json as strings that
-    could have its fields in any order within the string, and we want to match
-    it against the actual object that the json represents.
-    """
-
-    def __init__(self, comparison_object):
-        self.comparison = comparison_object
-
-    def match(self, value):
-        return json.loads(value) == self.comparison
 
 
 class TestScrapeFrontPage(object):

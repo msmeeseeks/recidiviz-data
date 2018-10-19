@@ -46,7 +46,6 @@ import logging
 import re
 
 from lxml import html
-from lxml.etree import XMLSyntaxError  # pylint:disable=no-name-in-module
 
 from google.appengine.ext import deferred
 from google.appengine.ext import ndb
@@ -101,14 +100,14 @@ class UsNyScraper(Scraper):
 
         try:
             search_tree = html.fromstring(search_page.content)
-        except XMLSyntaxError as e:
+        except Exception as e:
             logging.error("Error parsing search page. Error: %s\nPage:\n\n%s",
                           str(e), str(search_page.content))
             return -1
 
         try:
             # Extract said tokens and construct the URL for searches
-            session_K01 = search_tree.cssselect('[name=K01]')[0].get("value")
+            session_k01 = search_tree.cssselect('[name=K01]')[0].get("value")
             session_token = search_tree.cssselect(
                 '[name=DFH_STATE_TOKEN]')[0].get("value")
             session_action = search_tree.xpath(
@@ -120,7 +119,7 @@ class UsNyScraper(Scraper):
 
         search_results_params = {
             'first_page': True,
-            'k01': session_K01,
+            'k01': session_k01,
             'token': session_token,
             'action': session_action,
             'scrape_type': params['scrape_type'],
@@ -234,39 +233,29 @@ class UsNyScraper(Scraper):
         result_list = results_tree.xpath('//table[@id="dinlist"]/tr/td/form')
 
         for row in result_list:
-            result_params = {}
-
-            # Parse result rows, pull form info to follow link
-            result_params['action'] = row.xpath('attribute::action')[0]
-            result_params['clicki'] = row.xpath(
-                './div/input[@name="M13_PAGE_CLICKI"]/@value')[0]
-            result_params['dini'] = row.xpath(
-                './div/input[@name="M13_SEL_DINI"]/@value')[0]
-            result_params['k01'] = row.xpath(
-                './div/input[@name="K01"]/@value')[0]
-            result_params['k02'] = row.xpath(
-                './div/input[@name="K02"]/@value')[0]
-            result_params['k03'] = row.xpath(
-                './div/input[@name="K03"]/@value')[0]
-            result_params['k04'] = row.xpath(
-                './div/input[@name="K04"]/@value')[0]
-            result_params['k05'] = row.xpath(
-                './div/input[@name="K05"]/@value')[0]
-            result_params['k06'] = row.xpath(
-                './div/input[@name="K06"]/@value')[0]
-            result_params['token'] = row.xpath(
-                './div/input[@name="DFH_STATE_TOKEN"]/@value')[0]
-            result_params['map_token'] = row.xpath(
-                './div/input[@name="DFH_MAP_STATE_TOKEN"]/@value')[0]
-            result_params['dinx_name'] = row.xpath(
-                './div/input[@type="submit"]/@name')[0]
-            result_params['dinx_val'] = row.xpath(
-                './div/input[@type="submit"]/@value')[0]
+            result_params = {
+                'action': row.xpath('attribute::action')[0],
+                'clicki': row.xpath(
+                    './div/input[@name="M13_PAGE_CLICKI"]/@value')[0],
+                'dini': row.xpath(
+                    './div/input[@name="M13_SEL_DINI"]/@value')[0],
+                'k01': row.xpath('./div/input[@name="K01"]/@value')[0],
+                'k02': row.xpath('./div/input[@name="K02"]/@value')[0],
+                'k03': row.xpath('./div/input[@name="K03"]/@value')[0],
+                'k04': row.xpath('./div/input[@name="K04"]/@value')[0],
+                'k05': row.xpath('./div/input[@name="K05"]/@value')[0],
+                'k06': row.xpath('./div/input[@name="K06"]/@value')[0],
+                'token': row.xpath(
+                    './div/input[@name="DFH_STATE_TOKEN"]/@value')[0],
+                'map_token': row.xpath(
+                    './div/input[@name="DFH_MAP_STATE_TOKEN"]/@value')[0],
+                'dinx_name': row.xpath('./div/input[@type="submit"]/@name')[0],
+                'dinx_val': row.xpath('./div/input[@type="submit"]/@value')[0],
+                'content': scrape_content,
+                'scrape_type': scrape_type
+            }
 
             # Enqueue tasks to follow link / get results
-            result_params['content'] = scrape_content
-            result_params['scrape_type'] = scrape_type
-
             self.add_task('scrape_person', result_params)
 
         # Parse the 'next' button's embedded form
@@ -457,71 +446,7 @@ class UsNyScraper(Scraper):
         details_page = page_tree.xpath('//div[@id="ii"]')
 
         if details_page:
-
-            # Create xpath selectors for the parts of the page we want
-            # to scrape
-            id_and_locale_rows = details_page[0].xpath(
-                "./table[contains(@summary, 'Identifying')]/tr")
-            crimes_rows = details_page[0].xpath(
-                "./table[contains(@summary, 'crimes')]/tr")
-            sentence_rows = details_page[0].xpath(
-                "./table[contains(@summary, 'sentence')]/tr")
-
-            # Make sure the tables on the page are what we're expecting
-            expected_first_row_id = "DIN (Department Identification Number)"
-            expected_first_row_crimes = "Crime"
-            expected_first_row_sentences = "Aggregate Minimum Sentence"
-
-            actual_first_row_id = (
-                id_and_locale_rows[0].xpath("./td")[0].text_content().strip())
-            actual_first_row_crimes = (
-                crimes_rows[0].xpath("./th")[0].text_content().strip())
-            actual_first_row_sentences = (
-                sentence_rows[0].xpath("./td")[0].text_content().strip())
-
-            if (actual_first_row_id != expected_first_row_id or
-                    actual_first_row_crimes != expected_first_row_crimes or
-                    actual_first_row_sentences != expected_first_row_sentences):
-
-                # This isn't the page we were expecting
-                logging.warning("Did not find expected tables on person page."
-                                " Page received: \n%s",
-                                html.tostring(page_tree, pretty_print=True))
-                return -1
-
-            else:
-                crimes = []
-
-                # Capture table data from each details table on the page
-                for row in id_and_locale_rows:
-                    row_data = row.xpath('./td')
-                    key, value = scraper_utils.normalize_key_value_row(
-                        row_data)
-                    person_details[key] = value
-
-                for row in crimes_rows:
-                    row_data = row.xpath('./td')
-
-                    # One row is the table headers / has no <td> elements
-                    if not row_data:
-                        pass
-                    else:
-                        crime_description, crime_class = (
-                            scraper_utils.normalize_key_value_row(row_data))
-                        crime = {'crime': crime_description,
-                                 'class': crime_class}
-
-                        # Only add to the list if row is non-empty
-                        if crime['crime']:
-                            crimes.append(crime)
-
-                for row in sentence_rows:
-                    row_data = row.xpath('./td')
-                    key, value = scraper_utils.normalize_key_value_row(
-                        row_data)
-                    person_details[key] = value
-
-                    person_details['crimes'] = crimes
+            person_details = self.gather_details(page_tree, details_page)
 
             # Kick off next docket item if this concludes our last one
             if next_docket_item:
@@ -705,26 +630,114 @@ class UsNyScraper(Scraper):
 
         return None
 
-    def store_record(self, person_details):
-        """Store scraped data from a results page
+    @staticmethod
+    def gather_details(page_tree, details_page):
+        """Gathers all of the details about a person and their particular
+        record into a dictionary.
 
-        We've scraped an incarceration details page, and want to store
-        the data we found. This function does some post-processing on
-        the scraped data, and feeds it into the datastore in a way
-        that can be indexed / queried in the future.
-
-        TODO (#133): Decompose this into store_record and create_record methods.
+        Returns a dictionary containing all of the information we will need
+        to save entities in the database, gathered from the given HTML page
+        tree.
 
         Args:
-            person_details: (dict) Key/value results parsed from the scrape
+            page_tree: lxml.html parsed object of the person page
+            details_page: lxml.html parsed div from the person page, which
+                contains all of the actual data to scrape
 
         Returns:
-            Nothing if successful, -1 if fails.
-
+            A dict containing all of the scraped fields, or -1 if we have any
+            issue parsing the page tree, i.e. it has an unexpected structure.
         """
+        person_details = {}
 
-        # PERSON LISTING
+        # Create xpath selectors for the parts of the page we want to scrape
+        id_and_locale_rows = details_page[0].xpath(
+            "./table[contains(@summary, 'Identifying')]/tr")
+        crimes_rows = details_page[0].xpath(
+            "./table[contains(@summary, 'crimes')]/tr")
+        sentence_rows = details_page[0].xpath(
+            "./table[contains(@summary, 'sentence')]/tr")
 
+        # Make sure the tables on the page are what we're expecting
+        expected_first_row_id = "DIN (Department Identification Number)"
+        expected_first_row_crimes = "Crime"
+        expected_first_row_sentences = "Aggregate Minimum Sentence"
+
+        if not id_and_locale_rows or not crimes_rows or not sentence_rows:
+            # This isn't the page we were expecting
+            logging.warning("Did not find expected tables on "
+                            "person page. Page received: \n%s",
+                            html.tostring(page_tree, pretty_print=True))
+            return -1
+
+        actual_first_row_id = (
+            id_and_locale_rows[0].xpath("./td")[0].text_content().strip())
+        actual_first_row_crimes = (
+            crimes_rows[0].xpath("./th")[0].text_content().strip())
+        actual_first_row_sentences = (
+            sentence_rows[0].xpath("./td")[0].text_content().strip())
+
+        if (actual_first_row_id != expected_first_row_id or
+                actual_first_row_crimes != expected_first_row_crimes or
+                actual_first_row_sentences != expected_first_row_sentences):
+
+            # This isn't the page we were expecting
+            logging.warning("Did not find expected content in tables on "
+                            "person page. Page received: \n%s",
+                            html.tostring(page_tree, pretty_print=True))
+            return -1
+
+        crimes = []
+
+        # Capture table data from each details table on the page
+        for row in id_and_locale_rows:
+            row_data = row.xpath('./td')
+            key, value = scraper_utils.normalize_key_value_row(
+                row_data)
+            person_details[key] = value
+
+        for row in crimes_rows:
+            row_data = row.xpath('./td')
+
+            # One row is the table headers / has no <td> elements
+            if not row_data:
+                pass
+            else:
+                crime_description, crime_class = (
+                    scraper_utils.normalize_key_value_row(row_data))
+                crime = {'crime': crime_description,
+                         'class': crime_class}
+
+                # Only add to the list if row is non-empty
+                if crime['crime']:
+                    crimes.append(crime)
+
+        for row in sentence_rows:
+            row_data = row.xpath('./td')
+            key, value = scraper_utils.normalize_key_value_row(
+                row_data)
+            person_details[key] = value
+
+            person_details['crimes'] = crimes
+
+        return person_details
+
+    def create_person(self, person_details):
+        """Creates a Person from the details scraped from the person page.
+
+        Instantiates a UsNyPerson entity and sets its fields based on data
+        in the given dict. If a person already exists with this person's
+        proposed id, then we fetch that person from the database and update it.
+
+        This method does not actually save the updated entity to the database.
+        It is transient upon return.
+
+        Args:
+            person_details: (dict) all of the scraped details to save
+
+        Returns:
+            A UsNyPerson entity ready to be saved to the database.
+        """
         department_identification_numbers = []
         if 'linked_records' in person_details:
             department_identification_numbers.extend(
@@ -783,19 +796,40 @@ class UsNyScraper(Scraper):
         person.given_names = person_given_name
         person.region = self.get_region().region_code
 
-        try:
-            person_key = person.put()
-        except (Timeout, TransactionFailedError, InternalError):
-            # Datastore error - fail task to trigger queue retry + backoff
-            logging.warning("Couldn't persist person: %s", person_id)
-            return -1
+        return person
 
-        # CRIMINAL RECORD ENTRY
+    def create_record(self, person, person_key, person_details):
+        """Creates a Record from the details scraped from the person page.
+
+        Instantiates a UsNyRecord entity and sets its fields based on data
+        in the given dict. If a record already exists with this records's
+        proposed id, then we fetch that record from the database and update it.
+
+        This returns a tuple. If a record did already exist with the proposed
+        id, then it is returned in its previous state as the first entry in the
+        tuple. Otherwise, the first entry in the tuple is a fresh record with
+        no fields set. Regardless, the second entry is the fully updated record.
+
+        This method does not actually save the updated entity to the database.
+        It is transient upon return.
+
+        Args:
+            person: (UsNyPerson) the person created from the same details
+            person_key: (ndb.Key) the NDB Key of the saved person entity,
+                for establishing ancestry between Person and Record
+            person_details: (dict) all of the scraped details to save
+
+        Returns:
+            A tuple of (old_record, record) as described above.
+        """
+        person_id = person.person_id
 
         record_id = person_details['DIN (Department Identification Number)']
 
         record_entity_id = self.get_region().region_code + record_id
         record = UsNyRecord.get_or_insert(record_entity_id, parent=person_key)
+
+        # Capture the state of the record from before we updated it
         old_record = deepcopy(record)
 
         # Some pre-work to massage values out of the data
@@ -916,29 +950,60 @@ class UsNyScraper(Scraper):
         record.surname = person.surname
         record.given_names = person.given_names
 
+        return old_record, record
+
+    def store_record(self, person_details):
+        """Store scraped data from a results page
+
+        We've scraped an incarceration details page, and want to store
+        the data we found. This function does some post-processing on
+        the scraped data, and feeds it into the datastore in a way
+        that can be indexed / queried in the future.
+
+        Args:
+            person_details: (dict) Key/value results parsed from the scrape
+
+        Returns:
+            Nothing if successful, -1 if fails.
+
+        """
+        person = self.create_person(person_details)
+        person_id = person.person_id
+
+        try:
+            person_key = person.put()
+        except (Timeout, TransactionFailedError, InternalError):
+            # Datastore error - fail task to trigger queue retry + backoff
+            logging.warning("Couldn't persist person: %s", person_id)
+            return -1
+
+        old_record, record = self.create_record(person,
+                                                person_key,
+                                                person_details)
+        record_id = record.record_id
+
         try:
             record.put()
         except (Timeout, TransactionFailedError, InternalError):
             logging.warning("Couldn't persist record: %s", record_id)
             return -1
 
-        # PERSON RECORD SNAPSHOT
         new_snapshot = self.record_to_snapshot(record)
-
         self.compare_and_set_snapshot(old_record, new_snapshot)
 
         if 'group_id' in person_details:
             logging.info("Checked record for %s %s, person %s, in group %s, "
-                         "for record %s.", person_name[1], person_name[0],
+                         "for record %s.", person.given_names, person.surname,
                          person_id, person_details['group_id'], record_id)
         else:
             logging.info("Checked record for %s %s, person %s, (no group), for"
-                         " record %s.", person_name[1], person_name[0],
+                         " record %s.", person.given_names, person.surname,
                          person_id, record_id)
 
         return None
 
-    def parse_sentence_duration(self, term_string, person_id):
+    @staticmethod
+    def parse_sentence_duration(term_string, person_id):
         """Converts string describing sentence duration to
         models.SentenceDuration
 
@@ -994,7 +1059,8 @@ class UsNyScraper(Scraper):
 
         return result
 
-    def link_person(self, record_list):
+    @staticmethod
+    def link_person(record_list):
         """Checks for prior records matching newly scraped ones, returns
         person ID
 
@@ -1155,7 +1221,8 @@ class UsNyScraper(Scraper):
 
         return record.record_id
 
-    def record_to_snapshot(self, record):
+    @staticmethod
+    def record_to_snapshot(record):
         """Mirrors record fields into a Snapshot instance
 
         Takes in a new Record entity, and mirrors its fields into a
