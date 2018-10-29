@@ -15,20 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""The ingest portion of the Recidiviz data platform.
 
-This includes infrastructure, logic, and models for ingesting, validating,
-normalizing, and storing records ingested from various criminal justice data
-sources.
+"""us_pa_greene specific regional functionality.
 """
-
-
-import recidiviz.ingest.docket
-import recidiviz.ingest.models
-import recidiviz.ingest.scraper_control
-import recidiviz.ingest.sessions
-import recidiviz.ingest.tracker
-import recidiviz.ingest.us_ny
-import recidiviz.ingest.us_pa_greene
-import recidiviz.ingest.us_vt
-import recidiviz.ingest.worker
+from recidiviz.ingest.us_pa_greene import us_pa_greene_scraper
