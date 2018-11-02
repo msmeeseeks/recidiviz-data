@@ -350,6 +350,9 @@ class UsPaGreeneScraper(GenericScraper):
             '[id=ctl00_ContentPlaceHolder1_spnInmateName]')[
                 0].text_content().strip()
         full_name.split(',')[0].strip()
+        last_name = full_name.split(',')[0].strip()
+
+        return last_name
 
     def get_birthdate(self, content, params):
         """Gets person birthday given a page
