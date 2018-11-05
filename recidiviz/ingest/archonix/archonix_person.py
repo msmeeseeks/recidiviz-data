@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Person model for PA Greene Country Jail.
+"""Person model for Archonix
 """
 
 
@@ -23,22 +23,16 @@ from google.appengine.ext import ndb
 from recidiviz.models.person import Person
 
 
-class UsPaGreenePerson(Person):
-    """A subclass of Person that adds Greene County, PA specific fields
+class ArchonixPerson(Person):
+    """A subclass of Person that adds Archonix specific information
 
-    Datastore model for a specific person incarcerated in
-    Vermont. This extends the Person class.
+    Datastore model for a specific person incarcerated in a jail that uses
+    Archonix. This extends the Person class.
 
     Attributes:
-
-        us_pa_greene_person_id: (string) Same as person_id, but used as
-            key for this entity type to force uniqueness / prevent
-            collisions within the us_pa_greene records (see
-            models.person for inherited attributes)
-        us_pa_greene_inmate_id: (string) The internal db id that is used to
+        inmate_id: (string) The internal db id that is used to
             construct the URL to go straight to a persons page.  We store this
             as well even though it is un-exposed in their UI.
 
     """
-    us_pa_greene_person_id = ndb.StringProperty()
-    us_pa_greene_inmate_id = ndb.StringProperty()
+    archonix_inmate_id = ndb.StringProperty()
