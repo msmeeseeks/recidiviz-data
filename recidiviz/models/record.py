@@ -42,7 +42,7 @@ class Offense(ndb.Model):
     """
     crime_description = ndb.StringProperty()
     crime_class = ndb.StringProperty()
-    case_number = ndb.StringPropert()
+    case_number = ndb.StringProperty()
     bond_amount = ndb.FloatProperty()
 
 
