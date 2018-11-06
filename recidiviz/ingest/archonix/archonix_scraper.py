@@ -101,7 +101,7 @@ class ArchonixScraper(GenericScraper):
         """
         data = {session_var: scraper_utils.get_id_value_from_html_tree(
             content, session_var) for session_var in
-            self._required_session_vars}
+                self._required_session_vars}
         # Viewstate is much large, compress it before sending it to the queue.
         # Note that we encode the compressed string to base64 so we can happily
         # dump the json.
@@ -264,6 +264,7 @@ class ArchonixScraper(GenericScraper):
         if html_elements:
             text = html_elements[0].text_content()
             return ''.join(text.split()).split(':')[1]
+        return None
 
     # pylint:disable=unused-argument
 
@@ -334,7 +335,7 @@ class ArchonixScraper(GenericScraper):
         """
         full_name = content.cssselect(
             '[id=ctl00_ContentPlaceHolder1_spnInmateName]')[
-            0].text_content().strip()
+                0].text_content().strip()
         return full_name.split(',')[1].strip()
 
     def get_surname(self, content, params):
@@ -349,7 +350,7 @@ class ArchonixScraper(GenericScraper):
         """
         full_name = content.cssselect(
             '[id=ctl00_ContentPlaceHolder1_spnInmateName]')[
-            0].text_content().strip()
+                0].text_content().strip()
         full_name.split(',')[0].strip()
         last_name = full_name.split(',')[0].strip()
 

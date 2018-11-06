@@ -692,6 +692,7 @@ class TestCreateRecord(object):
     FIELDS_NOT_SET = ['community_supervision_agency',
                       'status',
                       'case_worker',
+                      'committed_by',
                       'offense_date',
                       'parole_officer',
                       'record_id_is_fuzzy',
