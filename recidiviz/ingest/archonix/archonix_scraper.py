@@ -480,6 +480,22 @@ class ArchonixScraper(GenericScraper):
         # so if we got here they are not released.
         return False
 
+    def get_committed_by(self, content, params):
+        """Gets the name of the entity that committed the person.
+
+        Args:
+            content: An lxml html tree.
+            params: dict of parameters passed from the last scrape session.
+
+        Returns:
+            A string representing the name of the entity that committed the
+            person
+        """
+
+        return self._get_scraped_value(
+            content, 'ctl00_ContentPlaceHolder1_spnHoldForAgency')
+
+
     def populate_extra_record_params(self, content, params, record):
         """Populates any extra params for a record.
 
@@ -488,8 +504,6 @@ class ArchonixScraper(GenericScraper):
             params: dict of parameters passed from the last scrape session.
             record: the record DB object to populate.
         """
-        record.committed_by = self._get_scraped_value(
-            content, 'ctl00_ContentPlaceHolder1_spnHoldForAgency')
         record.reference_id = params['reference_id']
 
     def get_offenses(self, content, params):
