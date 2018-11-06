@@ -260,9 +260,10 @@ class ArchonixScraper(GenericScraper):
         Returns:
             The value scraped from the page.
         """
-        text = content.cssselect(
-            '[id={}]'.format(scrape_id))[0].text_content()
-        return ''.join(text.split()).split(':')[1]
+        html_elements = content.cssselect('[id={}]'.format(scrape_id))
+        if html_elements:
+            text = html_elements[0].text_content()
+            return ''.join(text.split()).split(':')[1]
 
     # pylint:disable=unused-argument
 
