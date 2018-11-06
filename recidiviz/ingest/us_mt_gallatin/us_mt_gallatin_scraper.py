@@ -22,6 +22,6 @@
 from recidiviz.ingest.archonix.archonix_scraper import ArchonixScraper
 
 class UsMtGallatinScraper(ArchonixScraper):
-    """Scraper for people in Gallatin County (MTk) facilities."""
+    """Scraper for people in Gallatin County (MT) facilities."""
     def __init__(self):
         super(UsMtGallatinScraper, self).__init__('us_mt_gallatin')

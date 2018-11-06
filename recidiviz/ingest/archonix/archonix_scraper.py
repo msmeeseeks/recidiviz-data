@@ -521,6 +521,9 @@ class ArchonixScraper(GenericScraper):
         charges = content.cssselect(
             '[id=ctl00_ContentPlaceHolder1_gridCharges_ctl00]')[0]
         body = charges.find('tbody')
+        # TODO(terinpw): We need to be smarter about this, as across counties
+        # the columns are not always consistent. Leaving as a TODO until generic
+        # scraper work is complete
         for row in body:
             offense = Offense()
             offense.crime_class = row[0].text_content()
