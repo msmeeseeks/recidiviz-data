@@ -15,7 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""The core models specific to the ingest platform, but agnostic across
-scraper vendors-nopy and regions."""
-
-from recidiviz.ingest.models import scrape_key
+""" archonix specific functionality.
+"""
+from recidiviz.ingest.vendors.archonix import archonix_scraper

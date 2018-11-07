@@ -19,7 +19,7 @@
 """Scraper implementation for MT Gallatin County (Archonix)
 """
 
-from recidiviz.ingest.archonix.archonix_scraper import ArchonixScraper
+from recidiviz.ingest.vendors.archonix.archonix_scraper import ArchonixScraper
 
 class UsMtGallatinScraper(ArchonixScraper):
     """Scraper for people in Gallatin County (MT) facilities."""

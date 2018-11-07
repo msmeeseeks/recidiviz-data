@@ -15,6 +15,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-""" archonix specific functionality.
+"""Record model for the Archonix vendor.
 """
-from recidiviz.ingest.archonix import archonix_scraper
+
+from google.appengine.ext import ndb
+from recidiviz.models.record import Record
+
+class ArchonixRecord(Record):
+    """A subclass of Record that adds Archonix specific fields
+
+    Attributes:
+		reference_id: (string) The reference id of the record, this is different
+			from booking number which we map to record_id
+    """
+    reference_id = ndb.StringProperty()

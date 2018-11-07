@@ -16,9 +16,11 @@
 # =============================================================================
 
 
-"""Scraper implementation for Archonix
+"""Scraper implementation for the Archonix vendor. This handles all Archonix
+specific navigation and data extraction. All counties that use Archonix should
+have their county-specific scrapers inherit from this class.
 
-Region-specific notes:
+Vendor-specific notes:
     - No historical data is kept, only data on current people
     - Allows for surname only search
     - Archonix allows an age range search so if we search for age 0,
@@ -50,8 +52,8 @@ import re
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
 from recidiviz.ingest.generic_scraper import GenericScraper
-from recidiviz.ingest.archonix.archonix_person import ArchonixPerson
-from recidiviz.ingest.archonix.archonix_record import ArchonixRecord
+from recidiviz.ingest.vendors.archonix.archonix_record import ArchonixRecord
+from recidiviz.ingest.vendors.archonix.archonix_person import ArchonixPerson
 from recidiviz.models.record import Offense
 
 
@@ -522,9 +524,8 @@ class ArchonixScraper(GenericScraper):
         charges = content.cssselect(
             '[id=ctl00_ContentPlaceHolder1_gridCharges_ctl00]')[0]
         body = charges.find('tbody')
-        # TODO(terinpw): We need to be smarter about this, as across counties
-        # the columns are not always consistent. Leaving as a TODO until generic
-        # scraper work is complete
+        # TODO(172): Handle columns more intelligently, cross-county order is
+        # not guaranteed. Handle when generic scraper work is done.
         for row in body:
             offense = Offense()
             offense.crime_class = row[0].text_content()

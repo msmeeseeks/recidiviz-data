@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Person model for Archonix
+"""Person model for the Archonix vendor.
 """
 
 
