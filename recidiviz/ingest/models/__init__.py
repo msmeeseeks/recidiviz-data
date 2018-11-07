@@ -16,6 +16,6 @@
 # =============================================================================
 
 """The core models specific to the ingest platform, but agnostic across
-scraper vendors-nopy and regions."""
+scraper vendors and regions."""
 
 from recidiviz.ingest.models import scrape_key

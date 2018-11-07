@@ -15,6 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-""" archonix specific functionality.
+""" Vendor classes that handle vendor specific navigation and data extraction.
+All regions that use one of these vendors should inherit from the vendor
+specific classes.
 """
-from recidiviz.ingest.vendors.archonix import archonix_scraper
+
+import archonix
