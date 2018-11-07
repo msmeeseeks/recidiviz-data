@@ -508,16 +508,21 @@ class UsPaGreeneScraper(GenericScraper):
             '[id=ctl00_ContentPlaceHolder1_gridCharges_ctl00]')[0]
         body = charges.find('tbody')
         for row in body:
-            offense = UsPaGreeneOffense()
-            offense.crime_class = row[0].text_content()
-            offense.description = row[1].text_content()
-            offense.case_number = row[2].text_content()
-            # Note that row[3] and row[4] represent the offense date and arrest
-            # date, But PA Greene leaves this field blank.
-            bond_str = row[5].text_content()
-            # If there is no bond, it is filled with this character.
-            if bond_str.isspace():
-                # Bond is written in this form: $15,000.00
-                offense.bond_amount = scraper_utils.currency_to_float(bond_str)
-            offenses.append(offense)
+            # If the length of the row is not more than 1, it means there were
+            # no charges entered.
+            if len(row) > 1:
+                offense = UsPaGreeneOffense()
+                offense.crime_class = row[0].text_content()
+                offense.crime_description = row[1].text_content()
+                offense.case_number = row[2].text_content()
+                # Note that row[3] and row[4] represent the offense date and
+                # arrest date, But PA Greene leaves this field blank.
+                bond_str = row[5].text_content()
+                # If there is no bond, it is filled with this character.
+                if (not bond_str.isspace() and bond_str != 'No Bond'
+                        and bond_str != 'Bond Denied'):
+                    # Bond is written in this form: $15,000.00
+                    offense.bond_amount = scraper_utils.currency_to_float(
+                        bond_str)
+                offenses.append(offense)
         return offenses
