@@ -20,4 +20,4 @@ All regions that use one of these vendors should inherit from the vendor
 specific classes.
 """
 
-import archonix
+import recidiviz.ingest.vendors.archonix
