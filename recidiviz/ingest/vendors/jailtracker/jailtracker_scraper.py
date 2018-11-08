@@ -64,8 +64,7 @@ class JailTrackerScraper(GenericScraper):
     # Must be provided with 'session', 'start', and 'limit' fields before being
     # used.
     _ROSTER_REQUEST_SUFFIX_TEMPLATE = "(S({session}))//(S({session}))/"
-    "JailTracker/GetInmates?start={start}&limit={limit}&sort=LastName"
-    "&dir=ASC"
+    "JailTracker/GetInmates?start={start}&limit={limit}&sort=LastName&dir=ASC"
 
     # Template for URL suffix used to request data on a specific person.
     #

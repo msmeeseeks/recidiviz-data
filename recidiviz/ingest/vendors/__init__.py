@@ -15,13 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-
-"""Scraper implementation for PA Greene County (Archonix)
+""" Vendor classes that handle vendor specific navigation and data extraction.
+All regions that use one of these vendors should inherit from the vendor
+specific classes.
 """
 
-from recidiviz.ingest.vendors.archonix.archonix_scraper import ArchonixScraper
-
-class UsPaGreeneScraper(ArchonixScraper):
-    """Scraper for people in Greene County (PA) facilities."""
-    def __init__(self):
-        super(UsPaGreeneScraper, self).__init__('us_pa_greene')
+import recidiviz.ingest.vendors.archonix

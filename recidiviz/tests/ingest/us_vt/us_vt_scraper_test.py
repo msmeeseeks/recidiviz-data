@@ -703,6 +703,7 @@ class TestCreateRecord(object):
     FIELDS_NOT_SET = ['is_released',
                       'admission_type',
                       'birthdate',
+                      'committed_by',
                       'cond_release_date',
                       'county_of_commit',
                       'custody_status',

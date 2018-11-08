@@ -16,12 +16,6 @@
 # =============================================================================
 
 
-"""Scraper implementation for PA Greene County (Archonix)
+"""us_mt_gallatin specific regional functionality.
 """
-
-from recidiviz.ingest.vendors.archonix.archonix_scraper import ArchonixScraper
-
-class UsPaGreeneScraper(ArchonixScraper):
-    """Scraper for people in Greene County (PA) facilities."""
-    def __init__(self):
-        super(UsPaGreeneScraper, self).__init__('us_pa_greene')
+from recidiviz.ingest.us_mt_gallatin import us_mt_gallatin_scraper
