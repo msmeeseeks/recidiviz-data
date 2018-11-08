@@ -37,10 +37,11 @@ Scraper flow:
 """
 
 import abc
+import json
+import logging
 import re
 
 from lxml import html
-from recidiviz.ingest import constants
 from recidiviz.ingest.generic_scraper import GenericScraper
 
 
@@ -126,14 +127,15 @@ class JailTrackerScraper(GenericScraper):
     # Key in param dict for task type.
     _TASK_TYPE = "task_type"
 
-    
+
     def __init__(self, region_name):
         super(JailTrackerScraper, self).__init__(region_name)
 
         # Set initial endpoint using region-specific landing page index.
-        landing_page_url_suffix = _LANDING_PAGE_URL_SUFFIX_TEMPLATE.format(
-            index=get_jailtracker_index())
-        self._initial_endpoint = "/".join([_URL_BASE, landing_page_url_suffix])
+        landing_page_url_suffix = self._LANDING_PAGE_URL_SUFFIX_TEMPLATE.format(
+            index=self.get_jailtracker_index())
+        self._initial_endpoint = "/".join(
+            [self._URL_BASE, landing_page_url_suffix])
 
 
     @abc.abstractmethod
@@ -171,7 +173,7 @@ class JailTrackerScraper(GenericScraper):
         """Returns the initial data to send on the first call."""
 
         # First request will be for landing page, which gives an HTML response.
-        return {_RESPONSE_TYPE: _HTML}
+        return {self._RESPONSE_TYPE: self._HTML}
 
 
     def get_more_tasks(self, content, params):
@@ -186,45 +188,47 @@ class JailTrackerScraper(GenericScraper):
             A list of param dicts, one for each task we want to run.
         """
 
-        task_type = params.get(_TASK_TYPE, self.get_initial_task_type())
+        task_type = params.get(self._TASK_TYPE, self.get_initial_task_type())
         next_tasks = []
 
         if self.is_initial_task(task_type):
             roster_request_params = \
-                self._process_landing_page_and_get_next_task(content)
+                self._process_landing_page_and_get_next_task(content, params)
             if roster_request_params == -1:
                 return -1
             next_tasks.append(roster_request_params)
 
-        elif _REQUEST_TARGET == _ROSTER_REQUEST:
+        elif params[self._REQUEST_TARGET] == self._ROSTER_REQUEST:
             next_tasks.extend(
                 self._process_roster_response_and_get_next_tasks(
                     content, params))
 
-        elif _REQUEST_TARGET == _PERSON_REQUEST:
+        elif params[self._REQUEST_TARGET] == self._PERSON_REQUEST:
             next_tasks.append(
                 self._process_person_response_and_get_next_task(
                     content, params))
 
-        elif _REQUEST_TARGET == _CASES_REQUEST:
+        elif params[self._REQUEST_TARGET] == self._CASES_REQUEST:
             next_tasks.append(
                 self._process_cases_response_and_get_next_task(
                     content, params))
 
-        elif _REQUEST_TARGET == _CHARGES_REQUEST:
+        elif params[self._REQUEST_TARGET] == self._CHARGES_REQUEST:
             # Once all three requests have been made for a specific person, the
             # data can be passed to the region-specific scraper for handling.
-            self.process_record(params[_PERSON], params[_CASES], content)
+            self.process_record(
+                params[self._PERSON], params[self._CASES], content)
 
         return next_tasks
 
 
-    def _process_landing_page_and_get_next_task(self, content):
+    def _process_landing_page_and_get_next_task(self, content, params):
         """Scrapes session token from landing page and creates params for
         first roster request.
 
         Args:
             content: lxml html tree of landing page content
+            params: dict of parameters used for last request
 
         Returns:
             Param dict for first roster request on success or -1 on failure.
@@ -234,26 +238,27 @@ class JailTrackerScraper(GenericScraper):
         try:
             body_script = html.tostring(content.xpath("//body/div/script")[0])
             session_token = re.search(r"JailTracker.Web.Settings.init\('(.*)'",
-                body_script).group(1)
+                                      body_script).group(1)
         except Exception, exception:
             logging.error("Error, could not parse session token from the "
-                "landing page HTML. Error: %s\nPage content:\n\n%s",
-                exception, content)
+                          "landing page HTML. Error: %s\nPage content:\n\n%s",
+                          exception, content)
             logging.error(exception)
             return -1
 
-        roster_request_suffix = _ROSTER_REQUEST_SUFFIX_TEMPLATE.format(
+        roster_request_suffix = self._ROSTER_REQUEST_SUFFIX_TEMPLATE.format(
             session=session_token,
             start=0,
-            limit=_ROSTER_PAGE_SIZE)
-        roster_request_endpoint = "/".join([_URL_BASE, roster_request_suffix])
+            limit=self._ROSTER_PAGE_SIZE)
+        roster_request_endpoint = "/".join(
+            [self._URL_BASE, roster_request_suffix])
 
         return {
-            _DATA: {_RESPONSE_TYPE: _JSON},
-            _ENDPOINT: roster_request_endpoint,
-            _REQUEST_TARGET: _ROSTER_REQUEST,
-            _SCRAPE_TYPE: params[_SCRAPE_TYPE],
-            _SESSION_TOKEN: session_token
+            self._DATA: {self._RESPONSE_TYPE: self._JSON},
+            self._ENDPOINT: roster_request_endpoint,
+            self._REQUEST_TARGET: self._ROSTER_REQUEST,
+            self._SCRAPE_TYPE: params[self._SCRAPE_TYPE],
+            self._SESSION_TOKEN: session_token
             }
 
 
@@ -282,39 +287,39 @@ class JailTrackerScraper(GenericScraper):
 
             arrest_number = roster_entry["ArrestNo"]
 
-            person_request_suffix = _PERSON_REQUEST_SUFFIX_TEMPLATE.format(
-                session=params[_SESSION_TOKEN],
+            person_request_suffix = self._PERSON_REQUEST_SUFFIX_TEMPLATE.format(
+                session=params[self._SESSION_TOKEN],
                 arrest=arrest_number)
             person_request_endpoint = "/".join(
-                [_URL_BASE, person_request_suffix])
+                [self._URL_BASE, person_request_suffix])
 
             next_tasks.append({
-                _ARREST_NUMBER: arrest_number,
-                _DATA: {_RESPONSE_TYPE: _JSON},
-                _ENDPOINT: person_request_endpoint,
-                _REQUEST_TARGET: _PERSON_REQUEST,
-                _SCRAPE_TYPE: params[_SCRAPE_TYPE],
-                _SESSION_TOKEN: params[_SESSION_TOKEN]
+                self._ARREST_NUMBER: arrest_number,
+                self._DATA: {self._RESPONSE_TYPE: self._JSON},
+                self._ENDPOINT: person_request_endpoint,
+                self._REQUEST_TARGET: self._PERSON_REQUEST,
+                self._SCRAPE_TYPE: params[self._SCRAPE_TYPE],
+                self._SESSION_TOKEN: params[self._SESSION_TOKEN]
                 })
 
         # If we aren't done reading the roster, request another page
-        if roster["totalCount"] > max_index_present:
-            roster_request_suffix = _ROSTER_REQUEST_SUFFIX_TEMPLATE.format(
-                session=params[_SESSION_TOKEN],
+        if response["totalCount"] > max_index_present:
+            roster_request_suffix = self._ROSTER_REQUEST_SUFFIX_TEMPLATE.format(
+                session=params[self._SESSION_TOKEN],
                 # max_index_present doesn't need to be incremented because the
                 # returned RowIndex is 1-based while the index in the request
                 # is 0-based.
                 start=max_index_present,
-                limit=_ROSTER_PAGE_SIZE)
+                limit=self._ROSTER_PAGE_SIZE)
             roster_request_endpoint = "/".join(
-                [_URL_BASE, roster_request_suffix])
+                [self._URL_BASE, roster_request_suffix])
 
             next_tasks.append({
-                _DATA: {_RESPONSE_TYPE: _JSON},
-                _ENDPOINT: roster_request_endpoint,
-                _REQUEST_TARGET: _ROSTER_REQUEST,
-                _SCRAPE_TYPE: params[_SCRAPE_TYPE],
-                _SESSION_TOKEN: params[_SESSION_TOKEN]
+                self._DATA: {self._RESPONSE_TYPE: self._JSON},
+                self._ENDPOINT: roster_request_endpoint,
+                self._REQUEST_TARGET: self._ROSTER_REQUEST,
+                self._SCRAPE_TYPE: params[self._SCRAPE_TYPE],
+                self._SESSION_TOKEN: params[self._SESSION_TOKEN]
                 })
 
         return next_tasks
@@ -335,19 +340,20 @@ class JailTrackerScraper(GenericScraper):
             Dict of parameters for cases request
         """
 
-        cases_request_suffix = _CASES_REQUEST_SUFFIX_TEMPLATE.format(
-            session=params[_SESSION_TOKEN],
-            arrest=params[_ARREST_NUMBER])
-        cases_request_endpoint = "/".join([_URL_BASE, cases_request_suffix])
+        cases_request_suffix = self._CASES_REQUEST_SUFFIX_TEMPLATE.format(
+            session=params[self._SESSION_TOKEN],
+            arrest=params[self._ARREST_NUMBER])
+        cases_request_endpoint = "/".join(
+            [self._URL_BASE, cases_request_suffix])
 
         return {
-            _ARREST_NUMBER: params[_ARREST_NUMBER],
-            _DATA: {_RESPONSE_TYPE: _JSON},
-            _ENDPOINT: cases_request_endpoint,
-            _PERSON: response,
-            _REQUEST_TARGET: _CASES_REQUEST,
-            _SCRAPE_TYPE: params[_SCRAPE_TYPE],
-            _SESSION_TOKEN: params[_SESSION_TOKEN]
+            self._ARREST_NUMBER: params[self._ARREST_NUMBER],
+            self._DATA: {self._RESPONSE_TYPE: self._JSON},
+            self._ENDPOINT: cases_request_endpoint,
+            self._PERSON: response,
+            self._REQUEST_TARGET: self._CASES_REQUEST,
+            self._SCRAPE_TYPE: params[self._SCRAPE_TYPE],
+            self._SESSION_TOKEN: params[self._SESSION_TOKEN]
             }
 
 
@@ -365,23 +371,24 @@ class JailTrackerScraper(GenericScraper):
             Dict of parameters for charges request
         """
 
-        charges_request_suffix = _CHARGES_REQUEST_SUFFIX_TEMPLATE.format(
-            session=params[_SESSION_TOKEN])
-        charges_request_endpoint = "/".join([_URL_BASE, charges_request_suffix])
+        charges_request_suffix = self._CHARGES_REQUEST_SUFFIX_TEMPLATE.format(
+            session=params[self._SESSION_TOKEN])
+        charges_request_endpoint = "/".join(
+            [self._URL_BASE, charges_request_suffix])
 
         return {
-            _CASES: response,
+            self._CASES: response,
             # For this request, arrest number must be passed in the request data
             # and not via the endpoint URL.
-            _DATA: {
-                "arrestNo": params[_ARREST_NUMBER],
-                _RESPONSE_TYPE: _JSON
+            self._DATA: {
+                "arrestNo": params[self._ARREST_NUMBER],
+                self._RESPONSE_TYPE: self._JSON
                 },
-            _ENDPOINT: charges_request_endpoint,
-            _PERSON: params[_PERSON],
-            _REQUEST_TARGET: _CHARGES_REQUEST,
-            _SCRAPE_TYPE: params[_SCRAPE_TYPE],
-            _SESSION_TOKEN: params[_SESSION_TOKEN]
+            self._ENDPOINT: charges_request_endpoint,
+            self._PERSON: params[self._PERSON],
+            self._REQUEST_TARGET: self._CHARGES_REQUEST,
+            self._SCRAPE_TYPE: params[self._SCRAPE_TYPE],
+            self._SESSION_TOKEN: params[self._SESSION_TOKEN]
             }
 
 
@@ -400,7 +407,7 @@ class JailTrackerScraper(GenericScraper):
             Returns the content of the response on success or -1 on failure.
         """
 
-        response_type = data.get(_RESPONSE_TYPE, None)
+        response_type = data.get(self._RESPONSE_TYPE, None)
         if response_type is None:
             logging.error(
                 "Missing response type for endpoint %s. Data:\n%s"
@@ -408,18 +415,18 @@ class JailTrackerScraper(GenericScraper):
             return -1
 
         # Remove response type before passing on data.
-        data.pop(_RESPONSE_TYPE)
+        data.pop(self._RESPONSE_TYPE)
 
-        if response_type == _HTML:
+        if response_type == self._HTML:
             # Fall back on GenericScraper behavior.
             return super(JailTrackerScraper, self)._fetch_content(
                 endpoint, data)
-        elif response_type == _JSON:
+        elif response_type == self._JSON:
             response = self.fetch_page(endpoint)
             if response == -1:
                 return -1
             return json.loads(response.content)
         else:
             logging.error("Unexpected response type %s for endpoint %s"
-                % (response_type, endpoint))
+                          % (response_type, endpoint))
             return -1
