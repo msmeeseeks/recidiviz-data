@@ -283,7 +283,7 @@ def test_get_and_validate_params_all():
 
     results = scraper_control.get_and_validate_params(params)
     assert results == (
-        ["us_co_mesa", "us_ny", "us_pa_greene", "us_vt", "us_mt_gallatin"],
+        ["us_co_mesa", "us_ny", "us_mt_gallatin",  "us_vt", "us_pa_greene"],
         ["background", "snapshot"], params)
 
 
