@@ -71,6 +71,19 @@ regions:
       record: Record
     scraper_package: us_co_mesa
     timezone: America/Denver
+  us_co_pueblo:
+    region_name: UsCoPueblo
+    agency_name: PUeblo County Jail
+    region_code: us_co_pueblo
+    agency_type: jail
+    queue: us-co-pueblo-scraper
+    base_url: http://www.co.pueblo.co.us/cgi-bin/webpurbroker.wsc/inmatelist.p?dispCnt=10000000&prev=0
+    names_file: us_ny_names.csv
+    entity_kinds:
+      person: Person
+      record: Record
+    scraper_package: us_co_publo
+    timezone: America/Denver
   us_mt_gallatin:
     region_name: UsMtGallatin
     agency_name: Gallatin County Jail
