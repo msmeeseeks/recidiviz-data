@@ -51,13 +51,13 @@ import re
 
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
-from recidiviz.ingest.generic_scraper import GenericScraper
+from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.extractor.data_extractor import DataExtractor
 from recidiviz.ingest.vendors.archonix.archonix_record import ArchonixRecord
 from recidiviz.ingest.vendors.archonix.archonix_person import ArchonixPerson
-from recidiviz.models.record import Offense
 
 
-class ArchonixScraper(GenericScraper):
+class ArchonixScraper(BaseScraper):
     """Scraper for counties using Archonix."""
 
     def __init__(self, region_name):
@@ -173,7 +173,7 @@ class ArchonixScraper(GenericScraper):
             inmate_id_start = href.index('InmateID=') + len('InmateID=')
             params = {
                 'endpoint': endpoint,
-                'task_type': constants.SCRAPE_PERSON_AND_RECORD,
+                'task_type': constants.SCRAPE_DATA,
                 'inmate_id': href[inmate_id_start:],
                 'reference_id': href[ref_id_start:ref_id_end],
             }
@@ -240,6 +240,27 @@ class ArchonixScraper(GenericScraper):
             params_list.extend(self._get_next_page_if_exists(content))
         return params_list
 
+    def populate_data(self, content, params, ingest_info):
+        """
+        Populates the ingest info object from the content and params given
+
+        Args:
+            content: An lxml html tree.
+            params: dict of parameters passed from the last scrape session.
+            ingest_info: The IngestInfo object to populate
+        """
+        data_extractor = DataExtractor(self.yaml_file)
+        data_extractor.extract_and_populate_data(content, ingest_info)
+        full_name = content.cssselect(
+            '[id=ctl00_ContentPlaceHolder1_spnInmateName]')[
+                0].text_content().strip()
+        surname, given_names = full_name.split(',')
+        ingest_info.people[0].given_names = given_names.strip()
+        ingest_info.people[0].surname = surname.strip()
+        return ingest_info
+
+
+
     def transform_data(self, data):
         """If the child needs to transform the data in any way before it sends
         the request, it can override this function.
@@ -295,6 +316,9 @@ class ArchonixScraper(GenericScraper):
         """
         return ArchonixPerson
 
+    def get_record_class(self):
+        return ArchonixRecord
+
     def person_id_is_fuzzy(self):
         """Returns whether or not this scraper generates person ids
 
@@ -310,238 +334,3 @@ class ArchonixScraper(GenericScraper):
             A boolean representing whether or not the record id is fuzzy.
         """
         return False
-
-    def get_person_id(self, content, params):
-        """Gets person id given a page
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A string representing the persons id
-        """
-        return self._get_scraped_value(
-            content, 'ctl00_ContentPlaceHolder1_spnInmateNo')
-
-    def get_given_names(self, content, params):
-        """Gets the persons given names from content and params that are
-        passed in.
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A string representing the persons given name
-        """
-        full_name = content.cssselect(
-            '[id=ctl00_ContentPlaceHolder1_spnInmateName]')[
-                0].text_content().strip()
-        return full_name.split(',')[1].strip()
-
-    def get_surname(self, content, params):
-        """Gets the persons surname.
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A string representing the persons surname
-        """
-        full_name = content.cssselect(
-            '[id=ctl00_ContentPlaceHolder1_spnInmateName]')[
-                0].text_content().strip()
-        full_name.split(',')[0].strip()
-        last_name = full_name.split(',')[0].strip()
-
-        return last_name
-
-    def get_birthdate(self, content, params):
-        """Gets person birthday given a page
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A datetime representing the persons birthdate
-        """
-        birthdate = self._get_scraped_value(
-            content, 'ctl00_ContentPlaceHolder1_spnBirthDate')
-        return scraper_utils.parse_date_string(birthdate)
-
-    def get_age(self, content, params):
-        """Gets person age given a page
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            An integer representing the persons age
-        """
-        age_string = self._get_scraped_value(
-            content, 'ctl00_ContentPlaceHolder1_spnAge')
-        return int(age_string)
-
-    def get_sex(self, content, params):
-        """Gets person sex given a page
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A string representing the persons sex
-        """
-        return self._get_scraped_value(
-            content, 'ctl00_ContentPlaceHolder1_spnGender')
-
-    def get_race(self, content, params):
-        """Gets person race given a page
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A string representing the persons race
-        """
-        return self._get_scraped_value(
-            content, 'ctl00_ContentPlaceHolder1_spnRace')
-
-    def populate_extra_person_params(self, content, params, person):
-        """Populates any extra params for a person.
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-            person: The person object to populate.
-        """
-        person.archonix_inmate_id = params['inmate_id']
-
-    def get_record_id(self, content, params):
-        """Gets record id given a page
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A string representing the persons record id
-        """
-        return self._get_scraped_value(
-            content, 'ctl00_ContentPlaceHolder1_spnBookingNo')
-
-    def get_record_class(self):
-        """Returns the record subclass to use for this scraper.
-
-        Returns:
-            The class representing the record DB object.
-        """
-        return ArchonixRecord
-
-    def get_custody_date(self, content, params):
-        """Gets custody date given a page
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A datetime representing the persons custody date
-        """
-        date_str = self._get_scraped_value(
-            content, 'ctl00_ContentPlaceHolder1_spnBookingDtTime')
-        return scraper_utils.parse_date_string(date_str[0:10])
-
-    def get_custody_status(self, content, params):
-        """Gets the record custody status given a page.
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A string representing the persons custody status.
-        """
-        return self._get_scraped_value(
-            content, 'ctl00_ContentPlaceHolder1_spnCustodyStatus')
-
-    def get_is_released(self, content, params):
-        """Gets whether or not the person is released.
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A bool representing whether the person is released.
-        """
-        # This county only shows record of people that are currently in jail,
-        # so if we got here they are not released.
-        return False
-
-    def get_committed_by(self, content, params):
-        """Gets the name of the entity that committed the person.
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A string representing the name of the entity that committed the
-            person
-        """
-
-        return self._get_scraped_value(
-            content, 'ctl00_ContentPlaceHolder1_spnHoldForAgency')
-
-
-    def populate_extra_record_params(self, content, params, record):
-        """Populates any extra params for a record.
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-            record: the record DB object to populate.
-        """
-        record.reference_id = params['reference_id']
-
-    def get_offenses(self, content, params):
-        """Gets the list of offenses relevant to the record.
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A list of Offense objects for the record.
-        """
-        offenses = []
-        charges = content.cssselect(
-            '[id=ctl00_ContentPlaceHolder1_gridCharges_ctl00]')[0]
-        body = charges.find('tbody')
-        # TODO(172): Handle columns more intelligently, cross-county order is
-        # not guaranteed. Handle when generic scraper work is done.
-        for row in body:
-            # If the length of the row is not more than 1, it means there were
-            # no charges entered.
-            if len(row) > 1:
-                offense = Offense()
-                offense.crime_class = row[0].text_content()
-                offense.crime_description = row[1].text_content()
-                offense.case_number = row[2].text_content()
-                # Note that row[3] and row[4] represent the offense date and
-                # arrest date, But PA Greene leaves this field blank.
-                bond_str = row[5].text_content()
-                # If there is no bond, it is filled with this character.
-                if (not bond_str.isspace() and bond_str != 'No Bond'
-                        and bond_str != 'Bond Denied'):
-                    # Bond is written in this form: $15,000.00
-                    offense.bond_amount = scraper_utils.currency_to_float(
-                        bond_str)
-                offenses.append(offense)
-        return offenses

@@ -19,9 +19,13 @@
 """Scraper implementation for PA Greene County (Archonix)
 """
 
+import os
 from recidiviz.ingest.vendors.archonix.archonix_scraper import ArchonixScraper
 
 class UsPaGreeneScraper(ArchonixScraper):
     """Scraper for people in Greene County (PA) facilities."""
     def __init__(self):
+        key_mapping_file = 'us_pa_greene.yaml'
+        self.yaml_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         super(UsPaGreeneScraper, self).__init__('us_pa_greene')
