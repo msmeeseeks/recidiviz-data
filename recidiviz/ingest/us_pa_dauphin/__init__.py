@@ -14,25 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
+"""us_pa_dauphin specific regional functionality."""
 
-"""The ingest portion of the Recidiviz data platform.
-
-This includes infrastructure, logic, and models for ingesting, validating,
-normalizing, and storing records ingested from various criminal justice data
-sources.
-"""
-
-
-import recidiviz.ingest.docket
-import recidiviz.ingest.extractor.data_extractor
-import recidiviz.ingest.models
-import recidiviz.ingest.scraper_control
-import recidiviz.ingest.sessions
-import recidiviz.ingest.tracker
-import recidiviz.ingest.us_co_mesa
-import recidiviz.ingest.us_mt_gallatin
-import recidiviz.ingest.us_ny
-import recidiviz.ingest.us_pa_dauphin
-import recidiviz.ingest.us_pa_greene
-import recidiviz.ingest.us_vt
-import recidiviz.ingest.worker
+from recidiviz.ingest.us_pa_dauphin import us_pa_dauphin_scraper
