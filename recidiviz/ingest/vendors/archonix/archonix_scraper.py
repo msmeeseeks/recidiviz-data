@@ -60,9 +60,10 @@ from recidiviz.ingest.vendors.archonix.archonix_person import ArchonixPerson
 class ArchonixScraper(BaseScraper):
     """Scraper for counties using Archonix."""
 
-    def __init__(self, region_name):
+    def __init__(self, region_name, yaml_file):
         super(ArchonixScraper, self).__init__(region_name)
 
+        self.yaml_file = yaml_file
         self._base_endpoint = self.get_region().base_url
         self._front_url = 'Default.aspx'
         self._initial_endpoint = '/'.join(
