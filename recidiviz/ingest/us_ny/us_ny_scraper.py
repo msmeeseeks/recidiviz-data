@@ -53,6 +53,7 @@ from google.appengine.ext.db import InternalError
 from google.appengine.ext.db import Timeout, TransactionFailedError
 from google.appengine.api import memcache
 
+from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
 from recidiviz.ingest import sessions
 from recidiviz.ingest import tracker
@@ -125,7 +126,7 @@ class UsNyScraper(Scraper):
             'scrape_type': params['scrape_type'],
             'content': params['content']}
 
-        if params["scrape_type"] == "background":
+        if params["scrape_type"] == constants.BACKGROUND_SCRAPE:
             task_name = "scrape_search_results_page"
         else:
             task_name = "scrape_person"
@@ -374,7 +375,7 @@ class UsNyScraper(Scraper):
 
         # Create a request using the provided params. How we structure
         # this varies a bit depending on how we got here.
-        if "first_page" in params and scrape_type == "snapshot":
+        if "first_page" in params and scrape_type == constants.SNAPSHOT_SCRAPE:
             # Arriving from snapshot scrape / main search page
             ignore_list = params["content"][1]
             next_docket_item = True
@@ -509,7 +510,7 @@ class UsNyScraper(Scraper):
         # snapshot scrapes, that won't be the case - so we add a
         # marker into one and only one of the person scrapes that
         # signifies we should kick off the next task.
-        first_task = True if scrape_type == "snapshot" else False
+        first_task = True if scrape_type == constants.SNAPSHOT_SCRAPE else False
 
         # Parse the results list
         result_list = page_tree.xpath('//div[@id="content"]/table/tr/td/form')

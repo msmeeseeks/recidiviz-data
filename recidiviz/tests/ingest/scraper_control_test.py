@@ -19,6 +19,7 @@
 
 from mock import call, patch
 from google.appengine.ext import testbed
+from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_control
 from recidiviz.ingest.models.scrape_key import ScrapeKey
 
@@ -257,7 +258,9 @@ def test_validate_regions_one_ok():
 
 def test_validate_regions_one_all():
     assert scraper_control.validate_regions(["all"]) == [
-        "us_co_mesa", "us_ny", "us_mt_gallatin", "us_vt", "us_pa_greene"]
+        "us_ny", "us_pa_greene", "us_vt", "us_co_mesa", "us_mt_gallatin",
+        "us_pa_dauphin"
+    ]
 
 
 def test_validate_regions_one_invalid():
@@ -275,7 +278,9 @@ def test_validate_regions_multiple_invalid():
 
 def test_validate_regions_multiple_all():
     assert scraper_control.validate_regions(["us_vt", "all"]) == [
-        "us_co_mesa", "us_ny", "us_mt_gallatin", "us_vt", "us_pa_greene"]
+        "us_ny", "us_pa_greene", "us_vt", "us_co_mesa", "us_mt_gallatin",
+        "us_pa_dauphin"
+    ]
 
 
 def test_validate_regions_multiple_all_invalid():
@@ -287,12 +292,13 @@ def test_validate_regions_empty():
 
 
 def test_validate_scrape_types_one_ok():
-    assert scraper_control.validate_scrape_types(["snapshot"]) == ["snapshot"]
+    assert scraper_control.validate_scrape_types(
+        [constants.SNAPSHOT_SCRAPE]) == [constants.SNAPSHOT_SCRAPE]
 
 
 def test_validate_scrape_types_one_all():
-    assert scraper_control.validate_scrape_types(["all"]) == ["background",
-                                                              "snapshot"]
+    assert scraper_control.validate_scrape_types(["all"]) == [
+        constants.BACKGROUND_SCRAPE, constants.SNAPSHOT_SCRAPE]
 
 
 def test_validate_scrape_types_one_invalid():
@@ -301,16 +307,19 @@ def test_validate_scrape_types_one_invalid():
 
 def test_validate_scrape_types_multiple_ok():
     assert scraper_control.validate_scrape_types(
-        ["background", "snapshot"]) == ["background", "snapshot"]
+        [constants.BACKGROUND_SCRAPE, constants.SNAPSHOT_SCRAPE]) == [
+            constants.BACKGROUND_SCRAPE, constants.SNAPSHOT_SCRAPE]
 
 
 def test_validate_scrape_types_multiple_invalid():
-    assert not scraper_control.validate_scrape_types(["background", "invalid"])
+    assert not scraper_control.validate_scrape_types(
+        [constants.BACKGROUND_SCRAPE, "invalid"])
 
 
 def test_validate_scrape_types_multiple_all():
-    assert scraper_control.validate_scrape_types(["background", "all"]) == [
-        "background", "snapshot"]
+    assert scraper_control.validate_scrape_types(
+        [constants.BACKGROUND_SCRAPE, "all"]) == [
+            constants.BACKGROUND_SCRAPE, constants.SNAPSHOT_SCRAPE]
 
 
 def test_validate_scrape_types_multiple_all_invalid():
@@ -318,7 +327,8 @@ def test_validate_scrape_types_multiple_all_invalid():
 
 
 def test_validate_scrape_types_empty():
-    assert scraper_control.validate_scrape_types([]) == ["background"]
+    assert scraper_control.validate_scrape_types(
+        []) == [constants.BACKGROUND_SCRAPE]
 
 
 class FakeScraper(object):

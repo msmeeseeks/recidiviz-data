@@ -27,24 +27,20 @@ import httplib
 import logging
 import time
 
-from google.appengine.ext import deferred
 from flask import Flask, request
-from recidiviz.ingest import docket
-from recidiviz.ingest import sessions
-from recidiviz.ingest import tracker
+from google.appengine.ext import deferred
+
+from recidiviz.ingest import constants, docket, sessions, tracker
 from recidiviz.ingest.models.scrape_key import ScrapeKey
-from recidiviz.utils import environment
-from recidiviz.utils import regions
-from recidiviz.utils.auth import authenticate_request_flask
-from recidiviz.utils.params import get_arg, get_arg_list
+from recidiviz.utils import environment, regions
+from recidiviz.utils.auth import authenticate_request
+from recidiviz.utils.params import get_value, get_values
 
-
-SCRAPE_TYPES = ["background", "snapshot"]
 
 app = Flask(__name__)
 
 @app.route('/scraper/start')
-@authenticate_request_flask
+@authenticate_request
 def scraper_start():
     """Request handler to start one or several running scrapers
 
@@ -66,16 +62,16 @@ def scraper_start():
     Returns:
         N/A
     """
-    scrape_regions = validate_regions(get_arg_list("region", request.args))
-    scrape_types = validate_scrape_types(get_arg_list("scrape_type",
-                                                      request.args))
+    scrape_regions = validate_regions(get_values("region", request.args))
+    scrape_types = validate_scrape_types(get_values("scrape_type",
+                                                    request.args))
 
     if not scrape_regions or not scrape_types:
         return ('Missing or invalid parameters, see service logs.',
                 httplib.BAD_REQUEST)
 
-    given_names = get_arg("given_names", request.args, "")
-    surname = get_arg("surname", request.args, "")
+    given_names = get_value("given_names", request.args, "")
+    surname = get_value("surname", request.args, "")
 
     for region in scrape_regions:
 
@@ -106,7 +102,7 @@ def scraper_start():
 
 
 @app.route('/scraper/stop')
-@authenticate_request_flask
+@authenticate_request
 def scraper_stop():
     """Request handler to stop one or several running scrapers.
 
@@ -138,9 +134,9 @@ def scraper_stop():
     Returns:
         N/A
     """
-    scrape_regions = validate_regions(get_arg_list("region", request.args))
-    scrape_types = validate_scrape_types(get_arg_list("scrape_type",
-                                                      request.args))
+    scrape_regions = validate_regions(get_values("region", request.args))
+    scrape_types = validate_scrape_types(get_values("scrape_type",
+                                                    request.args))
 
     if not scrape_regions or not scrape_types:
         return ('Missing or invalid parameters, see service logs.',
@@ -159,7 +155,7 @@ def scraper_stop():
 
 
 @app.route('/scraper/resume')
-@authenticate_request_flask
+@authenticate_request
 def scraper_resume():
     """Request handler to resume one or several stopped scrapers
 
@@ -178,9 +174,9 @@ def scraper_resume():
     Returns:
         N/A
     """
-    scrape_regions = validate_regions(get_arg_list("region", request.args))
-    scrape_types = validate_scrape_types(get_arg_list("scrape_type",
-                                                      request.args))
+    scrape_regions = validate_regions(get_values("region", request.args))
+    scrape_types = validate_scrape_types(get_values("scrape_type",
+                                                    request.args))
 
     if not scrape_regions or not scrape_types:
         return ('Missing or invalid parameters, see service logs.',
@@ -243,14 +239,14 @@ def validate_scrape_types(scrape_type_list):
         List of scrape types if successful
     """
     if not scrape_type_list:
-        return ["background"]
+        return [constants.BACKGROUND_SCRAPE]
 
     scrape_types_list_output = scrape_type_list
 
     for scrape_type in scrape_type_list:
         if scrape_type == "all":
-            scrape_types_list_output = SCRAPE_TYPES
-        elif scrape_type not in SCRAPE_TYPES:
+            scrape_types_list_output = constants.SCRAPE_TYPES
+        elif scrape_type not in constants.SCRAPE_TYPES:
             logging.error("Scrape type '%s' not recognized." % scrape_type)
             return False
 

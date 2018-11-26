@@ -16,141 +16,192 @@
 # =============================================================================
 
 """Represents data scraped for a single individual."""
-
-from recidiviz.common.constants.bond import BondStatus
-from recidiviz.common.constants.bond import BondType
-from recidiviz.common.constants.booking import Classification
-from recidiviz.common.constants.booking import CustodyStatus
-from recidiviz.common.constants.booking import JurisdictionStatus
-from recidiviz.common.constants.booking import ReleaseReason
-from recidiviz.common.constants.charge import ChargeClass
-from recidiviz.common.constants.charge import ChargeStatus
-from recidiviz.common.constants.charge import CourtType
-from recidiviz.common.constants.charge import Degree
-from recidiviz.common.constants.person import Ethnicity
-from recidiviz.common.constants.person import Race
+import types
 
 
 class IngestInfo(object):
     """Class for information about multiple people."""
 
-    def __init__(self):
-        self.people = []  # type: List[Person]
+    def __init__(self, people=None):
+        self.person = people or []  # type: List[Person]
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
-    def create_person(self):
-        person = _Person()
-        self.people.append(person)
+    def __repr__(self):
+        return to_string(self)
+
+    def create_person(self, **kwargs):
+        person = _Person(**kwargs)
+        self.person.append(person)
         return person
+
+    def get_recent_person(self):
+        if self.person:
+            return self.person[-1]
+        return None
 
 
 class _Person(object):
     """Class for information about a person.
     Referenced from IngestInfo.
     """
-    def __init__(self):
-        self.person_id = None # type: str
-        self.surname = None  # type: str
-        self.given_names = None  # type: str
-        self.birthdate = None  # type: datetime
-        self.sex = None
-        self.age = None  # type: int
-        self.race = Race.unknown
-        self.ethnicity = Ethnicity.unknown
-        self.place_of_residence = None  # type: str
 
-        self.bookings = []  # type: List[Booking]
+    def __init__(self, person_id=None, surname=None, given_names=None,
+                 birthdate=None, status=None, sex=None, age=None,
+                 race=None, ethnicity=None, place_of_residence=None,
+                 bookings=None):
+        self.person_id = person_id  # type: str
+        self.surname = surname  # type: str
+        self.given_names = given_names  # type: str
+        self.birthdate = birthdate  # type: datetime
+        self.status = status
+        self.sex = sex
+        self.age = age  # type: int
+        self.race = race
+        self.ethnicity = ethnicity
+        self.place_of_residence = place_of_residence  # type: str
+
+        self.booking = bookings or []  # type: List[Booking]
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
-    def create_booking(self):
-        booking = _Booking()
-        self.bookings.append(booking)
+    def __repr__(self):
+        return to_string(self)
+
+    def create_booking(self, **kwargs):
+        booking = _Booking(**kwargs)
+        self.booking.append(booking)
         return booking
+
+    def get_recent_booking(self):
+        if self.booking:
+            return self.booking[-1]
+        return None
 
 
 class _Booking(object):
     """Class for information about a booking.
     Referenced from Person.
     """
-    def __init__(self):
-        self.booking_id = None # type: str
-        self.admission_date = None  # type: datetime
-        self.projected_release_date = None  # type: datetime
-        self.release_date = None  # type: datetime
-        self.release_reason = ReleaseReason.unknown
-        self.custody_status = CustodyStatus.unknown
-        self.jurisdiction_status = JurisdictionStatus.unknown
-        self.hold = None  # type: str
-        self.facility = None  # type: str
-        self.classification = Classification.unknown
 
-        self.arrest = None  # type: Arrest
-        self.charges = []  # type: List[Charge]
+    def __init__(self, booking_id=None, admission_date=None,
+                 projected_release_date=None, release_date=None,
+                 release_reason=None,
+                 custody_status=None,
+                 jurisdiction_status=None, hold=None,
+                 facility=None, classification=None,
+                 total_bond_amount=None,
+                 arrest=None, charges=None):
+        self.booking_id = booking_id  # type: str
+        self.admission_date = admission_date  # type: datetime
+        self.projected_release_date = projected_release_date  # type: datetime
+        self.release_date = release_date  # type: datetime
+        self.release_reason = release_reason
+        self.custody_status = custody_status
+        self.jurisdiction_status = jurisdiction_status
+        self.hold = hold  # type: str
+        self.facility = facility  # type: str
+        self.classification = classification
+        self.total_bond_amount = total_bond_amount  # type: str
+
+        self.arrest = arrest  # type: Arrest
+        self.charge = charges or []  # type: List[Charge]
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
-    def create_arrest(self):
-        self.arrest = _Arrest()
+    def __repr__(self):
+        return to_string(self)
+
+    def create_arrest(self, **kwargs):
+        self.arrest = _Arrest(**kwargs)
         return self.arrest
 
-    def create_charge(self):
-        charge = _Charge()
-        self.charges.append(charge)
+    def create_charge(self, **kwargs):
+        charge = _Charge(**kwargs)
+        self.charge.append(charge)
         return charge
+
+    def get_recent_charge(self):
+        if self.charge:
+            return self.charge[-1]
+        return None
+
+    def get_recent_arrest(self):
+        return self.arrest
 
 
 class _Arrest(object):
     """Class for information about an arrest.
     Referenced from Booking.
     """
-    def __init__(self):
-        self.date = None  # type: datetime
-        self.location = None  # type: str
-        self.officer_name = None  # type: str
-        self.officer_id = None  # type: str
+
+    def __init__(self, date=None, location=None, officer_name=None,
+                 officer_id=None, agency=None):
+        self.date = date  # type: datetime
+        self.location = location  # type: str
+        self.officer_name = officer_name  # type: str
+        self.officer_id = officer_id  # type: str
+        self.agency = agency  # type: str
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
+    def __repr__(self):
+        return to_string(self)
 
 
 class _Charge(object):
     """Class for information about a charge.
     Referenced from Booking.
     """
-    def __init__(self):
-        self.offense_date = None  # type: datetime
-        self.statute = None  # type: str
-        self.name = None  # type: str
-        self.attempted = None  # type: bool
-        self.degree = Degree.unknown
-        self.charge_class = ChargeClass.unknown
-        self.level = None  # type: str
-        self.fee = None  # type: decimal
-        self.charging_entity = None  # type: str
-        self.charge_status = ChargeStatus.unknown
-        self.number_of_counts = None  # type: int
-        self.court_type = CourtType.unknown
-        self.case_number = None  # type: str
-        self.next_court_date = None  # type: datetime
-        self.judge_name = None  # type: str
 
-        self.bond = None  # type: Bond
-        self.sentence = None  # type: Sentence
+    def __init__(self, offense_date=None, statute=None, name=None,
+                 attempted=None, degree=None,
+                 charge_class=None, level=None, fee=None,
+                 charging_entity=None, charge_status=None,
+                 number_of_counts=None, court_type=None,
+                 case_number=None, next_court_date=None, judge_name=None,
+                 bond=None, sentence=None):
+        self.offense_date = offense_date  # type: datetime
+        self.statute = statute  # type: str
+        self.name = name  # type: str
+        self.attempted = attempted  # type: bool
+        self.degree = degree
+        self.charge_class = charge_class
+        self.level = level  # type: str
+        self.fee = fee  # type: decimal
+        self.charging_entity = charging_entity  # type: str
+        self.charge_status = charge_status
+        self.number_of_counts = number_of_counts  # type: int
+        self.court_type = court_type
+        self.case_number = case_number  # type: str
+        self.next_court_date = next_court_date  # type: datetime
+        self.judge_name = judge_name  # type: str
+
+        self.bond = bond  # type: Bond
+        self.sentence = sentence  # type: Sentence
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
-    def create_bond(self):
-        self.bond = _Bond()
+    def __repr__(self):
+        return to_string(self)
+
+    def create_bond(self, **kwargs):
+        self.bond = _Bond(**kwargs)
         return self.bond
 
-    def create_sentence(self):
-        self.sentence = _Sentence()
+    def create_sentence(self, **kwargs):
+        self.sentence = _Sentence(**kwargs)
+        return self.sentence
+
+    def get_recent_bond(self):
+        return self.bond
+
+    def get_recent_sentence(self):
         return self.sentence
 
 
@@ -158,30 +209,54 @@ class _Bond(object):
     """Class for information about a bond.
     Referenced from Charge.
     """
-    def __init__(self):
-        self.bond_id = None  # type: str
-        self.amount = None  # type: decimal
-        self.type = BondType.unknown
-        self.status = BondStatus.unknown
+
+    def __init__(self, bond_id=None, amount=None, bond_type=None,
+                 status=None):
+        self.bond_id = bond_id  # type: str
+        self.amount = amount  # type: decimal
+        self.bond_type = bond_type
+        self.status = status
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
+    def __repr__(self):
+        return to_string(self)
 
 
 class _Sentence(object):
     """Class for information about a sentence.
     Referenced from Charge.
     """
-    def __init__(self):
-        self.date_imposed = None  # type: datetime
-        self.min_length = None  # type: timedelta
-        self.max_length = None  # type: timedelta
-        self.is_life = None  # type: bool
-        self.is_probation = None  # type: bool
-        self.is_suspended = None  # type: bool
-        self.fine = None  # type: decimal
-        self.parole_possible = None  # type: bool
-        self.post_release_supervision_length = None  # type: timedelta
+
+    def __init__(self, date_imposed=None, min_length=None, max_length=None,
+                 is_life=None, is_probation=None, is_suspended=None, fine=None,
+                 parole_possible=None, post_release_supervision_length=None):
+        self.date_imposed = date_imposed  # type: datetime
+        self.min_length = min_length  # type: timedelta
+        self.max_length = max_length  # type: timedelta
+        self.is_life = is_life  # type: bool
+        self.is_probation = is_probation  # type: bool
+        self.is_suspended = is_suspended  # type: bool
+        self.fine = fine  # type: decimal
+        self.parole_possible = parole_possible  # type: bool
+
+        # type: timedelta
+        self.post_release_supervision_length = post_release_supervision_length
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
+    def __repr__(self):
+        return to_string(self)
+
+
+def to_string(obj):
+    out = [obj.__class__.__name__ + ":"]
+    for key, val in vars(obj).items():
+        if isinstance(val, types.ListType):
+            for index, elem in enumerate(val):
+                out += '{}[{}]: {}'.format(key, index, elem).split('\n')
+        elif val:
+            out += '{}: {}'.format(key, val).split('\n')
+    return '\n   '.join(out)
