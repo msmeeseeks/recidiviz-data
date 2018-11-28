@@ -51,7 +51,6 @@ from google.appengine.ext import deferred
 from google.appengine.ext import ndb
 from google.appengine.ext.db import InternalError
 from google.appengine.ext.db import Timeout, TransactionFailedError
-from google.appengine.api import memcache
 
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
@@ -303,14 +302,9 @@ class UsNyScraper(Scraper):
                 return -1
 
         except IndexError:
-            # We got a page we didn't expect - results_parsing_failure will
-            # attempt to determine why and whether to wind down current scrape.
-            wind_down = self.results_parsing_failure()
-
-            if wind_down:
-                return None
-
-            return -1
+            logging.info('Received unexpected search results page.')
+            self.stop_scrape_and_maybe_resume(scrape_type)
+            return None
 
         # Enqueue task to follow that link / get next results page
         next_params['content'] = scrape_content
@@ -518,14 +512,8 @@ class UsNyScraper(Scraper):
         if not result_list:
             logging.warning("Malformed person or disambig page, failing task "
                             "to re-queue.")
-            # We got a page we didn't expect - results_parsing_failure will
-            # attempt to disambiguate why.
-            wind_down = self.results_parsing_failure()
-
-            if wind_down:
-                return None
-
-            return -1
+            self.stop_scrape_and_maybe_resume(scrape_type)
+            return None
 
         for row in result_list:
             result_params = {}
@@ -1091,19 +1079,25 @@ class UsNyScraper(Scraper):
 
         return None
 
-    def results_parsing_failure(self):
-        """Determines cause, handles retries for parsing problems
+    def stop_scrape_and_maybe_resume(self, scrape_type):
+        """Stops current scrape and schedules a resume if this scrape received
+        an error before scraping all of the names.
 
-        We didn't get the page we expected while retrieving a results,
-        person, or disambiguation page. We retry three times (keeping
-        track in memcache), which is long enough for most transient
-        errors to go away.
+        Args:
+            scrape_type: The type of the current scrape session
+        """
+        if self.should_resume():
+            deferred.defer(self.resume_scrape, scrape_type, _countdown=60)
+        self.stop_scrape([scrape_type])
 
-        If we fail three times in a row (with backoff), we first check
-        if we've completed the alphabet. On the last page, when we
-        click 'Next 4 results', DOCCS just takes the user back to the
-        main search page (which could be why trying to parse it like a
-        result page failed). If we did, we just shut down the scraper
+    def should_resume(self):
+        """Determines whether the scrape session should be resumed.
+
+        We didn't get the page we expected while retrieving a results, person,
+        or disambiguation page. We first check if we've completed the alphabet.
+        On the last page, when we click 'Next 4 results', DOCCS just takes the
+        user back to the main search page (which could be why trying to parse it
+        like a result page failed). If we did, we just shut down the scraper
         because this is success.
 
         If not, we assume DOCCS has lost state and no longer knows
@@ -1113,82 +1107,83 @@ class UsNyScraper(Scraper):
         continue scraping using.
 
         Returns:
-            True if calling function should 'succeed' (not be retried)
-            False if calling function should 'fail' (be retried)
-
+            True if scrape should be resumed
+            False otherwise
         """
-        fail_count = memcache.get(key=self.fail_counter)
+        # This is a hacky check for whether we finished the
+        # alphabet. The last name in DOCCS as of 11/13/2017 is
+        # 'ZYTEL', who's sentenced to life and has no other crimes
+        # / disambig.
+        last_scraped = self.get_last_scraped(self.get_region().region_code)
 
-        fail_count = 0 if not fail_count else fail_count
+        # TODO (#113): we need a more robust method for detecting
+        # the end of the roster.
+        if last_scraped and last_scraped[0:3] < "ZYT":
 
-        if fail_count < 3:
-            logging.warning("Couldn't parse next page of results (attempt %d)."
-                            " Failing task to force retry.", fail_count)
-            fail_count += 1
-            memcache.set(key=self.fail_counter, value=fail_count, time=600)
-            return False
-        else:
-            # This is a hacky check for whether we finished the
-            # alphabet. The last name in DOCCS as of 11/13/2017 is
-            # 'ZYTEL', who's sentenced to life and has no other crimes
-            # / disambig.
-            current_session = sessions.get_open_sessions(
-                self.get_region().region_code, most_recent_only=True)
-            if current_session:
-                last_scraped = current_session.last_scraped
-                scrape_type = current_session.scrape_type
-            else:
-                logging.error(
-                    "No open sessions found! Bad state, ending scrape.")
-                return True
-
-            if not last_scraped:
-                logging.error(
-                    "Session isn't old enough to have a last_scraped "
-                    "name yet, but no search results are coming back. "
-                    "Finding last scraped name from earlier session.")
-
-                # Get most recent sessions, including closed ones, and find
-                # the last one to have a last_scraped name in it. These will
-                # come back most-recent-first.
-                recent_sessions = sessions.get_recent_sessions(
-                    ScrapeKey(self.get_region().region_code, scrape_type))
-
-                for session in recent_sessions:
-                    if session.last_scraped:
-                        last_scraped = session.last_scraped
-                        break
-
-            # TODO (#113): we need a more robust method for detecting
-            # the end of the roster.
-            if last_scraped[0:3] < "ZYT":
-
-                # We haven't finished the alphabet yet. Most likely,
-                # we're failing repeatedly because the server has lost
-                # state (e.g., went through a maintenance period). End
-                # current scrape / purge tasks, start again from where
-                # we left off.
-                logging.warning(
-                    "Server has lost state. Kicking off new scrape "
-                    "task for last name seen in results, and removing "
-                    "other tasks with old state.")
-
-                deferred.defer(self.resume_scrape, scrape_type,
-                               _countdown=60)
-                self.stop_scrape([scrape_type])
-                return True
-
-            # We've run out of names, and the 'Next 4 results'
-            # button dumped us back at the original search
-            # page. Log it, and end the query.
-
-            # Note: In another region (where we search for names
-            #       one-by-one), we'd iterate the background
-            #       scrape docket item here.
-            logging.info("Looped all results. Ending scraping session.")
-            self.stop_scrape([scrape_type])
-
+            # We haven't finished the alphabet yet. Most likely,
+            # we're failing repeatedly because the server has lost
+            # state (e.g., went through a maintenance period). End
+            # current scrape / purge tasks, start again from where
+            # we left off.
+            logging.warning(
+                "Server has lost state. Kicking off new scrape "
+                "task for last name seen in results, and removing "
+                "other tasks with old state.")
             return True
+
+        # We've run out of names, and the 'Next 4 results'
+        # button dumped us back at the original search
+        # page. Log it, and end the query.
+
+        # Note: In another region (where we search for names
+        #       one-by-one), we'd iterate the background
+        #       scrape docket item here.
+        logging.info("Looped all results. Ending scraping session.")
+        return False
+
+
+    @staticmethod
+    def get_last_scraped(region_code):
+        """Gets the last person scraped during this scrape session.
+
+        If the current session does not have a last scraped set, then returns
+        the last scraped from the most recent session with one set.
+
+        Args:
+            region_code: Code for current region
+
+        Returns:
+            None if no open sessions
+            Last scraped otherwise
+        """
+        current_session = sessions.get_open_sessions(
+            region_code, most_recent_only=True)
+        if current_session:
+            last_scraped = current_session.last_scraped
+            scrape_type = current_session.scrape_type
+        else:
+            logging.error(
+                "No open sessions found! Bad state, ending scrape.")
+            return None
+
+        if not last_scraped:
+            logging.error(
+                "Session isn't old enough to have a last_scraped "
+                "name yet, but no search results are coming back. "
+                "Finding last scraped name from earlier session.")
+
+            # Get most recent sessions, including closed ones, and find
+            # the last one to have a last_scraped name in it. These will
+            # come back most-recent-first.
+            recent_sessions = sessions.get_recent_sessions(
+                ScrapeKey(region_code, scrape_type))
+
+            for session in recent_sessions:
+                if session.last_scraped:
+                    last_scraped = session.last_scraped
+                    break
+        return last_scraped
+
 
     def person_id_to_record_id(self, person_id):
         """Convert provided person_id to record_id of any record for that person

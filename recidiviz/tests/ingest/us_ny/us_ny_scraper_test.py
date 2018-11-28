@@ -25,7 +25,6 @@ from lxml import html
 from mock import patch
 import responses
 
-from google.appengine.api import memcache
 from google.appengine.ext import ndb
 from google.appengine.ext.db import InternalError
 from google.appengine.ext import testbed
@@ -424,30 +423,6 @@ class TestScrapeSearchResultsPage(object):
                                              mock_proxies,
                                              mock_headers,
                                              mock_taskqueue):
-        """Tests the subsequent page case where there is an issue parsing
-        variables to scrape the next page."""
-        self.do_test_with_parsing_failure(
-            0, -1, mock_proxies, mock_headers, mock_taskqueue)
-
-    @responses.activate
-    @patch("google.appengine.api.taskqueue.add")
-    @patch("recidiviz.ingest.scraper_utils.get_headers")
-    @patch("recidiviz.ingest.scraper_utils.get_proxies")
-    def test_subsequent_page_parsing_failure_exhausted_retries(self,
-                                                               mock_proxies,
-                                                               mock_headers,
-                                                               mock_taskqueue):
-        """Tests the subsequent page case where there is an issue parsing
-        variables to scrape the next page and we have exhausted retries."""
-        self.do_test_with_parsing_failure(
-            3, None, mock_proxies, mock_headers, mock_taskqueue)
-
-    def do_test_with_parsing_failure(self,
-                                     failure_count,
-                                     expected_result,
-                                     mock_proxies,
-                                     mock_headers,
-                                     mock_taskqueue):
         """Performs the legwork for the two parsing failure test cases above."""
         scraper = UsNyScraper()
         scrape_type = 'background'
@@ -458,8 +433,6 @@ class TestScrapeSearchResultsPage(object):
         responses.add(responses.POST, 'http://nysdoccslookup.doccs.ny.gov'
                       + action,
                       body=SEARCH_RESULTS_PAGE_MISSING_NEXT, status=200)
-
-        memcache.set(scraper.fail_counter, failure_count)
 
         result = scraper.scrape_search_results_page({
             'action': action,
@@ -477,7 +450,7 @@ class TestScrapeSearchResultsPage(object):
             'content': ['AAARDVARK', ''],
             'scrape_type': scrape_type
         })
-        assert result == expected_result
+        assert result is None
 
         verify_mocks(mock_proxies, mock_headers, mock_taskqueue, 4)
         self.assert_scrape_person_calls(scraper, scrape_type, mock_taskqueue)
@@ -987,8 +960,8 @@ class TestStoreRecord(object):
         return scraper.gather_details(page_tree, details_page)
 
 
-class TestResultsParsingFailure(object):
-    """Tests for the results_parsing_failure method."""
+class TestStopScrapeAndMaybeResume(object):
+    """Tests for the stop_scrape_and_maybe_resume method."""
 
     def setup_method(self, _test_method):
         # noinspection PyAttributeOutsideInit
@@ -1009,34 +982,25 @@ class TestResultsParsingFailure(object):
     def teardown_method(self, _test_method):
         self.testbed.deactivate()
 
-    def test_early_fail_count(self):
-        scraper = UsNyScraper()
-        memcache.set(scraper.fail_counter, 0)
 
-        assert not scraper.results_parsing_failure()
-
-        assert memcache.get(scraper.fail_counter) == 1
-
+    @patch("recidiviz.ingest.scraper.Scraper.stop_scrape")
     @patch("recidiviz.ingest.sessions.get_open_sessions")
-    def test_third_failure_no_open_sessions(self, mock_sessions):
+    def test_no_open_sessions(self, mock_sessions, mock_stop_scrape):
+        scrape_type = 'background'
         mock_sessions.return_value = []
+        mock_stop_scrape.return_value = None
 
         scraper = UsNyScraper()
-        memcache.set(scraper.fail_counter, 3)
-
-        assert scraper.results_parsing_failure()
+        scraper.stop_scrape_and_maybe_resume(scrape_type)
 
         mock_sessions.assert_called_with('us_ny', most_recent_only=True)
+        mock_stop_scrape.assert_called_with([scrape_type])
 
     @patch("recidiviz.ingest.scraper.Scraper.stop_scrape")
     @patch("recidiviz.ingest.sessions.get_recent_sessions")
     @patch("recidiviz.ingest.sessions.get_open_sessions")
-    def test_third_failure_nothing_scraped_yet(self,
-                                               mock_sessions,
-                                               mock_recent_sessions,
-                                               mock_stop_scrape):
-        """Tests the case where we've failed at least 3 times, and nothing has
-        been scraped yet."""
+    def test_nothing_scraped_yet(
+            self, mock_sessions, mock_recent_sessions, mock_stop_scrape):
         scrape_type = 'background'
 
         mock_sessions.return_value = ScrapeSession(region='us_ny',
@@ -1050,9 +1014,7 @@ class TestResultsParsingFailure(object):
         mock_stop_scrape.return_value = None
 
         scraper = UsNyScraper()
-        memcache.set(scraper.fail_counter, 3)
-
-        assert scraper.results_parsing_failure()
+        scraper.stop_scrape_and_maybe_resume(scrape_type)
 
         mock_sessions.assert_called_with('us_ny', most_recent_only=True)
         mock_recent_sessions.assert_called_with(
@@ -1062,10 +1024,8 @@ class TestResultsParsingFailure(object):
     @patch("recidiviz.ingest.scraper.Scraper.stop_scrape")
     @patch("google.appengine.ext.deferred.defer")
     @patch("recidiviz.ingest.sessions.get_open_sessions")
-    def test_third_failure_not_finished_yet(self,
-                                            mock_sessions,
-                                            mock_deferred,
-                                            mock_stop_scrape):
+    def test_not_finished_yet(
+            self, mock_sessions, mock_deferred, mock_stop_scrape):
         scrape_type = 'background'
 
         mock_sessions.return_value = ScrapeSession(region='us_ny',
@@ -1075,9 +1035,7 @@ class TestResultsParsingFailure(object):
         mock_stop_scrape.return_value = None
 
         scraper = UsNyScraper()
-        memcache.set(scraper.fail_counter, 3)
-
-        assert scraper.results_parsing_failure()
+        scraper.stop_scrape_and_maybe_resume(scrape_type)
 
         mock_sessions.assert_called_with('us_ny', most_recent_only=True)
         mock_deferred.assert_called_with(scraper.resume_scrape,
@@ -1087,9 +1045,7 @@ class TestResultsParsingFailure(object):
 
     @patch("recidiviz.ingest.scraper.Scraper.stop_scrape")
     @patch("recidiviz.ingest.sessions.get_open_sessions")
-    def test_third_failure_finished(self,
-                                    mock_sessions,
-                                    mock_stop_scrape):
+    def test_finished(self, mock_sessions, mock_stop_scrape):
         scrape_type = 'background'
 
         mock_sessions.return_value = ScrapeSession(region='us_ny',
@@ -1098,9 +1054,7 @@ class TestResultsParsingFailure(object):
         mock_stop_scrape.return_value = None
 
         scraper = UsNyScraper()
-        memcache.set(scraper.fail_counter, 3)
-
-        assert scraper.results_parsing_failure()
+        scraper.stop_scrape_and_maybe_resume(scrape_type)
 
         mock_sessions.assert_called_with('us_ny', most_recent_only=True)
         mock_stop_scrape.assert_called_with([scrape_type])
