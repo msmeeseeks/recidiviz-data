@@ -36,42 +36,31 @@ Background scraping procedure:
     3. A details page for a person's current booking
 """
 
-from recidiviz.ingest import constants, scraper_utils
-from recidiviz.ingest.generic_scraper import GenericScraper
-from recidiviz.models.person import Person
-from recidiviz.models.record import Offense, Record
+from recidiviz.ingest import constants
+from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.models.ingest_info import _Bond
 
 
-class UsCoMesaScraper(GenericScraper):
+class UsCoMesaScraper(BaseScraper):
     """Scraper Mesa County, Colorado jails."""
 
     def __init__(self):
         super(UsCoMesaScraper, self).__init__('us_co_mesa')
 
-        self._base_endpoint = self.get_region().base_url
-        self._front_url = 'default.asp'
-        self._initial_endpoint = '/'.join(
-            [self._base_endpoint, self._front_url])
+    def set_initial_vars(self, content, params):
+        pass
 
     def get_more_tasks(self, content, params):
         task_type = params.get('task_type', self.get_initial_task_type())
-        params_list = []
 
         if self.is_initial_task(task_type):
-            params_list.append(self._get_all_people_params())
-        elif self.should_get_more_tasks(task_type):
-            params_list.extend(self._get_person_params(content))
+            return [self._get_all_people_params()]
 
-        if self.should_scrape_person(task_type):
-            self._person = UsCoMesaScraper._scrape_person(content)
-        if self.should_scrape_record(task_type):
-            self._record = UsCoMesaScraper._scrape_record(content)
-
-        return params_list
+        return self._get_person_params(content)
 
     def _get_all_people_params(self):
         params = {
-            'endpoint': self._initial_endpoint,
+            'endpoint': self.get_region().base_url,
             'task_type': constants.GET_MORE_TASKS,
             'data': {
                 'SearchField': 'LName',
@@ -86,8 +75,8 @@ class UsCoMesaScraper(GenericScraper):
         form_inputs = content.cssselect('[name=SearchVal]')
         for form_input in form_inputs:
             params_list.append({
-                'endpoint': self._initial_endpoint,
-                'task_type': constants.SCRAPE_PERSON_AND_RECORD_AND_MORE,
+                'endpoint': self.get_region().base_url,
+                'task_type': constants.SCRAPE_DATA,
                 'data': {
                     'SearchField': 'BookingNo',
                     'SearchVal': form_input.get('value')
@@ -106,90 +95,58 @@ class UsCoMesaScraper(GenericScraper):
     # - 'The inmate currently has a hold that could prevent him from being
     #    eligible for release after posting bond...'
 
-    @staticmethod
-    def _scrape_person(content):
-        person = Person()
+    def populate_data(self, content, params, ingest_info):
+        person = ingest_info.create_person()
+        booking = person.create_booking()
 
         table = content.cssselect('table')[0]
         for row in table:
-            if len(row) == 2:
-                if row[0].text_content().startswith('Name'):
-                    # TODO: move to scraper_utils
-                    name = row[1].text_content().split()
-                    person.given_names = ' '.join(name[:-1])
-                    person.surname = name[-1]
-                if row[0].text_content().startswith('DOB'):
-                    person.birthdate = scraper_utils.parse_date_string(
-                        row[1].text_content())
-                    person.age = scraper_utils.calculate_age(person.birthdate)
-
-        return person
-
-    @staticmethod
-    def _scrape_record(content):
-        record = Record()
-
-        table = content.cssselect('table')[0]
-        for row in table:
+            if row[0].text_content().startswith('Name'):
+                # TODO(#206): move name parsing to data converter
+                name = row[1].text_content().split()
+                person.given_names = ' '.join(name[:-1])
+                person.surname = name[-1]
+            if row[0].text_content().startswith('DOB'):
+                person.birthdate = row[1].text_content()
             if row[0].text_content().startswith('Booking#'):
-                record.record_id = row[1].text_content()
+                booking.booking_id = row[1].text_content()
             if row[0].text_content().startswith('Bonds'):
-                # TODO: for now we are just putting all the bond info in a
-                # single offense
-                offense = Offense()
-                # Bond information is stored in the next row.
-                offense.description = row.getnext()[1].text_content()
-                record.offenses.append(offense)
-        return record
+                bond_list = row.getnext()[1][0]
+                total_bond_amount = 0
+                # Each "bond" occupies two elements in the list, a header
+                # element and a list of relevant charges. We iterate over the
+                # bonds list in twos to handle this.
+                for bond_element in bond_list[::2]:
+                    bond_text = bond_element.text_content()
+                    assert bond_text.startswith('Bond#')
+                    bond_text = bond_text[5:]
+                    bond_id, bond = bond_text.split(' - ')
+                    bond_type, bond_amount = bond.split(':')
 
-    def get_initial_endpoint(self):
-        """Returns the initial endpoint to hit on the first call
-        Returns:
-            A string representing the initial endpoint to hit
-        """
-        return self._initial_endpoint
+                    bond = _Bond(
+                        bond_id=bond_id.strip(),
+                        amount=bond_amount.strip(),
+                        bond_type=bond_type,
+                    )
+                    total_bond_amount += int(bond_amount.strip(' $'))
 
-    def set_initial_vars(self, content, params):
-        """
-        Sets initial vars in the params that it will pass on to future scrapes
+                    # Get list of charges
+                    charge_list = bond_element.getnext()
+                    for charge_element in charge_list:
+                        charge_text = charge_element.text_content()
+                        assert charge_text.startswith('Charge:')
+                        assert charge_text.endswith(')')
+                        charge_text = charge_text[7:-1]
+                        charge_name, charge_meta = charge_text.split('(', 1)
+                        charge_meta = charge_meta.split(' ')
+                        charge_statute = charge_meta[0]
+                        charge_class = charge_meta[1] if len(
+                            charge_meta) > 1 else None
 
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-        """
-        pass
-
-    def get_person_class(self):
-        """Returns the person subclass to use for this scraper.
-
-        Returns:
-            A class representing the person DB object.
-        """
-        return Person
-
-    def get_record_class(self):
-        return Record
-
-    def get_person_id(self, content, params):
-        return self.get_region().region_code + scraper_utils.generate_id(Person)
-
-    def get_record_id(self, content, params):
-        return self._record.record_id
-
-    def person_id_is_fuzzy(self):
-        return True
-
-    def get_given_names(self, content, params):
-        return self._person.given_names
-
-    def get_surname(self, content, params):
-        return self._person.surname
-
-    def get_birthdate(self, content, params):
-        return self._person.birthdate
-
-    def get_age(self, content, params):
-        return self._person.age
-
-    def get_offenses(self, content, params):
-        return self._record.offenses
+                        booking.create_charge(
+                            name=charge_name.strip(),
+                            statute=charge_statute,
+                            charge_class=charge_class,
+                            bond=bond,
+                        )
+                booking.total_bond_amount = '${}'.format(total_bond_amount)
