@@ -194,8 +194,9 @@ class TestScrapeSearchResultsPage(object):
         self.testbed = testbed.Testbed()
         self.testbed.activate()
         self.testbed.init_datastore_v3_stub()
-        self.testbed.init_memcache_stub()
-        ndb.get_context().clear_cache()
+        context = ndb.get_context()
+        context.set_memcache_policy(False)
+        context.clear_cache()
 
         # root_path must be set the the location of queue.yaml.
         # Otherwise, only the 'default' queue will be available.
@@ -585,8 +586,9 @@ class TestCreatePerson(object):
         self.testbed = testbed.Testbed()
         self.testbed.activate()
         self.testbed.init_datastore_v3_stub()
-        self.testbed.init_memcache_stub()
-        ndb.get_context().clear_cache()
+        context = ndb.get_context()
+        context.set_memcache_policy(False)
+        context.clear_cache()
 
         # root_path must be set the the location of queue.yaml.
         # Otherwise, only the 'default' queue will be available.
@@ -676,8 +678,9 @@ class TestCreateRecord(object):
         self.testbed = testbed.Testbed()
         self.testbed.activate()
         self.testbed.init_datastore_v3_stub()
-        self.testbed.init_memcache_stub()
-        ndb.get_context().clear_cache()
+        context = ndb.get_context()
+        context.set_memcache_policy(False)
+        context.clear_cache()
 
         # root_path must be set the the location of queue.yaml.
         # Otherwise, only the 'default' queue will be available.
@@ -777,8 +780,9 @@ class TestRecordToSnapshot(object):
         self.testbed = testbed.Testbed()
         self.testbed.activate()
         self.testbed.init_datastore_v3_stub()
-        self.testbed.init_memcache_stub()
-        ndb.get_context().clear_cache()
+        context = ndb.get_context()
+        context.set_memcache_policy(False)
+        context.clear_cache()
 
         # root_path must be set the the location of queue.yaml.
         # Otherwise, only the 'default' queue will be available.
@@ -894,8 +898,9 @@ class TestStoreRecord(object):
         self.testbed = testbed.Testbed()
         self.testbed.activate()
         self.testbed.init_datastore_v3_stub()
-        self.testbed.init_memcache_stub()
-        ndb.get_context().clear_cache()
+        context = ndb.get_context()
+        context.set_memcache_policy(False)
+        context.clear_cache()
 
         # root_path must be set the the location of queue.yaml.
         # Otherwise, only the 'default' queue will be available.
@@ -968,8 +973,9 @@ class TestStopScrapeAndMaybeResume(object):
         self.testbed = testbed.Testbed()
         self.testbed.activate()
         self.testbed.init_datastore_v3_stub()
-        self.testbed.init_memcache_stub()
-        ndb.get_context().clear_cache()
+        context = ndb.get_context()
+        context.set_memcache_policy(False)
+        context.clear_cache()
 
         # root_path must be set the the location of queue.yaml.
         # Otherwise, only the 'default' queue will be available.
