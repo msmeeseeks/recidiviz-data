@@ -17,7 +17,8 @@
 """Scraper tests for us_co_mesa."""
 
 from lxml import html
-from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, _Charge, _Bond
+from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, \
+    _Charge, _Bond
 from recidiviz.ingest.us_co_mesa.us_co_mesa_scraper import UsCoMesaScraper
 from recidiviz.tests.ingest import fixtures
 
@@ -27,8 +28,8 @@ _DETAILS_PAGE_HTML = html.fromstring(
 
 class TestScraperDetailsPage(object):
     def test_parse(self):
-        actual = IngestInfo()
-        UsCoMesaScraper().populate_data(_DETAILS_PAGE_HTML, {}, actual)
+        actual = UsCoMesaScraper().populate_data(_DETAILS_PAGE_HTML, {},
+                                                 IngestInfo())
 
         expected = IngestInfo(people=[_Person(
             given_names="FIRST MIDDLE",

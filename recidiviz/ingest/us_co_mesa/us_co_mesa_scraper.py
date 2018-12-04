@@ -150,3 +150,5 @@ class UsCoMesaScraper(BaseScraper):
                             bond=bond,
                         )
                 booking.total_bond_amount = '${}'.format(total_bond_amount)
+
+        return ingest_info
