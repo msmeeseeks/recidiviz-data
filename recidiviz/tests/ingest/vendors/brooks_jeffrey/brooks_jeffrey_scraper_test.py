@@ -73,7 +73,7 @@ class TestBrooksJeffreyScraper(object):
         person = expected_info.create_person()
         person.given_names = "First Middle"
         person.surname = "Last"
-        person.sex = "M"
+        person.gender = "M"
         person.age = "100"
         person.race = "W"
 

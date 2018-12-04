@@ -1,7 +1,7 @@
 key_mappings:
   "Booking #": booking.booking_id
   Age: person.age
-  Gender: person.sex
+  Gender: person.gender
   Race: person.race
   Arresting Agency: arrest.agency
   Booking Date: booking.admission_date
