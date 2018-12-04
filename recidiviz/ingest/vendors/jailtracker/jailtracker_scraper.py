@@ -42,10 +42,10 @@ import logging
 import re
 
 from lxml import html
-from recidiviz.ingest.generic_scraper import GenericScraper
+from recidiviz.ingest.base_scraper import BaseScraper
 
 
-class JailTrackerScraper(GenericScraper):
+class JailTrackerScraper(BaseScraper):
     """Generic scraper for regions using JailTracker."""
 
     # Number of roster entries requested in a single request.
