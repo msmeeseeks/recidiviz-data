@@ -390,7 +390,6 @@ class JailTrackerScraper(BaseScraper):
             self._SESSION_TOKEN: params[self._SESSION_TOKEN]
             }
 
-
     # Overrides method in GenericScraper to handle JSON responses.
     def _fetch_content(self, endpoint, data=None):
         """Returns the response content, either HTML or JSON.
