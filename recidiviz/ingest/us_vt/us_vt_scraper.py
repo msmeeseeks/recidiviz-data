@@ -281,7 +281,7 @@ class UsVtScraper(Scraper):
             session=params['session'])
         data = {'arrestNo': params['roster_entry']['ArrestNo']}
 
-        charges_response = self.fetch_page(url, data=data)
+        charges_response = self.fetch_page(url, post_data=data)
         if charges_response == -1:
             return -1
 

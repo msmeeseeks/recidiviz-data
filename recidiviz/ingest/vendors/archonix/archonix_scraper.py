@@ -262,7 +262,7 @@ class ArchonixScraper(BaseScraper):
 
 
 
-    def transform_data(self, data):
+    def transform_post_data(self, data):
         """If the child needs to transform the data in any way before it sends
         the request, it can override this function.
 

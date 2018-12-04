@@ -223,7 +223,7 @@ class UsNyScraper(Scraper):
             }
 
         url = self.get_region().base_url + str(params['action'])
-        results_page = self.fetch_page(url, data=data)
+        results_page = self.fetch_page(url, post_data=data)
         if results_page == -1:
             return -1
 
@@ -430,7 +430,7 @@ class UsNyScraper(Scraper):
                 params['dinx_name']: params['dinx_val'],
             }
 
-        person_page = self.fetch_page(url, data=data)
+        person_page = self.fetch_page(url, post_data=data)
         if person_page == -1:
             return -1
 
