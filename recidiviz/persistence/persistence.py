@@ -76,7 +76,7 @@ def _infer_release_date_for_bookings(bookings, date):
             charge.status = 'RESOLVED_UNKNOWN_REASON'
 
 
-def write(ingest_info):
+def write(ingest_info, scraper_start_date):
     """
     If in prod or if 'PERSIST_LOCALLY' is set to true, persist each person in
     the ingest_info. If a person with the given surname/birthday already exists,
@@ -86,11 +86,14 @@ def write(ingest_info):
 
     Args:
          ingest_info: The IngestInfo containing each person
+         scraper_start_date: The start date for the scraper that produced the
+             provided ingest_info
     """
     log = logging.getLogger()
 
     for ingest_info_person in ingest_info.person:
         person = converter.convert_person(ingest_info_person)
+        _add_scraper_start_date(person, scraper_start_date)
         if not environment.in_prod() and \
                 not strtobool(os.environ['PERSIST_LOCALLY']):
             log.info(ingest_info)
@@ -112,3 +115,8 @@ def write(ingest_info):
             raise
         finally:
             session.close()
+
+
+def _add_scraper_start_date(person, scraper_start_date):
+    for booking in person.bookings:
+        booking.last_scraped_date = scraper_start_date

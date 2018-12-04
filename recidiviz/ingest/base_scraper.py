@@ -134,8 +134,10 @@ class BaseScraper(Scraper):
         if self.should_get_more_tasks(task_type):
             tasks = self.get_more_tasks(content, params)
             for task_params in tasks:
-                # Always pass along the scrape type as well.
+                # Always pass along the scrape type and scraper_start_date.
                 task_params['scrape_type'] = params['scrape_type']
+                task_params['scraper_start_date'] = params['scraper_start_date']
+
                 # If we have an ingest info to work with, we need to pass that
                 # along as well.
                 if ingest_info:
@@ -149,7 +151,7 @@ class BaseScraper(Scraper):
             if not ingest_info:
                 raise ValueError(
                     'IngestInfo must be populated if there are no more tasks')
-            persistence.write(ingest_info)
+            persistence.write(ingest_info, params['scraper_start_date'])
         return None
 
     def is_initial_task(self, task_type):

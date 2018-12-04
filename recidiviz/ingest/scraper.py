@@ -21,6 +21,7 @@ inherit from.
 """
 
 import abc
+import datetime
 import json
 import logging
 
@@ -131,7 +132,9 @@ class Scraper(object):
                                            scrape_type))
             return
 
-        params = {"scrape_type": scrape_type, "content": docket_item}
+        params = {"scrape_type": scrape_type,
+                  "content": docket_item,
+                  "scraper_start_date": datetime.datetime.now()}
 
         self.add_task(self.get_initial_task(), params)
 
@@ -229,7 +232,9 @@ class Scraper(object):
                     ScrapeKey(self.get_region().region_code, scrape_type))
                 return
 
-        params = {'scrape_type': scrape_type, 'content': content}
+        params = {'scrape_type': scrape_type,
+                  'content': content,
+                  'scraper_start_date': datetime.datetime.now()}
         self.add_task(self.get_initial_task(), params)
 
     def fetch_page(self, url, data=None):
