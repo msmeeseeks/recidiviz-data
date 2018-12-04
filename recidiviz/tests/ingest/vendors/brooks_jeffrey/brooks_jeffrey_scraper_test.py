@@ -61,7 +61,7 @@ class TestBrooksJeffreyScraper(object):
             },
             {
                 'endpoint': 'https://www.vbcso.com/roster.php?grp=40',
-                'task_type': constants.SCRAPE_DATA_AND_MORE
+                'task_type': constants.GET_MORE_TASKS
             }
         ]
         assert result == expected_result

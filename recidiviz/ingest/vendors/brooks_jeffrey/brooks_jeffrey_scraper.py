@@ -54,10 +54,12 @@ class BrooksJeffreyScraper(BaseScraper):
                            link.text_content() == ">>"]
         # There are multiple next page links on each roster page; however, they
         # are all equivalent, so choose the first one arbitrarily
-        params_list = [{
-            'endpoint': next_page_links[0],
-            'task_type': constants.SCRAPE_DATA_AND_MORE
-        }]
+        params_list = []
+        if next_page_links:
+            params_list.append({
+                'endpoint': next_page_links[0],
+                'task_type': constants.GET_MORE_TASKS
+            })
         return params_list
 
     def _get_person_params(self, content):
