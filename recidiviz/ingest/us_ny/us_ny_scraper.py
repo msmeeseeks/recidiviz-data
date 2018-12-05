@@ -41,98 +41,151 @@ Background scraping procedure:
              event
 """
 
-from copy import deepcopy
 import logging
-import re
-
-from lxml import html
-
-from google.appengine.ext import deferred
-from google.appengine.ext import ndb
-from google.appengine.ext.db import InternalError
-from google.appengine.ext.db import Timeout, TransactionFailedError
+import os
 
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
-from recidiviz.ingest import sessions
-from recidiviz.ingest import tracker
-from recidiviz.ingest.models.scrape_key import ScrapeKey
-from recidiviz.ingest.scraper import Scraper
-from recidiviz.ingest.sessions import ScrapedRecord
-from recidiviz.ingest.us_ny.us_ny_person import UsNyPerson
-from recidiviz.ingest.us_ny.us_ny_record import UsNyRecord
-from recidiviz.models.record import Offense, SentenceDuration
-from recidiviz.models.snapshot import Snapshot
+from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.extractor.data_extractor import DataExtractor
 
 
-class UsNyScraper(Scraper):
+class UsNyScraper(BaseScraper):
     """Class to scrape info from the NY state DOCCS searcher.
     """
 
     def __init__(self):
+        self.mapping_filepath = os.path.join(os.path.dirname(__file__),
+                                             'us_ny.yaml')
         super(UsNyScraper, self).__init__('us_ny')
 
-    def get_initial_task(self):
-        """The name of the initial task to run for this scraper.
-        """
-        return 'scrape_search_page'
-
-    def scrape_search_page(self, params):
-        """Scrapes the search page for DOCCS to get session variables
-
-        Gets the main search page, pulls form details and session
-        variables.  Enqueues task with params from search page form,
-        to fetch the first page of results.
-
-        Args:
-            params: Dict of parameters, includes:
-                first_name: (string) First name for person query
-                    (empty string if last-name only search)
-                surname: (string) Last name for person query (required)
-
+    def get_initial_endpoint(self):
+        """Returns the initial endpoint to hit on the first call
         Returns:
-            Nothing if successful, -1 if fails.
-
+            A string representing the initial endpoint to hit
         """
-        search_page = self.fetch_page(self.get_region().base_url)
-        if search_page == -1:
-            return -1
+        return self.get_region().base_url
 
-        try:
-            search_tree = html.fromstring(search_page.content)
-        except Exception as e:
-            logging.error("Error parsing search page. Error: %s\nPage:\n\n%s",
-                          str(e), str(search_page.content))
-            return -1
+    def set_initial_vars(self, content, params):
+        pass
 
-        try:
-            # Extract said tokens and construct the URL for searches
-            session_k01 = search_tree.cssselect('[name=K01]')[0].get("value")
-            session_token = search_tree.cssselect(
-                '[name=DFH_STATE_TOKEN]')[0].get("value")
-            session_action = search_tree.xpath(
-                '//div[@id="content"]/form/@action')[0]
-        except IndexError:
-            logging.error("Search page not understood. HTML:\n\n%s",
-                          search_page.content)
-            return -1
+    def get_more_tasks(self, content, params):
+        task_type = params.get('task_type', self.get_initial_task_type())
+        params_list = []
+        if self.is_initial_task(task_type):
+            params_list.append(self._get_first_search_page_params(content))
+        elif self.should_get_more_tasks(task_type):
+            params_list.extend(self._get_person_params(content))
+            #params_list.extend(self._get_next_page_if_exists(content))
 
-        search_results_params = {
-            'first_page': True,
-            'k01': session_k01,
-            'token': session_token,
-            'action': session_action,
-            'scrape_type': params['scrape_type'],
-            'content': params['content']}
+        # Add session variables to the post data of each params dict.
+        for params in params_list:
+            params['data'].update(self._get_session_vars(content))
 
-        if params["scrape_type"] == constants.BACKGROUND_SCRAPE:
-            task_name = "scrape_search_results_page"
-        else:
-            task_name = "scrape_person"
+        return params_list
 
-        self.add_task(task_name, search_results_params)
+    def _get_session_vars(self, content):
+        session_vars = {
+            'DFH_STATE_TOKEN': scraper_utils.get_value_from_html_tree(
+                content, 'DFH_STATE_TOKEN', tag='name'),
+        }
 
-        return None
+        return session_vars
+
+    def _get_first_search_page_params(self, content):
+        data = {
+            'DFH_MAP_STATE_TOKEN': '',
+            'M00_LAST_NAMEI': 'a',
+            'M00_FIRST_NAMEI': '',
+            'M00_MID_NAMEI': '',
+            'M00_NAME_SUFXI': '',
+            'M00_DOBCCYYI': '',
+            'M00_DIN_FLD1I': '',
+            'M00_DIN_FLD2I': '',
+            'M00_DIN_FLD3I': '',
+            'M00_NYSID_FLD1I': '',
+            'M00_NYSID_FLD2I': '',
+            'K01': scraper_utils.get_value_from_html_tree(
+                content, 'K01', tag='name'),
+        }
+
+        action = content.xpath('//div[@id="content"]/form/@action')[0]
+
+        params = {
+            'data': data,
+            'endpoint': self.get_region().base_url + action,
+            'task_type': constants.GET_MORE_TASKS,
+        }
+
+        return params
+
+    def _get_next_page_if_exists(self, content):
+        next_button = results_tree.xpath('//div[@id="content"]/form')[0]
+        next_params['action'] = next_button.xpath('attribute::action')[0]
+        next_params['clicki'] = next_button.xpath(
+            './div/input[@name="M13_PAGE_CLICKI"]/@value')[0]
+        next_params['dini'] = next_button.xpath(
+            './div/input[@name="M13_SEL_DINI"]/@value')[0]
+        next_params['k01'] = next_button.xpath(
+            './div/input[@name="K01"]/@value')[0]
+        next_params['k02'] = next_button.xpath(
+            './div/input[@name="K02"]/@value')[0]
+        next_params['k03'] = next_button.xpath(
+            './div/input[@name="K03"]/@value')[0]
+        next_params['k04'] = next_button.xpath(
+            './div/input[@name="K04"]/@value')[0]
+        next_params['k05'] = next_button.xpath(
+            './div/input[@name="K05"]/@value')[0]
+        next_params['k06'] = next_button.xpath(
+            './div/input[@name="K06"]/@value')[0]
+        next_params['token'] = next_button.xpath(
+            './div/input[@name="DFH_STATE_TOKEN"]/@value')[0]
+        next_params['map_token'] = next_button.xpath(
+            './div/input[@name="DFH_MAP_STATE_TOKEN"]/@value')[0]
+        next_params['next'] = next_button.xpath(
+            './div/div/input[@name="next"]/@value')[0]
+
+        return next_params
+
+    def _get_person_params(self, content):
+        result_list = content.xpath('//table[@id="dinlist"]/tr/td/form')
+
+        params_list = []
+        for row in result_list:
+            action = row.xpath('attribute::action')[0]
+            result_params = {
+                'data': {
+                    'M13_PAGE_CLICKI': row.xpath(
+                        './div/input[@name="M13_PAGE_CLICKI"]/@value')[0],
+                    'M13_SEL_DINI': row.xpath(
+                        './div/input[@name="M13_SEL_DINI"]/@value')[0],
+                    'K01': row.xpath('./div/input[@name="K01"]/@value')[0],
+                    'K02': row.xpath('./div/input[@name="K02"]/@value')[0],
+                    'K03': row.xpath('./div/input[@name="K03"]/@value')[0],
+                    'K04': row.xpath('./div/input[@name="K04"]/@value')[0],
+                    'K05': row.xpath('./div/input[@name="K05"]/@value')[0],
+                    'K06': row.xpath('./div/input[@name="K06"]/@value')[0],
+                    'DFH_STATE_TOKEN': row.xpath(
+                        './div/input[@name="DFH_STATE_TOKEN"]/@value')[0],
+                    'DFH_MAP_STATE_TOKEN': row.xpath(
+                        './div/input[@name="DFH_MAP_STATE_TOKEN"]/@value')[0],
+                    row.xpath('./div/input[@type="submit"]/@name')[0]:
+                        row.xpath('./div/input[@type="submit"]/@value')[0],
+                },
+                'endpoint': self.get_region().base_url + action,
+                'task_type': constants.SCRAPE_DATA,
+            }
+
+            params_list.append(result_params)
+
+        return params_list
+
+    def populate_data(self, content, params, ingest_info):
+        data_extractor = DataExtractor(self.mapping_filepath)
+        ingest_info = data_extractor.extract_and_populate_data(content,
+                                                               ingest_info)
+        return ingest_info
+
 
     def scrape_search_results_page(self, params):
         """Scrapes page of search results, follows each listing and 'Next page'
