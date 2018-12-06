@@ -79,8 +79,9 @@ class UsNyScraper(BaseScraper):
             #params_list.extend(self._get_next_page_if_exists(content))
 
         # Add session variables to the post data of each params dict.
+        session_vars = self._get_session_vars(content)
         for params in params_list:
-            params['data'].update(self._get_session_vars(content))
+            params['data'].update(session_vars)
 
         return params_list
 

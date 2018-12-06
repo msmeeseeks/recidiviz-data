@@ -1,11 +1,14 @@
 key_mappings:
+  DIN (Department Identification Number): person.person_id
+  Inmate Name: person.name
   "Booking #": booking.booking_id
-  Age: person.age
-  Gender: person.gender
-  Race: person.race
-  Arresting Agency: arrest.agency
-  Booking Date: booking.admission_date
-  Bond: booking.total_bond_amount
+  Sex: person.gender
+  Date of Birth: person.date_of_birth
+  Race / Ethnicity: person.race
+  Custody Status: booking.custody_status
+  Housing / Releasing Facility: booking.facility
+  Date Received (Current): booking.admission_date
 
 multi_key_mapping:
-  Charges: charge.name
+  Crime: charge.name
+  Class: charge.class
