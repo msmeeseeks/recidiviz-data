@@ -1,14 +1,19 @@
 key_mappings:
   DIN (Department Identification Number): person.person_id
-  Inmate Name: person.name
+  Inmate Name: person.surname
   "Booking #": booking.booking_id
   Sex: person.gender
-  Date of Birth: person.date_of_birth
+  Date of Birth: person.birthdate
   Race / Ethnicity: person.race
   Custody Status: booking.custody_status
   Housing / Releasing Facility: booking.facility
   Date Received (Current): booking.admission_date
 
+  # TODO: string format is blocked on Python 3 migration, so uncomment
+  # after that
+  #Aggregate Minimum Sentence: sentence.min_length
+  #Aggregate Maximum Sentence: sentence.max_length
+
 multi_key_mapping:
   Crime: charge.name
-  Class: charge.class
+  Class: charge.charge_class

@@ -106,22 +106,33 @@ class BaseScraper(Scraper):
         """
         # If this is called without any params set, we assume its the first call
         endpoint = params.get('endpoint', self.get_initial_endpoint())
-        task_type = params.get('task_type', self.get_initial_task_type())
-        data = params.get(
-            'data', self.get_initial_data() if self.is_initial_task(task_type)
-            else None)
+
+        # Here we handle a special case where we weren't really sure
+        # we were going to get data when we submitted a task, but then
+        # we ended up with data, so no more requests are required,
+        # just the content we already have.
+        if endpoint is None:
+            task_type = constants.SCRAPE_DATA
+            content = html.fromstring(params.get('content'))
+        else:
+            task_type = params.get('task_type', self.get_initial_task_type())
+            data = params.get(
+                'data', self.get_initial_data() if self.is_initial_task(
+                    task_type) else None)
+
+            # Let the child transform the data if it wants before sending the
+            # requests.  This hook is in here in case the child did something like
+            # compress the data before it put it on the queue.
+            self.transform_data(data)
+            # We always fetch some content before doing anything.  Note that we
+            # use get here for the data to return a default value of None if
+            # this scraper doesn't set it.
+            content = self._fetch_content(endpoint, data)
+            if content == -1:
+                return -1
+
         ingest_info = None
 
-        # Let the child transform the data if it wants before sending the
-        # requests.  This hook is in here in case the child did something like
-        # compress the data before it put it on the queue.
-        self.transform_data(data)
-        # We always fetch some content before doing anything.  Note that we
-        # use get here for the data to return a default value of None if
-        # this scraper doesn't set it.
-        content = self._fetch_content(endpoint, data)
-        if content == -1:
-            return -1
         # For an initial task we just make a call to get initial variables.
         # This may be a noop for some scrapers.
         if self.is_initial_task(task_type):
