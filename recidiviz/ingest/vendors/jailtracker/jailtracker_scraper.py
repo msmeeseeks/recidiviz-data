@@ -381,7 +381,7 @@ class JailTrackerScraper(BaseScraper):
         }
 
     # Overrides method in GenericScraper to handle JSON responses.
-    def _fetch_content(self, endpoint, post_data=None):
+    def _fetch_content(self, endpoint, post_data=None, json_data=None):
         """Returns the response content, either HTML or JSON.
 
         'data' is expected to contain an entry keyed on '_RESPONSE_TYPE',
