@@ -123,14 +123,15 @@ class BaseScraper(Scraper):
                 else None)
             json_data = params.get('json', None)
 
-            # Let the child transform the post_data if it wants before sending the
-            # requests.  This hook is in here in case the child did something like
-            # compress the post_data before it put it on the queue.
+            # Let the child transform the post_data if it wants before
+            # sending the requests.  This hook is in here in case the
+            # child did something like compress the post_data before
+            # it put it on the queue.
             post_data = self.transform_post_data(post_data)
 
-            # We always fetch some content before doing anything.  Note that we
-            # use get here for the post_data to return a default value of None if
-            # this scraper doesn't set it.
+            # We always fetch some content before doing anything.
+            # Note that we use get here for the post_data to return a
+            # default value of None if this scraper doesn't set it.
             content = self._fetch_content(endpoint, post_data, json_data)
             if content == -1:
                 return -1
