@@ -138,7 +138,6 @@ def test_multiple_people_with_maybe_charges():
 
     # Create the info for the first person
     person1 = expected_info.create_person()
-    person1.status = 'Release'
     person1.person_id = 'person1'
     person1.place_of_residence = 'address1'
     person1.age = '62'
@@ -147,6 +146,7 @@ def test_multiple_people_with_maybe_charges():
     booking1.admission_date = '03/14/2009 02:09:04'
     booking1.release_date = '3/14/2009 3:49:00 PM'
     booking1.booking_id = 'booking1'
+    booking1.custody_status = 'Release'
 
     b1_charge1 = booking1.create_charge()
     b1_charge1.statute = '13A-6-24'
@@ -165,7 +165,6 @@ def test_multiple_people_with_maybe_charges():
 
     # Create info for the second person
     person2 = expected_info.create_person()
-    person2.status = 'Release'
     person2.person_id = 'person2'
     person2.place_of_residence = 'address2'
     person2.age = '44'
@@ -174,10 +173,10 @@ def test_multiple_people_with_maybe_charges():
     booking2.admission_date = '11/19/2001 07:03:00'
     booking2.release_date = '11/19/2001 6:40:00 PM'
     booking2.booking_id = 'booking2'
+    booking2.custody_status = 'Release'
 
     # Create info for the 3rd person
     person3 = expected_info.create_person()
-    person3.status = 'Release'
     person3.person_id = 'person3'
     person3.place_of_residence = 'address3'
     person3.age = '22'
@@ -186,6 +185,7 @@ def test_multiple_people_with_maybe_charges():
     booking3.admission_date = '05/12/2014 11:04:59'
     booking3.release_date = '5/13/2014 9:08:08 AM'
     booking3.booking_id = 'booking3'
+    booking3.custody_status = 'Release'
 
     b3_charge1 = booking3.create_charge()
     b3_charge1.statute = '13A-12-214'
@@ -262,7 +262,7 @@ def test_partial_table():
     charge = booking.create_charge()
     charge.name = 'FIRST CHARGE'
     charge.charging_entity = 'WICHITA FALLS PD'
-    charge.charge_status = ''
+    charge.status = ''
     bond = charge.create_bond()
     bond.amount = '25,000.00'
 
@@ -292,7 +292,7 @@ def test_labeled_fields():
     charge.name = 'DUI'
     charge.offense_date = '9/21/2018 5:34 PM'
     charge.charge_class = 'Gross Misdemeanor'
-    charge.charge_status = 'Time Served'
+    charge.status = 'Time Served'
     charge.charging_entity = ''
     charge.next_court_date = ''
     booking.charge.append(charge)
@@ -357,14 +357,14 @@ def test_text_label():
     arrest.agency = 'Hemet PD'
     charge1 = booking.create_charge()
     charge1.statute = '245(A)(1)'
-    charge1.charge_status = 'DISM'
+    charge1.status = 'DISM'
     charge1.name = 'CHARGE 1'
     charge1.degree = 'FEL'
     bond1 = charge1.create_bond()
     bond1.amount = ''
     charge2 = booking.create_charge()
     charge2.statute = '245(A)(4)'
-    charge2.charge_status = 'SENT'
+    charge2.status = 'SENT'
     charge2.name = 'CHARGE 2'
     charge2.degree = 'FEL'
     bond2 = charge2.create_bond()

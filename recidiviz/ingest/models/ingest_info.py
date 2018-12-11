@@ -31,6 +31,9 @@ class IngestInfo(object):
     def __repr__(self):
         return to_string(self)
 
+    def __setattr__(self, name, value):
+        restricted_setattr(self, 'person', name, value)
+
     def create_person(self, **kwargs):
         person = _Person(**kwargs)
         self.person.append(person)
@@ -48,8 +51,8 @@ class _Person(object):
     """
 
     def __init__(self, person_id=None, full_name=None, surname=None,
-                 given_names=None, birthdate=None, status=None, gender=None,
-                 age=None, race=None, ethnicity=None, place_of_residence=None,
+                 given_names=None, birthdate=None, gender=None, age=None,
+                 race=None, ethnicity=None, place_of_residence=None,
                  bookings=None):
         self.person_id = person_id  # type: str
         self.full_name = full_name
@@ -57,7 +60,6 @@ class _Person(object):
         self.given_names = given_names  # type: str
         self.full_name = full_name  # type: str
         self.birthdate = birthdate  # type: str
-        self.status = status  # type: str
         self.gender = gender  # type: str
         self.age = age  # type: str
         self.race = race  # type: str
@@ -71,6 +73,9 @@ class _Person(object):
 
     def __repr__(self):
         return to_string(self)
+
+    def __setattr__(self, name, value):
+        restricted_setattr(self, 'booking', name, value)
 
     def create_booking(self, **kwargs):
         booking = _Booking(**kwargs)
@@ -90,9 +95,12 @@ class _Booking(object):
 
     def __init__(self, booking_id=None, admission_date=None,
                  projected_release_date=None, release_date=None,
-                 release_reason=None, custody_status=None, hold=None,
-                 facility=None, classification=None, total_bond_amount=None,
-                 arrest=None, charges=None):
+                 release_reason=None,
+                 custody_status=None,
+                 hold=None,
+                 facility=None, classification=None,
+                 total_bond_amount=None,
+                 region=None, arrest=None, charges=None):
         self.booking_id = booking_id  # type: str
         self.admission_date = admission_date  # type: str
         self.projected_release_date = projected_release_date  # type: str
@@ -103,6 +111,7 @@ class _Booking(object):
         self.facility = facility  # type: str
         self.classification = classification  # type: str
         self.total_bond_amount = total_bond_amount  # type: str
+        self.region = region # type: str
 
         self.arrest = arrest  # type: Arrest
         self.charge = charges or []  # type: List[Charge]
@@ -112,6 +121,9 @@ class _Booking(object):
 
     def __repr__(self):
         return to_string(self)
+
+    def __setattr__(self, name, value):
+        restricted_setattr(self, 'charge', name, value)
 
     def create_arrest(self, **kwargs):
         self.arrest = _Arrest(**kwargs)
@@ -136,8 +148,9 @@ class _Arrest(object):
     Referenced from Booking.
     """
 
-    def __init__(self, date=None, location=None, officer_name=None,
-                 officer_id=None, agency=None):
+    def __init__(self, arrest_id=None, date=None, location=None,
+                 officer_name=None, officer_id=None, agency=None):
+        self.arrest_id = arrest_id
         self.date = date  # type: str
         self.location = location  # type: str
         self.officer_name = officer_name  # type: str
@@ -150,31 +163,35 @@ class _Arrest(object):
     def __repr__(self):
         return to_string(self)
 
+    def __setattr__(self, name, value):
+        restricted_setattr(self, 'agency', name, value)
+
 
 class _Charge(object):
     """Class for information about a charge.
     Referenced from Booking.
     """
 
-    def __init__(self, offense_date=None, statute=None, name=None,
-                 attempted=None, degree=None,
-                 charge_class=None, level=None, fee=None,
-                 charging_entity=None, charge_status=None,
+    def __init__(self, charge_id=None, offense_date=None, statute=None,
+                 name=None, attempted=None, degree=None,
+                 charge_class=None, level=None, fee_dollars=None,
+                 charging_entity=None, status=None,
                  number_of_counts=None, court_type=None,
                  case_number=None, next_court_date=None, judge_name=None,
                  bond=None, sentence=None):
+        self.charge_id = charge_id
         self.offense_date = offense_date  # type: str
         self.statute = statute  # type: str
         self.name = name  # type: str
         self.attempted = attempted  # type: bool
         self.degree = degree  # type: str
-        self.charge_class = charge_class  #type: str
+        self.charge_class = charge_class  # type: str
         self.level = level  # type: str
-        self.fee = fee  # type: str
+        self.fee_dollars = fee_dollars  # type: int
         self.charging_entity = charging_entity  # type: str
-        self.charge_status = charge_status  # type: str
-        self.number_of_counts = number_of_counts  # type: str
-        self.court_type = court_type  # type: str
+        self.status = status
+        self.number_of_counts = number_of_counts  # type: int
+        self.court_type = court_type
         self.case_number = case_number  # type: str
         self.next_court_date = next_court_date  # type: str
         self.judge_name = judge_name  # type: str
@@ -187,6 +204,10 @@ class _Charge(object):
 
     def __repr__(self):
         return to_string(self)
+
+    def __setattr__(self, name, value):
+        restricted_setattr(self, 'sentence', name, value)
+
 
     def create_bond(self, **kwargs):
         self.bond = _Bond(**kwargs)
@@ -221,22 +242,29 @@ class _Bond(object):
     def __repr__(self):
         return to_string(self)
 
+    def __setattr__(self, name, value):
+        restricted_setattr(self, 'status', name, value)
+
 
 class _Sentence(object):
     """Class for information about a sentence.
     Referenced from Charge.
     """
 
-    def __init__(self, date_imposed=None, min_length=None, max_length=None,
-                 is_life=None, is_probation=None, is_suspended=None, fine=None,
-                 parole_possible=None, post_release_supervision_length=None):
+    def __init__(self, sentence_id=None, date_imposed=None,
+                 county_of_commitment=None, min_length=None, max_length=None,
+                 is_life=None, is_probation=None, is_suspended=None,
+                 fine_dollars=None, parole_possible=None,
+                 post_release_supervision_length=None):
+        self.sentence_id = sentence_id
         self.date_imposed = date_imposed  # type: str
+        self.county_of_commitment = county_of_commitment  # type: str
         self.min_length = min_length  # type: str
         self.max_length = max_length  # type: str
         self.is_life = is_life  # type: bool
         self.is_probation = is_probation  # type: bool
         self.is_suspended = is_suspended  # type: bool
-        self.fine = fine  # type: str
+        self.fine_dollars = fine_dollars  # type: int
         self.parole_possible = parole_possible  # type: bool
 
         # type: str
@@ -248,6 +276,9 @@ class _Sentence(object):
     def __repr__(self):
         return to_string(self)
 
+    def __setattr__(self, name, value):
+        restricted_setattr(self, 'post_release_supervision_length', name, value)
+
 
 def to_string(obj):
     out = [obj.__class__.__name__ + ":"]
@@ -258,3 +289,10 @@ def to_string(obj):
         elif val:
             out += '{}: {}'.format(key, val).split('\n')
     return '\n   '.join(out)
+
+
+def restricted_setattr(self, last_field, name, value):
+    if hasattr(self, last_field) and not hasattr(self, name):
+        raise AttributeError('No field {} in object {}'.format(name,
+                                                               type(self)))
+    self.__dict__[name] = value

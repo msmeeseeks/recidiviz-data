@@ -20,7 +20,8 @@ import os
 from distutils.util import strtobool  # pylint: disable=no-name-in-module
 
 from recidiviz import Session
-from recidiviz.persistence import converter, entity_matching
+from recidiviz.persistence import entity_matching
+from recidiviz.persistence.converter import Converter
 from recidiviz.persistence.database import database
 from recidiviz.utils import environment
 
@@ -30,25 +31,25 @@ class PersistenceError(Exception):
     pass
 
 
-def infer_release_on_open_bookings(region, scrape_date):
+def infer_release_on_open_bookings(region, last_ingest_time):
     """
-   Look up all open bookings whose last_scraped_date is earlier than the
-   provided scrape_date in the provided region, update those
+   Look up all open bookings whose last_seen_time is earlier than the
+   provided last_ingest_time in the provided region, update those
    bookings to have an inferred release date equal to the provided
-   scrape_date.
+   last_ingest_time.
 
    Args:
        region: the region
-       scrape_date: The last start time of a background scrape
-           for the provided region. All open bookings for this region that
-           weren't seen in this last scrape will be closed.
+       last_ingest_time: The last time complete data was ingested for this
+           region. In the normal ingest pipeline, this is the last start time
+           of a background scrape for the region.
    """
 
     session = Session()
     try:
-        bookings = database.read_open_bookings_scraped_before_date(
-            session, region, scrape_date)
-        _infer_release_date_for_bookings(bookings, scrape_date)
+        bookings = database.read_open_bookings_scraped_before_time(
+            session, region, last_ingest_time)
+        _infer_release_date_for_bookings(bookings, last_ingest_time)
         for booking in bookings:
             session.add(session.merge(booking))
         session.commit()
@@ -63,6 +64,10 @@ def _infer_release_date_for_bookings(bookings, date):
     """Marks the provided bookings with an inferred release date equal to the
     provided date. Also resolves any charges associated with the provided
     bookings as 'RESOLVED_UNKNOWN_REASON'"""
+
+    # TODO: set charge status as RESOLVED_UNKNOWN_REASON once DB enum is
+    # appropriately updated
+
     for booking in bookings:
         if booking.release_date:
             raise PersistenceError('Attempting to mark booking {0} as '
@@ -72,11 +77,12 @@ def _infer_release_date_for_bookings(bookings, date):
         booking.release_date = date
         booking.release_date_inferred = True
 
-        for charge in booking.charges:
-            charge.status = 'RESOLVED_UNKNOWN_REASON'
+
+def _should_persist():
+    return environment.in_prod() or strtobool((os.environ['PERSIST_LOCALLY']))
 
 
-def write(ingest_info):
+def write(ingest_info, last_seen_time):
     """
     If in prod or if 'PERSIST_LOCALLY' is set to true, persist each person in
     the ingest_info. If a person with the given surname/birthday already exists,
@@ -86,16 +92,23 @@ def write(ingest_info):
 
     Args:
          ingest_info: The IngestInfo containing each person
+         last_seen_time: The last time this ingest_info was seen from
+            its data source. In the normal ingest pipeline, this is the
+            scraper_start_time.
+         the scraper that produced
+            the provided ingest_info
     """
     log = logging.getLogger()
+    converter = Converter()
 
-    for ingest_info_person in ingest_info.person:
-        person = converter.convert_person(ingest_info_person)
-        if not environment.in_prod() and \
-                not strtobool(os.environ['PERSIST_LOCALLY']):
-            log.info(ingest_info)
-            continue
+    log.info(ingest_info)
+    people = converter.convert_ingest_info(ingest_info)
+    _add_last_seen_time(people, last_seen_time)
 
+    if not _should_persist():
+        return
+
+    for person in people:
         session = Session()
         try:
             existing_person = entity_matching.get_entity_match(session, person)
@@ -112,3 +125,9 @@ def write(ingest_info):
             raise
         finally:
             session.close()
+
+
+def _add_last_seen_time(people, last_seen_time):
+    for person in people:
+        for booking in person.bookings:
+            booking.last_seen_time = last_seen_time

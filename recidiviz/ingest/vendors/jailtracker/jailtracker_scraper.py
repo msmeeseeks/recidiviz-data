@@ -381,7 +381,7 @@ class JailTrackerScraper(BaseScraper):
         }
 
     # Overrides method in GenericScraper to handle JSON responses.
-    def _fetch_content(self, endpoint, data=None):
+    def _fetch_content(self, endpoint, post_data=None, json_data=None):
         """Returns the response content, either HTML or JSON.
 
         'data' is expected to contain an entry keyed on '_RESPONSE_TYPE',
@@ -389,26 +389,26 @@ class JailTrackerScraper(BaseScraper):
 
         Args:
             endpoint: the endpoint to make a request to.
-            data: dict of parameters to pass into the request.
+            post_data: dict of parameters to pass into the request.
 
         Returns:
             Returns the content of the response on success or -1 on failure.
         """
 
-        response_type = data.get(self._RESPONSE_TYPE, None)
+        response_type = post_data.get(self._RESPONSE_TYPE, None)
         if response_type is None:
             logging.error(
                 "Missing response type for endpoint %s. Data:\n%s"
-                % (endpoint, data))
+                % (endpoint, post_data))
             return -1
 
         # Remove response type before passing on data.
-        data.pop(self._RESPONSE_TYPE)
+        post_data.pop(self._RESPONSE_TYPE)
 
         if response_type == self._HTML:
             # Fall back on GenericScraper behavior.
             return super(JailTrackerScraper, self)._fetch_content(
-                endpoint, data)
+                endpoint, post_data)
         elif response_type == self._JSON:
             response = self.fetch_page(endpoint)
             if response == -1:

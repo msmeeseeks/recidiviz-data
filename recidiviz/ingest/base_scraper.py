@@ -43,10 +43,10 @@ import abc
 import logging
 
 from lxml import html
-from lxml.etree import XMLSyntaxError # pylint:disable=no-name-in-module
+from lxml.etree import XMLSyntaxError  # pylint:disable=no-name-in-module
 
 from recidiviz.persistence import persistence
-from recidiviz.ingest import constants
+from recidiviz.ingest import constants, scraper_utils
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scraper import Scraper
 
@@ -71,17 +71,18 @@ class BaseScraper(Scraper):
     # Each scraper can override this, by default it is treated as a url endpoint
     # but any scraper can override this and treat it as a different type of
     # endpoint like an API endpoint for example.
-    def _fetch_content(self, endpoint, data=None):
+    def _fetch_content(self, endpoint, post_data=None, json_data=None):
         """Returns the page content.
 
         Args:
             endpoint: the endpoint to make a request to.
-            data: dict of parameters to pass into the html request.
+            post_data: dict of parameters to pass into the html request.
 
         Returns:
             Returns the content of the page or -1.
         """
-        page = self.fetch_page(endpoint, data=data)
+        page = self.fetch_page(endpoint,
+                               post_data=post_data, json_data=json_data)
         if page == -1:
             return -1
         try:
@@ -116,19 +117,21 @@ class BaseScraper(Scraper):
             content = html.fromstring(params.get('content'))
         else:
             task_type = params.get('task_type', self.get_initial_task_type())
-            data = params.get(
-                'data', self.get_initial_data() if self.is_initial_task(
-                    task_type) else None)
+            post_data = params.get(
+                'post_data',
+                self.get_initial_data() if self.is_initial_task(task_type)
+                else None)
+            json_data = params.get('json', None)
 
-            # Let the child transform the data if it wants before
-            # sending the requests.  This hook is in here in case the
-            # child did something like compress the data before it put
-            # it on the queue.
-            self.transform_data(data)
+            # Let the child transform the post_data if it wants before sending the
+            # requests.  This hook is in here in case the child did something like
+            # compress the post_data before it put it on the queue.
+            post_data = self.transform_post_data(post_data)
+
             # We always fetch some content before doing anything.  Note that we
-            # use get here for the data to return a default value of None if
+            # use get here for the post_data to return a default value of None if
             # this scraper doesn't set it.
-            content = self._fetch_content(endpoint, data)
+            content = self._fetch_content(endpoint, post_data, json_data)
             if content == -1:
                 return -1
 
@@ -148,6 +151,7 @@ class BaseScraper(Scraper):
             for task_params in tasks:
                 # Always pass along the scrape type as well.
                 task_params['scrape_type'] = params['scrape_type']
+                task_params['scraper_start_time'] = params['scraper_start_time']
                 # If we have an ingest info to work with, we need to pass that
                 # along as well.
                 if ingest_info:
@@ -161,7 +165,9 @@ class BaseScraper(Scraper):
             if not ingest_info:
                 raise ValueError(
                     'IngestInfo must be populated if there are no more tasks')
-            persistence.write(ingest_info)
+            scraper_start_time = scraper_utils.parse_date_string(
+                params['scraper_start_time'])
+            persistence.write(ingest_info, scraper_start_time)
         return None
 
     def is_initial_task(self, task_type):
@@ -263,14 +269,14 @@ class BaseScraper(Scraper):
         """
         pass
 
-    def transform_data(self, data):
+    def transform_post_data(self, data):
         """If the child needs to transform the data in any way before it sends
         the request, it can override this function.
 
         Args:
             data: dict of parameters to send as data to the post request.
         """
-        pass
+        return data
 
     def get_initial_endpoint(self):
         """Returns the initial endpoint to hit on the first call
