@@ -21,15 +21,19 @@ from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, \
     _Charge, _Bond
 from recidiviz.ingest.us_co_mesa.us_co_mesa_scraper import UsCoMesaScraper
 from recidiviz.tests.ingest import fixtures
+from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
 _DETAILS_PAGE_HTML = html.fromstring(
     fixtures.as_string('us_co_mesa', 'details.html'))
 
 
-class TestScraperDetailsPage(object):
+class TestScraperDetailsPage(BaseScraperTest):
+
+    def _init_scraper_and_yaml(self):
+        self.scraper = UsCoMesaScraper()
+        self.yaml = None
+
     def test_parse(self):
-        actual = UsCoMesaScraper().populate_data(_DETAILS_PAGE_HTML, {},
-                                                 IngestInfo())
 
         expected = IngestInfo(people=[_Person(
             given_names="FIRST MIDDLE",
@@ -126,4 +130,6 @@ class TestScraperDetailsPage(object):
             ]
         ), ])
 
-        assert actual == expected
+        self.validate_and_return_populate_data(
+            _DETAILS_PAGE_HTML, {}, expected, IngestInfo())
+

@@ -21,17 +21,19 @@ from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, \
     _Charge, _Sentence
 from recidiviz.ingest.us_pa.us_pa_scraper import UsPaScraper
 from recidiviz.tests.ingest import fixtures
+from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
 _DETAILS_PAGE_HTML = html.fromstring(
     fixtures.as_string('us_pa', 'AA0000.json'))
 
 
-class TestScraperDetailsPage(object):
+class TestScraperDetailsPage(BaseScraperTest):
+
+    def _init_scraper_and_yaml(self):
+        self.scraper = UsPaScraper()
+        self.yaml = None
+
     def test_parse(self):
-        print _DETAILS_PAGE_HTML
-        print _DETAILS_PAGE_HTML.text
-        actual = UsPaScraper().populate_data(_DETAILS_PAGE_HTML, {},
-                                             IngestInfo())
 
         expected = IngestInfo(people=[_Person(
             person_id="AA0000",
@@ -50,4 +52,5 @@ class TestScraperDetailsPage(object):
             ]
         ), ])
 
-        assert actual == expected
+        self.validate_and_return_populate_data(
+            _DETAILS_PAGE_HTML, {}, expected, IngestInfo())
