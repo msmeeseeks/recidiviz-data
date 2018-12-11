@@ -21,20 +21,21 @@ from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.us_pa_dauphin.us_pa_dauphin_scraper import \
     UsPaDauphinScraper
 from recidiviz.tests.ingest import fixtures
+from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
+
 
 _FRONT_PAGE_HTML = html.fromstring(
     fixtures.as_string('us_pa_dauphin', 'website.html'))
 
 
-class TestScraperFrontPage(object):
+class TestScraperFrontPage(BaseScraperTest):
     """Scraper tests for us_pa_dauphin."""
 
-    def setup_method(self, _test_method):
-        self.subject = UsPaDauphinScraper()
+    def _init_scraper_and_yaml(self):
+        self.scraper = UsPaDauphinScraper()
+        self.yaml = None
 
     def test_website(self):
-        result = self.subject.populate_data(_FRONT_PAGE_HTML, None, None)
-
         expected_result = IngestInfo()
         expected_result.create_person(
             surname="FIRST_A           ,LAST_A     MIDDLE_A      ")
@@ -43,4 +44,5 @@ class TestScraperFrontPage(object):
         expected_result.create_person(
             surname="FIRST_C            ,LAST_C     MIDDLE_C         ")
 
-        assert result == expected_result
+        self.validate_and_return_populate_data(
+            _FRONT_PAGE_HTML, {}, expected_result)

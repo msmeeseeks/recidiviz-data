@@ -24,6 +24,7 @@ from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.vendors.brooks_jeffrey.brooks_jeffrey_scraper import \
     BrooksJeffreyScraper
 from recidiviz.tests.ingest import fixtures
+from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
 _FRONT_PAGE_HTML = html.fromstring(
     fixtures.as_string('vendors/brooks_jeffrey', 'home_page.html'))
@@ -32,17 +33,15 @@ _PERSON_PAGE_HTML = html.fromstring(
     fixtures.as_string('vendors/brooks_jeffrey', 'person_page.html'))
 
 
-class TestBrooksJeffreyScraper(object):
+class TestBrooksJeffreyScraper(BaseScraperTest):
     """Test class for TestBrooksJeffreyScraper."""
 
-    def setup_method(self, _test_method):
-        # 'us_ar_van_buren' region chose arbitrarily from regions using Brooks
-        # Jeffrey vendor. Region must be specified.
-        self.subject = BrooksJeffreyScraper('us_ar_van_buren')
+    def _init_scraper_and_yaml(self):
+        self.scraper = BrooksJeffreyScraper('us_ar_van_buren')
+        self.yaml = self.scraper.mapping_filepath
+
 
     def test_home_page_navigation(self):
-        result = self.subject.get_more_tasks(_FRONT_PAGE_HTML, {
-            'task_type': constants.INITIAL_TASK})
         expected_result = [
             {
                 'endpoint': 'https://www.vbcso.com/roster_view'
@@ -64,10 +63,10 @@ class TestBrooksJeffreyScraper(object):
                 'task_type': constants.GET_MORE_TASKS
             }
         ]
-        assert result == expected_result
+        self.validate_and_return_get_more_tasks(_FRONT_PAGE_HTML, {
+            'task_type': constants.INITIAL_TASK}, expected_result)
 
     def test_populate_data(self):
-        result = self.subject.populate_data(_PERSON_PAGE_HTML, {}, None)
         expected_info = IngestInfo()
 
         person = expected_info.create_person()
@@ -88,4 +87,5 @@ class TestBrooksJeffreyScraper(object):
         arrest = booking.create_arrest()
         arrest.agency = "Agency"
 
-        assert expected_info == result
+        self.validate_and_return_populate_data(
+            _PERSON_PAGE_HTML, {}, expected_info)
