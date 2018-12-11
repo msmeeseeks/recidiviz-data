@@ -21,14 +21,10 @@
 Region-specific notes:
     - DOCCS includes historical data (back to ~1920s, reliably back to ~1970s)
     - DOCCS allows for surname-only search
-    - DOCCS returns the nearest match alphabetically, and then all subsequent
-      names in the alphabet.
-        - As a result, the us-ny names list is one name, 'aaardvark', since
-          this query will return all people in the DOCCS system.
     - DOCCS attempts to de-duplicate people, and show a disambiguation page
       for multiple records it believes to be of the same person.
 
-Background scraping procedure:
+Roster scraping procedure:
     1. A starting search page (to get session vars) --> (search, see 2)
     2. A results list (4x/page) --> (parse, see 2a - 2c)
         (2a) A list of person results --> (follow, each entry leads to 3)
@@ -41,7 +37,6 @@ Background scraping procedure:
              event
 """
 
-import logging
 import os
 
 from lxml import html
@@ -106,14 +101,19 @@ class UsNyScraper(BaseScraper):
 
         # Add session variables to the post data of each params dict.
         session_vars = self._get_session_vars(content)
-        for params in params_list:
-            if 'data' in params:
-                params['data'].update(session_vars)
+        for one_params in params_list:
+            if 'data' in one_params:
+                one_params['data'].update(session_vars)
 
-        logging.info(params_list)
         return params_list
 
     def _get_session_vars(self, content):
+        """Returns the session variables contained in a webpage.
+        Arguments:
+            content: (html tree) a webpage with session variables
+        Returns:
+            A dict containing just the session variables from the page.
+        """
         session_vars = {
             'DFH_STATE_TOKEN': scraper_utils.get_value_from_html_tree(
                 content, 'DFH_STATE_TOKEN', tag='name'),
@@ -122,6 +122,13 @@ class UsNyScraper(BaseScraper):
         return session_vars
 
     def _get_first_search_page_params(self, content):
+        """Returns the parameters needed to fetch the initial search page.
+        Arguments:
+            content: (html tree) a webpage with the search form on it.
+        Returns:
+            A dict containing the params necessary to fetch the first search
+            page.
+        """
         data = {
             'DFH_MAP_STATE_TOKEN': '',
             'M00_LAST_NAMEI': 'a',
@@ -149,6 +156,14 @@ class UsNyScraper(BaseScraper):
         return params
 
     def _get_next_page_params(self, content):
+        """Returns the parameters needed to fetch the next search page.
+        Arguments:
+            content: (html tree) a webpage with the 'next' button on it.
+        Returns:
+            A dict containing the params necessary to fetch the next search
+            page.
+        """
+
         try:
             next_button = content.xpath('//div[@id="content"]/form')[-1]
         except IndexError:
@@ -170,6 +185,15 @@ class UsNyScraper(BaseScraper):
         return [params]
 
     def _get_person_params(self, content, params):
+        """Returns the parameters needed to fetch the person details page.
+        Arguments:
+            content: (html tree) a webpage with a table with person links on
+            it. Note that this page could b either the normal search page, or
+            the person disambiguation page.
+        Returns:
+            A dict containing the params necessary to fetch the person detail
+            page.
+        """
         # on the search results page, the table has an id
         result_list = content.xpath('//table[@id="dinlist"]/tr/td/form')
 
@@ -195,8 +219,6 @@ class UsNyScraper(BaseScraper):
             data[row.xpath('./div/input[@type="submit"]/@name')[0]] = \
                 row.xpath('./div/input[@type="submit"]/@value')[0],
 
-            logging.info(data)
-
             action = row.xpath('attribute::action')[0]
             result_params = {
                 'data': data,
@@ -213,6 +235,12 @@ class UsNyScraper(BaseScraper):
         return params_list
 
     def _get_person_passthrough_params(self, content):
+        """Returns the parameters needed to store the person details.
+        Arguments:
+            content: (html tree) a webpage with the person details.
+        Returns:
+            A dict containing the params necessary to store the person info.
+        """
         params = {
             'endpoint': None,
             'content': html.tostring(content),
@@ -221,6 +249,15 @@ class UsNyScraper(BaseScraper):
         return params
 
     def populate_data(self, content, params, ingest_info):
+        """Extracts data from the content passed into an ingest_info object.
+        Arguments:
+            content: (html tree) a webpage with the person details.
+            params: (dict) parameters sent to the last task.
+            ingest_info: (ingest_info object) and ingested info about this
+                person from prior tasks
+        Returns:
+            A completely filled in ingest_info object.
+        """
         data_extractor = DataExtractor(self.mapping_filepath)
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)

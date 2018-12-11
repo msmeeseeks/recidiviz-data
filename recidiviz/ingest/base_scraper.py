@@ -120,9 +120,10 @@ class BaseScraper(Scraper):
                 'data', self.get_initial_data() if self.is_initial_task(
                     task_type) else None)
 
-            # Let the child transform the data if it wants before sending the
-            # requests.  This hook is in here in case the child did something like
-            # compress the data before it put it on the queue.
+            # Let the child transform the data if it wants before
+            # sending the requests.  This hook is in here in case the
+            # child did something like compress the data before it put
+            # it on the queue.
             self.transform_data(data)
             # We always fetch some content before doing anything.  Note that we
             # use get here for the data to return a default value of None if

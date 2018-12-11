@@ -8,6 +8,7 @@ key_mappings:
   Custody Status: booking.custody_status
   Housing / Releasing Facility: booking.facility
   Date Received (Current): booking.admission_date
+  Earliest Release Date: booking.projected_release_date
 
   # TODO: string format is blocked on Python 3 migration, so uncomment
   # after that
