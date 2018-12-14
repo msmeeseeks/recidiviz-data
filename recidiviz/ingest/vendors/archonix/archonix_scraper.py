@@ -53,8 +53,6 @@ from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.data_extractor import DataExtractor
-from recidiviz.ingest.vendors.archonix.archonix_record import ArchonixRecord
-from recidiviz.ingest.vendors.archonix.archonix_person import ArchonixPerson
 
 
 class ArchonixScraper(BaseScraper):
@@ -308,17 +306,6 @@ class ArchonixScraper(BaseScraper):
             params: dict of parameters passed from the last scrape session.
         """
         pass
-
-    def get_person_class(self):
-        """Returns the person subclass to use for this scraper.
-
-        Returns:
-            A class representing the person DB object.
-        """
-        return ArchonixPerson
-
-    def get_record_class(self):
-        return ArchonixRecord
 
     def person_id_is_fuzzy(self):
         """Returns whether or not this scraper generates person ids
