@@ -121,13 +121,13 @@ class ArchonixScraper(BaseScraper):
         """
         params = {
             # Gets the session vars needed for this request.
-            'data': self._retrieve_session_vars(content),
+            'post_data': self._retrieve_session_vars(content),
             # The endpoint which is to be hit next scrape.
             'endpoint': self._initial_endpoint,
             'task_type': constants.GET_MORE_TASKS,
         }
         # Set the age_from search to 0.  This returns all people.
-        params['data'].update(self._all_people_search)
+        params['post_data'].update(self._all_people_search)
         return params
 
     def _get_page_size_50_params(self, content):
@@ -142,12 +142,12 @@ class ArchonixScraper(BaseScraper):
             dictionary of data needed for the next scrape session.
         """
         params = {
-            'data': self._retrieve_session_vars(content),
+            'post_data': self._retrieve_session_vars(content),
             'endpoint': self._initial_endpoint,
             'task_type': constants.GET_MORE_TASKS,
         }
         # Update with the data needed to search for 50 people at once.
-        params['data'].update(self._people_50_search)
+        params['post_data'].update(self._people_50_search)
         return params
 
     def _get_person_params(self, content):
@@ -196,13 +196,13 @@ class ArchonixScraper(BaseScraper):
         # There is a next page.  Lets scrape it.
         if current_page != total_pages:
             params = {
-                'data': self._retrieve_session_vars(content),
+                'post_data': self._retrieve_session_vars(content),
                 'endpoint': self._initial_endpoint,
                 'task_type': constants.GET_MORE_TASKS
             }
             # Effectively this extracts out the next page button to send to
             # the post.
-            params['data']['__EVENTTARGET'] = content.cssselect(
+            params['post_data']['__EVENTTARGET'] = content.cssselect(
                 'div.rgArrPart2')[0].find('input').get('name')
             params_list.append(params)
         return params_list
@@ -254,8 +254,8 @@ class ArchonixScraper(BaseScraper):
             '[id=ctl00_ContentPlaceHolder1_spnInmateName]')[
                 0].text_content().strip()
         surname, given_names = full_name.split(',')
-        ingest_info.people[0].given_names = given_names.strip()
-        ingest_info.people[0].surname = surname.strip()
+        ingest_info.person[0].given_names = given_names.strip()
+        ingest_info.person[0].surname = surname.strip()
         return ingest_info
 
 
