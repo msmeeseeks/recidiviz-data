@@ -20,6 +20,16 @@ from recidiviz.persistence import entities
 from recidiviz.persistence.database import schema
 
 
+def convert_people(people_src):
+    """Converts the given list of people to the correct objects
+
+    Args:
+        people_src: Person or entity Person object
+    Returns:
+        The converted object, a schema or entity object.
+    """
+    
+
 def convert_person(person_src):
     """Converts the given person to the correct object.
 
