@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 """Contains logic for communicating with a SQL Database."""
+from recidiviz.persistence.database import database_utils
 from recidiviz.persistence.database.schema import Person, Booking
 
 
@@ -36,7 +37,7 @@ def read_people(session, surname=None, birthdate=None):
     if birthdate is not None:
         query = query.filter(Person.birthdate == birthdate)
 
-    return query.all()
+    return database_utils.convert_people(query.all())
 
 
 def read_bookings(session):
@@ -48,7 +49,7 @@ def read_bookings(session):
     Return:
         List of all bookings
     """
-    return session.query(Booking).all()
+    return database_utils.convert_bookings(session.query(Booking).all())
 
 
 def read_open_bookings_scraped_before_time(session, region, time):
@@ -69,4 +70,5 @@ def read_open_bookings_scraped_before_time(session, region, time):
         .filter(Person.region == region)\
         .filter(Booking.release_date.is_(None))\
         .filter(Booking.last_seen_time < time)
-    return [booking for _, booking in query.all()]
+    return [database_utils.convert_booking(booking)
+            for _, booking in query.all()]

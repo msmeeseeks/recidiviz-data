@@ -20,7 +20,7 @@ import datetime
 
 from recidiviz import Session
 import recidiviz.common.constants.enum_canonical_strings as enum_strings
-from recidiviz.persistence.database import database
+from recidiviz.persistence.database import database, database_utils
 from recidiviz.persistence.database.schema import Booking, Person
 from recidiviz.tests.utils import fakes
 
@@ -31,7 +31,6 @@ class TestDatabase(object):
 
     def setup_method(self, _test_method):
         fakes.use_in_memory_sqlite_database()
-
 
     def test_readOpenBookingsBeforeDate(self):
         # Arrange
@@ -80,4 +79,5 @@ class TestDatabase(object):
             session, person.region, most_recent_scrape_date)
 
         # Assert
-        assert bookings == [open_booking_before_last_scrape]
+        assert bookings == [
+            database_utils.convert_booking(open_booking_before_last_scrape)]

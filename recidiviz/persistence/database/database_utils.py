@@ -24,10 +24,11 @@ def convert_people(people_src):
     """Converts the given list of people to the correct objects
 
     Args:
-        people_src: Person or entity Person object
+        people_src: list of schema.Person or entities.Person
     Returns:
-        The converted object, a schema or entity object.
+        The converted list, a schema.Person or entities.Person
     """
+    return [convert_person(p) for p in people_src]
     
 
 def convert_person(person_src):
@@ -47,14 +48,25 @@ def convert_person(person_src):
         fields = vars(person_dst).keys()
     for k in fields:
         if k == 'bookings':
-            person_dst.bookings = [_convert_booking(b) for b in
+            person_dst.bookings = [convert_booking(b) for b in
                                    person_src.bookings]
         else:
             setattr(person_dst, k, getattr(person_src, k))
     return person_dst
 
 
-def _convert_booking(booking_src):
+def convert_bookings(bookings_src):
+    """Converts the given list of bookings to the correct objects
+
+    Args:
+        bookings_src: list of schema.Booking or entities.Booking
+    Returns:
+        The converted list, a schema.Booking or entities.Booking
+    """
+    return [convert_booking(b) for b in bookings_src]
+
+
+def convert_booking(booking_src):
     """Converts the given booking to the correct object.
 
     Args:
@@ -80,14 +92,25 @@ def _convert_booking(booking_src):
             booking_dst.arrest = _convert_object(
                 booking_src.arrest, dst_module.Arrest(), entity_to_db)
         elif k == 'charges':
-            booking_dst.charges = [_convert_charge(c) for c in
+            booking_dst.charges = [convert_charge(c) for c in
                                    booking_src.charges]
         else:
             setattr(booking_dst, k, getattr(booking_src, k))
     return booking_dst
 
 
-def _convert_charge(charge_src):
+def convert_charges(charges_src):
+    """Converts the given list of charges to the correct objects
+
+    Args:
+        charges_src: list of schema.Charge or entities.Charge
+    Returns:
+        The converted list, a schema.Charge or entities.Charge
+    """
+    return [convert_charge(c) for c in charges_src]
+
+
+def convert_charge(charge_src):
     """Converts the given charge to the correct object.
 
     Args:
@@ -116,6 +139,8 @@ def _convert_charge(charge_src):
             setattr(charge_dst, k, getattr(charge_src, k))
     return charge_dst
 
+
+#TODO: Add convert_sentence and ignore related sentence issues right now
 
 def _convert_object(src, dst, entity_to_db=True):
     """Converts the given source to the given dst.  The fields should exist
