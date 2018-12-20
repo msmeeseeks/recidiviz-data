@@ -1,0 +1,21 @@
+key_mappings:
+  Cfn: person.person_id
+  Last Name: person.surname
+  First Name: person.given_names
+  Race: person.race
+  Sex: person.gender
+  Date of Birth: person.birthdate
+  Arresting Agency: arrest.agency
+  Arrest Date: arrest.date
+
+keys_to_ignore:
+  - Suffix
+  - Arrest Time
+  - Middle Name
+  - Inmate Photo
+
+multi_key_mapping:
+  Charge Type: charge.charge_class
+  Statute: charge.statute
+  Charge: charge.name
+  Bond: bond.amount
