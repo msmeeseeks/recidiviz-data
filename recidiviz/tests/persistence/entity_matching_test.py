@@ -105,7 +105,7 @@ class TestEntityMatching(TestCase):
         session.commit()
 
         # pylint: disable=protected-access
-        ingested_existing_charge = database_utils._convert_charge(
+        ingested_existing_charge = database_utils.convert_charge(
             schema_charge)
         ingested_existing_charge.charge_id = None
         ingested_new_charge = entities.Charge(status=ChargeStatus.PENDING,

@@ -23,7 +23,7 @@ from recidiviz import Session
 from recidiviz.common.constants.booking import ReleaseReason
 from recidiviz.persistence import entity_matching
 from recidiviz.persistence.converter import converter
-from recidiviz.persistence.database import database, database_utils
+from recidiviz.persistence.database import database
 from recidiviz.utils import environment
 
 
@@ -51,9 +51,9 @@ def infer_release_on_open_bookings(region, last_ingest_time):
         bookings = database.read_open_bookings_scraped_before_time(
             session, region, last_ingest_time)
         _infer_release_date_for_bookings(bookings, last_ingest_time)
+        import ipdb; ipdb.set_trace()
+        # TODO(terinpw): Field Mask on which fields to update
         database.write_bookings(session, bookings)
-        # for booking in bookings:
-        #     session.add(database_utils.convert_booking(booking))
         session.commit()
     except Exception:
         session.rollback()
@@ -112,8 +112,6 @@ def write(ingest_info, region, last_seen_time):
     try:
         entity_matching.match_entities(session, region, people)
         database.write_people(session, people)
-        # for person in people:
-        #     session.merge(database_utils.convert_person(person))
         session.commit()
     except Exception:
         session.rollback()
