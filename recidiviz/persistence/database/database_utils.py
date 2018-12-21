@@ -39,6 +39,9 @@ def convert_person(person_src):
     Returns:
         The converted object, a schema or entity object.
     """
+    if not person_src:
+        return None
+
     entity_to_db = isinstance(person_src, entities.Person)
     if entity_to_db:
         person_dst = schema.Person()
@@ -74,6 +77,9 @@ def convert_booking(booking_src):
     Returns:
         The converted object, a schema or entity object
     """
+    if not booking_src:
+        return None
+
     entity_to_db = isinstance(booking_src, entities.Booking)
     if entity_to_db:
         dst_module = schema
@@ -114,10 +120,13 @@ def convert_charge(charge_src):
     """Converts the given charge to the correct object.
 
     Args:
-        booking_src: A schema Charge or entity Charge object
+        charge_src: A schema Charge or entity Charge object
     Returns:
         The converted object, a schema or entity object
     """
+    if not charge_src:
+        return None
+
     entity_to_db = isinstance(charge_src, entities.Charge)
     if entity_to_db:
         dst_module = schema
@@ -133,14 +142,45 @@ def convert_charge(charge_src):
             charge_dst.bond = _convert_object(
                 charge_src.bond, dst_module.Bond(), entity_to_db)
         elif k == 'sentence':
-            charge_dst.sentence = _convert_object(
-                charge_src.sentence, dst_module.Sentence(), entity_to_db)
+            charge_dst.sentence = convert_sentence(charge_src.sentence)
         else:
             setattr(charge_dst, k, getattr(charge_src, k))
     return charge_dst
 
 
-#TODO: Add convert_sentence and ignore related sentence issues right now
+def convert_sentence(sentence_src):
+    """Converts the given sentence to the correct object.
+
+    Args:
+        sentence_src: A schema Sentence or entity Sentence object
+    Returns:
+        The converted object, a schema or entity object
+    """
+    if not sentence_src:
+        return None
+
+    entity_to_db = isinstance(sentence_src, entities.Sentence)
+    if entity_to_db:
+        sentence_dst = schema.Sentence()
+        fields = vars(sentence_dst).keys()
+        fields.remove('related_sentences_a')
+        fields.remove('related_sentences_b')
+    else:
+        sentence_dst = entities.Sentence()
+        fields = vars(sentence_dst).keys()
+        fields.remove('related_sentences')
+
+    for k in fields:
+        # if k == 'bond':
+        #     charge_dst.bond = _convert_object(
+        #         charge_src.bond, dst_module.Bond(), entity_to_db)
+        # elif k == 'sentence':
+        #     charge_dst.sentence = _convert_object(
+        #         charge_src.sentence, dst_module.Sentence(), entity_to_db)
+        # else:
+        setattr(sentence_dst, k, getattr(sentence_src, k))
+    return sentence_dst
+
 
 def _convert_object(src, dst, entity_to_db=True):
     """Converts the given source to the given dst.  The fields should exist

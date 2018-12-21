@@ -183,7 +183,6 @@ class TestConverter(unittest.TestCase):
                     charge_class=ChargeClass.FELONY,
                     status=ChargeStatus.DROPPED,
                     court_type=CourtType.DISTRICT,
-                    number_of_counts=3
                 )]
             )]
         )]
