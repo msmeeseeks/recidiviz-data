@@ -16,9 +16,9 @@
 # =============================================================================
 
 """Exposes API to infer release of people."""
-
 import httplib
 import logging
+from datetime import datetime
 
 from flask import Blueprint, request
 
@@ -34,14 +34,27 @@ infer_release_blueprint = Blueprint('infer_release', __name__)
 @infer_release_blueprint.route('/release')
 @authenticate_request
 def infer_release():
+    logging.info("TERINPW: in infer_release")
     regions = ingest_utils.validate_regions(get_values("region", request.args))
+    logging.info("TERINPW: found_regions " + str(regions))
 
     if not regions:
         logging.error("No valid regions found in request")
         return 'No valid regions found in request', httplib.BAD_REQUEST
 
     for region in regions:
+        logging.info('TERINPW: beginning to infer release for region: ' +
+                     region)
         session = sessions.get_most_recent_completed_session(region)
         if session:
-            persistence.infer_release_on_open_bookings(region, session.end)
+            logging.info("TERINPW: completed session end time = " + str(
+                session.end))
+            persistence.infer_release_on_open_bookings(region, session.begin)
+        else:
+            logging.info("TERINPW: no completed sessions found!!!")
+            logging.info("TERINPW: all sessions for region = " + str(
+                sessions.get_open_sessions(region, open_only=False)))
+    d = datetime.strptime("2018-12-20", '%Y-%m-%d')
+    persistence.infer_release_on_open_bookings('us_pa_greene', d)
+
     return '', httplib.OK

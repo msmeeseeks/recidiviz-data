@@ -80,7 +80,7 @@ def read_open_bookings_scraped_before_time(session, region, time):
         List of bookings matching the provided args
     """
     query = _query_people_and_open_bookings(session, region)\
-        .filter(Booking.last_seen_time < time)
+        .filter(Booking.last_seen_time <= time)
     return [booking for _, booking in query.all()]
 
 

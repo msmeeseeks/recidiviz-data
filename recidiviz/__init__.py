@@ -27,7 +27,7 @@ from recidiviz.utils import secrets
 
 Session = sessionmaker()
 
-if environment.in_prod():
+if not environment.in_prod():
     db_user = secrets.get_secret('sqlalchemy_db_user')
     db_password = secrets.get_secret('sqlalchemy_db_password')
     db_host = secrets.get_secret('sqlalchemy_db_host')

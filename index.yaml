@@ -95,6 +95,12 @@ indexes:
   - name: start
     direction: desc
 
+- kind: ScrapeSession
+  properties:
+  - name: region
+  - name: start
+    direction: desc
+
 - kind: ScrapedRecord
   properties:
   - name: record_id

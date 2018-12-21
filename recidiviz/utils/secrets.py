@@ -52,6 +52,7 @@ def get_secret(secret_name):
     Returns:
         Secret value if found otherwise None
     """
+    logging.info("TERINPW: cached_secrets = " + str(CACHED_SECRETS))
     value = CACHED_SECRETS.get(secret_name)
 
     if not value:

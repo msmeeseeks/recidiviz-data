@@ -46,13 +46,16 @@ def infer_release_on_open_bookings(region, last_ingest_time):
            of a background scrape for the region.
    """
 
+    logging.info('TERINPW: inferring release for region:' + region)
     session = Session()
     try:
         bookings = database.read_open_bookings_scraped_before_time(
             session, region, last_ingest_time)
+        logging.info('TERINPW: found ' + str(len(bookings)) + ' open bookings')
         _infer_release_date_for_bookings(bookings, last_ingest_time)
         for booking in bookings:
-            session.add(session.merge(booking))
+            logging.info('TERINPW: b = ' + str(booking.__dict__))
+        #     session.add(session.merge(booking))
         session.commit()
     except Exception:
         session.rollback()
@@ -76,6 +79,7 @@ def _infer_release_date_for_bookings(bookings, date):
                                    'release date.'.format(booking.booking_id))
 
         booking.release_date = date
+        booking.release_date_inferred = True
         booking.release_reason = ReleaseReason.INFERRED_RELEASE
 
 

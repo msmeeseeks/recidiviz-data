@@ -267,6 +267,7 @@ def get_open_sessions(region_code,
     else:
         session_results = session_query.fetch()
 
+    logging.info("TERINPW: query = " + str(session_query))
     return session_results
 
 
