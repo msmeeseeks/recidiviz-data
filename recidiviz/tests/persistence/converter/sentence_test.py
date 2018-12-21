@@ -14,22 +14,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
+"""Tests for converting sentences."""
+import unittest
 
-"""The ingest portion of the Recidiviz data platform.
+from recidiviz.ingest.models import ingest_info_pb2
+from recidiviz.persistence import entities
+from recidiviz.persistence.converter import sentence
 
-This includes infrastructure, logic, and models for ingesting, validating,
-normalizing, and storing records ingested from various criminal justice data
-sources.
-"""
 
-import recidiviz.ingest.us_ar_van_buren
-import recidiviz.ingest.us_co_mesa
-import recidiviz.ingest.us_fl_martin_county
-import recidiviz.ingest.us_mt_gallatin
-import recidiviz.ingest.us_mo_stone
-import recidiviz.ingest.us_ny
-import recidiviz.ingest.us_pa
-import recidiviz.ingest.us_pa_dauphin
-import recidiviz.ingest.us_pa_greene
-import recidiviz.ingest.us_vt
-import recidiviz.ingest.worker
+class SentenceConverterTest(unittest.TestCase):
+    """Tests for converting sentences."""
+
+    def testParseSentence(self):
+        # Arrange
+        ingest_sentence = ingest_info_pb2.Sentence(
+            sentence_id='SENTENCE_ID',
+            min_length='1',
+            post_release_supervision_length=''
+        )
+
+        # Act
+        result = sentence.convert(ingest_sentence)
+
+        # Assert
+        expected_result = entities.Sentence(
+            external_id='SENTENCE_ID',
+            min_length_days=1,
+            post_release_supervision_length_days=0
+        )
+
+        self.assertEqual(result, expected_result)

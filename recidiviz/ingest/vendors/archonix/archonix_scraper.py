@@ -100,7 +100,7 @@ class ArchonixScraper(BaseScraper):
         Returns:
             A dict of session vars needed for the next scrape.
         """
-        data = {session_var: scraper_utils.get_id_value_from_html_tree(
+        data = {session_var: scraper_utils.get_value_from_html_tree(
             content, session_var) for session_var in
                 self._required_session_vars}
         # Viewstate is much large, compress it before sending it to the queue.
@@ -222,7 +222,7 @@ class ArchonixScraper(BaseScraper):
         """
         task_type = params.get('task_type', self.get_initial_task_type())
         params_list = []
-        page_size = scraper_utils.get_id_value_from_html_tree(
+        page_size = scraper_utils.get_value_from_html_tree(
             content, self._page_size_id)
         # If it is our first task, we know the next task must be a query to
         # return all people

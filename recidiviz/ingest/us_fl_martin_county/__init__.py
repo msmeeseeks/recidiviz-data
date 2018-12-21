@@ -15,11 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-
-"""us_ny specific regional functionality.
+"""us_fl_martin_county specific regional functionality.
 """
-
-
-from recidiviz.ingest.us_ny import us_ny_scraper
-from recidiviz.ingest.us_ny.us_ny_person import UsNyPerson
-from recidiviz.ingest.us_ny.us_ny_record import UsNyRecord
+from recidiviz.ingest.us_fl_martin_county import us_fl_martin_county_scraper
