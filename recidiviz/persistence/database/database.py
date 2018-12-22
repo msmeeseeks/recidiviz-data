@@ -15,6 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 """Contains logic for communicating with a SQL Database."""
+from sqlalchemy import update
+
 from recidiviz.persistence.database import database_utils
 from recidiviz.persistence.database.schema import Person, Booking
 
@@ -104,12 +106,18 @@ def write_people(session, people):
 
 
 def write_person(session, person):
-    session.add(database_utils.convert_person(person))
+    session.add(database_utils.convert_person(person))i
+
+
+# TODO(terinpw): We don't want folks to know
+def update_booking(session, booking_id, **kwargs):
+    session.query(Booking)\
+        .filter(Booking.booking_id == booking_id)\
+        .update(kwargs)
+
 
 
 def write_bookings(session, bookings):
     session.add_all(database_utils.convert_bookings(bookings))
 
 
-def write_booking(session, booking):
-    session.add(database_utils.convert_booking(booking))
