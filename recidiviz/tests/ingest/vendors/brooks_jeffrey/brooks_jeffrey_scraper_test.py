@@ -70,8 +70,7 @@ class TestBrooksJeffreyScraper(BaseScraperTest):
         expected_info = IngestInfo()
 
         person = expected_info.create_person()
-        person.given_names = "First Middle"
-        person.surname = "Last"
+        person.full_name = "First Middle Last"
         person.gender = "M"
         person.age = "100"
         person.race = "W"

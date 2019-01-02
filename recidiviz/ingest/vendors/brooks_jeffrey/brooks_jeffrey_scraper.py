@@ -78,8 +78,4 @@ class BrooksJeffreyScraper(BaseScraper):
         data_extractor = DataExtractor(self.mapping_filepath)
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
-        names = content.xpath('//span[@class="ptitles"]/text()')[0]
-        split_names = names.rsplit(' ', 1)
-        ingest_info.person[0].given_names = split_names[0]
-        ingest_info.person[0].surname = split_names[1]
         return ingest_info
