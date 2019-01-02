@@ -15,25 +15,25 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper tests for us_fl_martin_county."""
+"""Scraper tests for us_fl_martin."""
 from lxml import html
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 from recidiviz.tests.ingest import fixtures
-from recidiviz.ingest.us_fl_martin_county.us_fl_martin_county_scraper \
-    import UsFlMartinCountyScraper
+from recidiviz.ingest.us_fl_martin.us_fl_martin_scraper \
+    import UsFlMartinScraper
 
 _REPORT_PAGE_HTML = html.fromstring(
-    fixtures.as_string('us_fl_martin_county', 'report.html'))
+    fixtures.as_string('us_fl_martin', 'report.html'))
 
 
-class TestUsFlMartinCountyScraper(BaseScraperTest):
+class TestUsFlMartinScraper(BaseScraperTest):
 
     def _init_scraper_and_yaml(self):
         # The scraper to be tested. Required.
-        self.scraper = UsFlMartinCountyScraper()
+        self.scraper = UsFlMartinScraper()
         # The path to the yaml mapping. Optional.
         self.yaml = None
 

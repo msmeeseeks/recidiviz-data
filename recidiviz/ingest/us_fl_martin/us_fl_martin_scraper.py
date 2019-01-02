@@ -15,22 +15,22 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper implementation for us_fl_martin_county."""
+"""Scraper implementation for us_fl_martin."""
 import os
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest import constants
 from recidiviz.ingest.extractor.data_extractor import DataExtractor
 
-class UsFlMartinCountyScraper(BaseScraper):
-    """Scraper implementation for us_fl_martin_county."""
+class UsFlMartinScraper(BaseScraper):
+    """Scraper implementation for us_fl_martin."""
 
     def __init__(self, mapping_filepath=None):
         if not mapping_filepath:
             mapping_filepath = os.path.join(
-                os.path.dirname(__file__), 'us_fl_martin_county.yaml')
+                os.path.dirname(__file__), 'us_fl_martin.yaml')
         self.mapping_filepath = mapping_filepath
 
-        super(UsFlMartinCountyScraper, self).__init__('us_fl_martin_county')
+        super(UsFlMartinScraper, self).__init__('us_fl_martin')
 
     def set_initial_vars(self, content, params):
         pass

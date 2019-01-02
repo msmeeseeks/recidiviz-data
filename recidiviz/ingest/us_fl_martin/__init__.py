@@ -15,6 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""us_fl_martin_county specific regional functionality.
+"""us_fl_martin specific regional functionality.
 """
-from recidiviz.ingest.us_fl_martin_county import us_fl_martin_county_scraper
+from recidiviz.ingest.us_fl_martin import us_fl_martin_scraper
