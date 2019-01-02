@@ -15,7 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 """Contains logic for communicating with a SQL Database."""
-from sqlalchemy import update
 
 from recidiviz.persistence.database import database_utils
 from recidiviz.persistence.database.schema import Person, Booking
@@ -102,20 +101,38 @@ def _query_people_and_open_bookings(session, region):
 
 
 def write_people(session, people):
+    """
+    Converts the given |people| into schema.Person objects and adds the
+    schema objects into the given |session|.
+
+    Args:
+        session: (Session)
+        people:  List[entities.Person]
+    """
     session.add_all(database_utils.convert_people(people))
 
 
 def write_person(session, person):
+    """
+    Converts the given |person| into a schema.Person object and adds it into
+    the given |session|.
+
+    Args:
+        session: (Session)
+        person:  entities.Person
+    """
     session.add(database_utils.convert_person(person))
 
 
-# TODO(terinpw): We don't want folks to know
 def update_booking(session, booking_id, **kwargs):
+    """
+    Finds the booking in our db from the provided |booking_id| and updates all
+    fields on the booking that are provided in |**kwargs|.
+
+    Args:
+        session: (Session)
+        booking_id: (int)
+    """
     session.query(Booking)\
         .filter(Booking.booking_id == booking_id)\
         .update(kwargs)
-
-def write_bookings(session, bookings):
-    session.add_all(database_utils.convert_bookings(bookings))
-
-

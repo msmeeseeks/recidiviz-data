@@ -52,9 +52,6 @@ def infer_release_on_open_bookings(region, last_ingest_time):
             session, region, last_ingest_time)
         _infer_release_date_for_bookings(session, bookings,
                                          last_ingest_time.date())
-        # import ipdb; ipdb.set_trace()
-        # TODO(terinpw): Field Mask on which fields to update
-        # database.write_bookings(session, bookings)
         session.commit()
     except Exception:
         session.rollback()

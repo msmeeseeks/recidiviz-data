@@ -20,6 +20,9 @@ import attr
 from recidiviz.persistence import entities
 from recidiviz.persistence.database import schema
 
+# TODO(xxx): Consider explicitly converting fields. Current implementation
+# relies on identical field names between entity and schema objects.
+
 
 def convert_people(people_src):
     """Converts the given list of people to the correct objects
@@ -30,7 +33,7 @@ def convert_people(people_src):
         The converted list, a schema.Person or entities.Person
     """
     return [convert_person(p) for p in people_src]
-    
+
 
 def convert_person(person_src):
     """Converts the given person to the correct object.
@@ -162,6 +165,8 @@ def convert_sentence(sentence_src):
 
     entity_to_db = isinstance(sentence_src, entities.Sentence)
     fields = vars(entities.Sentence()).keys()
+    # TODO(xxx): Correctly convert related_sentences once schema for
+    # this field is finalized.
     fields.remove('related_sentences')
     if entity_to_db:
         sentence_dst = schema.Sentence()
