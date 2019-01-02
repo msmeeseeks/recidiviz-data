@@ -232,6 +232,11 @@ class UsNyScraper(BaseScraper):
         params_list = []
         for row in result_list:
             data = self._get_post_data(row)
+
+            # special case for navigating away from a disambiguation page.
+            if 'din' in params:
+                data['M12_SEL_DINI'] = params['din']
+
             submit_name = row.xpath('./div/input[@type="submit"]/@name')[0]
             submit_value = row.xpath('./div/input[@type="submit"]/@value')[0]
             data[submit_name] = submit_value
@@ -291,7 +296,9 @@ class UsNyScraper(BaseScraper):
             return None
 
         # Get release date, if released
-        if ingest_info.person[0].booking[0].custody_status == 'RELEASED':
+        if (ingest_info.person[0].booking[0].custody_status == 'RELEASED' or
+                ingest_info.person[0].booking[0].custody_status ==
+                'DISCHARGED'):
             release_date_string = content.xpath(
                 '//*[@headers="t1l"]')[0].text.split()[0]
             ingest_info.person[0].booking[0].release_date = release_date_string

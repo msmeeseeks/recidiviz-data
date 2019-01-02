@@ -26,29 +26,7 @@ import pytest
 from google.appengine.ext import ndb
 from google.appengine.ext import testbed
 from recidiviz.ingest import scraper_utils
-from recidiviz.models.person import Person
 from recidiviz.utils import secrets
-
-
-class TestGenerateId(object):
-    """Tests for the generate_id method in the module."""
-
-    def setup_method(self, _test_method):
-        # noinspection PyAttributeOutsideInit
-        self.testbed = testbed.Testbed()
-        self.testbed.activate()
-        self.testbed.init_datastore_v3_stub()
-        context = ndb.get_context()
-        context.set_memcache_policy(False)
-        context.clear_cache()
-
-    def teardown_method(self, _test_method):
-        self.testbed.deactivate()
-
-    def test_generate_id(self):
-        new_id = scraper_utils.generate_id(Person)
-        assert new_id is not None
-        assert new_id.isalnum()
 
 
 def test_normalize_key_value_row():
@@ -152,17 +130,6 @@ class TestGetProxies(object):
         secrets.CACHED_SECRETS.clear()
 
     @patch('recidiviz.utils.environment.in_prod')
-    def test_get_proxies_local(self, mock_in_prod):
-        mock_in_prod.return_value = False
-
-        write_secret('proxy_url', 'proxy.biz/')
-        write_secret('test_proxy_user', 'user')
-        write_secret('test_proxy_password', 'password')
-
-        proxies = scraper_utils.get_proxies()
-        assert proxies == {'http': 'http://user:password@proxy.biz/'}
-
-    @patch('recidiviz.utils.environment.in_prod')
     def test_get_proxies_prod(self, mock_in_prod):
         mock_in_prod.return_value = True
 
@@ -185,27 +152,11 @@ class TestGetProxies(object):
         assert exception.value.message == 'No proxy user/pass'
 
     @patch('recidiviz.utils.environment.in_prod')
-    def test_get_proxies_local_no_password(self, mock_in_prod):
+    def test_get_proxies_local(self, mock_in_prod):
         mock_in_prod.return_value = False
 
-        write_secret('proxy_url', 'proxy.biz/')
-        write_secret('test_proxy_user', 'user')
-
-        with pytest.raises(Exception) as exception:
-            scraper_utils.get_proxies()
-        assert exception.value.message == 'No proxy user/pass'
-
-    @patch('recidiviz.utils.environment.in_prod')
-    def test_get_proxies_local_no_url(self, mock_in_prod):
-        mock_in_prod.return_value = False
-
-        write_secret('test_proxy_user', 'user')
-        write_secret('test_proxy_password', 'password')
-
-        with pytest.raises(Exception) as exception:
-            scraper_utils.get_proxies()
-        assert exception.value.message == 'No proxy url'
-
+        proxies = scraper_utils.get_proxies()
+        assert proxies is None
 
 class TestGetHeaders(object):
     """Tests for the get_headers method in the module."""
@@ -223,17 +174,31 @@ class TestGetHeaders(object):
         self.testbed.deactivate()
         secrets.CACHED_SECRETS.clear()
 
-    def test_get_headers(self):
+    @patch('recidiviz.utils.environment.in_prod')
+    def test_get_headers(self, mock_in_prod):
+        # This is prod behaviour
+        mock_in_prod.return_value = True
         user_agent = 'test_user_agent'
         write_secret('user_agent', user_agent)
 
         headers = scraper_utils.get_headers()
         assert headers == {'User-Agent': user_agent}
 
-    def test_get_headers_missing_user_agent(self):
+    @patch('recidiviz.utils.environment.in_prod')
+    def test_get_headers_missing_user_agent_in_prod(self, mock_in_prod):
+        mock_in_prod.return_value = True
         with pytest.raises(Exception) as exception:
             scraper_utils.get_headers()
         assert exception.value.message == 'No user agent string'
+
+    @patch('recidiviz.utils.environment.in_prod')
+    def test_get_headers_local(self, mock_in_prod):
+        mock_in_prod.return_value = False
+        headers = scraper_utils.get_headers()
+        assert headers == {
+            'User-Agent': ('For any issues, concerns, or rate constraints,'
+                           'e-mail alerts@recidiviz.com')
+        }
 
 
 def write_secret(name, value):

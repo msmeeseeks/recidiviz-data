@@ -50,7 +50,7 @@ def infer_release_on_open_bookings(region, last_ingest_time):
     try:
         bookings = database.read_open_bookings_scraped_before_time(
             session, region, last_ingest_time)
-        _infer_release_date_for_bookings(bookings, last_ingest_time)
+        _infer_release_date_for_bookings(bookings, last_ingest_time.date())
         import ipdb; ipdb.set_trace()
         # TODO(terinpw): Field Mask on which fields to update
         database.write_bookings(session, bookings)
@@ -103,6 +103,7 @@ def write(ingest_info, region, last_seen_time):
 
     log.info(ingest_info)
     people = converter.convert(ingest_info)
+    log.info(people)
     _add_scraper_metadata(people, region, last_seen_time)
 
     if not _should_persist():
