@@ -21,5 +21,3 @@
 
 
 from recidiviz.ingest.us_ny import us_ny_scraper
-from recidiviz.ingest.us_ny.us_ny_person import UsNyPerson
-from recidiviz.ingest.us_ny.us_ny_record import UsNyRecord

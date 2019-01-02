@@ -104,10 +104,8 @@ class ArchonixScraper(BaseScraper):
             content, session_var) for session_var in
                 self._required_session_vars}
         # Viewstate is much large, compress it before sending it to the queue.
-        # Note that we encode the compressed string to base64 so we can happily
-        # dump the json.
         data['__VIEWSTATE'] = scraper_utils.compress_string(
-            data['__VIEWSTATE'], level=9).encode('base64')
+            data['__VIEWSTATE'], level=9)
         return data
 
     def _get_all_people_params(self, content):
@@ -270,7 +268,7 @@ class ArchonixScraper(BaseScraper):
         compression_key = '__VIEWSTATE'
         if data and compression_key in data:
             data[compression_key] = scraper_utils.decompress_string(
-                data[compression_key].decode('base64'))
+                data[compression_key])
 
     def _get_scraped_value(self, content, scrape_id):
         """Convenience function to get a scraped value from a row.
@@ -305,7 +303,6 @@ class ArchonixScraper(BaseScraper):
             content: An lxml html tree.
             params: dict of parameters passed from the last scrape session.
         """
-        pass
 
     def person_id_is_fuzzy(self):
         """Returns whether or not this scraper generates person ids

@@ -144,7 +144,6 @@ class JailTrackerScraper(BaseScraper):
         This value can either be text or a number. In either case, this method
         should return the value as a string.
         """
-        pass
 
     @abc.abstractmethod
     def process_record(self, person, cases, charges):
@@ -156,7 +155,6 @@ class JailTrackerScraper(BaseScraper):
             cases: JSON object for that person's cases
             charges: JSON object for that person's charges
         """
-        pass
 
     def get_initial_endpoint(self):
         """Returns the initial endpoint to hit on the first call."""
@@ -231,7 +229,7 @@ class JailTrackerScraper(BaseScraper):
             body_script = html.tostring(content.xpath("//body/div/script")[0])
             session_token = re.search(r"JailTracker.Web.Settings.init\('(.*)'",
                                       body_script).group(1)
-        except Exception, exception:
+        except Exception as exception:
             logging.error("Error, could not parse session token from the "
                           "landing page HTML. Error: %s\nPage content:\n\n%s",
                           exception, content)
@@ -409,12 +407,12 @@ class JailTrackerScraper(BaseScraper):
             # Fall back on GenericScraper behavior.
             return super(JailTrackerScraper, self)._fetch_content(
                 endpoint, post_data)
-        elif response_type == self._JSON:
+        if response_type == self._JSON:
             response = self.fetch_page(endpoint)
             if response == -1:
                 return -1
             return json.loads(response.content)
-        else:
-            logging.error("Unexpected response type %s for endpoint %s"
-                          % (response_type, endpoint))
-            return -1
+
+        logging.error("Unexpected response type %s for endpoint %s"
+                      % (response_type, endpoint))
+        return -1
