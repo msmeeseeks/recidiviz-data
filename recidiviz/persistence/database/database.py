@@ -106,7 +106,7 @@ def write_people(session, people):
 
 
 def write_person(session, person):
-    session.add(database_utils.convert_person(person))i
+    session.add(database_utils.convert_person(person))
 
 
 # TODO(terinpw): We don't want folks to know
@@ -114,8 +114,6 @@ def update_booking(session, booking_id, **kwargs):
     session.query(Booking)\
         .filter(Booking.booking_id == booking_id)\
         .update(kwargs)
-
-
 
 def write_bookings(session, bookings):
     session.add_all(database_utils.convert_bookings(bookings))

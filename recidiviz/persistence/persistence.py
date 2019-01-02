@@ -50,10 +50,11 @@ def infer_release_on_open_bookings(region, last_ingest_time):
     try:
         bookings = database.read_open_bookings_scraped_before_time(
             session, region, last_ingest_time)
-        _infer_release_date_for_bookings(bookings, last_ingest_time.date())
-        import ipdb; ipdb.set_trace()
+        _infer_release_date_for_bookings(session, bookings,
+                                         last_ingest_time.date())
+        # import ipdb; ipdb.set_trace()
         # TODO(terinpw): Field Mask on which fields to update
-        database.write_bookings(session, bookings)
+        # database.write_bookings(session, bookings)
         session.commit()
     except Exception:
         session.rollback()
@@ -62,7 +63,7 @@ def infer_release_on_open_bookings(region, last_ingest_time):
         session.close()
 
 
-def _infer_release_date_for_bookings(bookings, date):
+def _infer_release_date_for_bookings(session, bookings, date):
     """Marks the provided bookings with an inferred release date equal to the
     provided date. Also resolves any charges associated with the provided
     bookings as 'RESOLVED_UNKNOWN_REASON'"""
@@ -76,8 +77,9 @@ def _infer_release_date_for_bookings(bookings, date):
                                    'resolved, however booking already has '
                                    'release date.'.format(booking.booking_id))
 
-        booking.release_date = date
-        booking.release_reason = ReleaseReason.INFERRED_RELEASE
+        database.update_booking(session, booking.booking_id,
+                                release_date=date,
+                                release_reason=ReleaseReason.INFERRED_RELEASE)
 
 
 def _should_persist():

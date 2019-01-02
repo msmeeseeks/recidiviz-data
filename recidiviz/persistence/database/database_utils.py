@@ -84,14 +84,13 @@ def convert_booking(booking_src):
         return None
 
     entity_to_db = isinstance(booking_src, entities.Booking)
+    fields = vars(entities.Booking()).keys()
     if entity_to_db:
         dst_module = schema
         booking_dst = schema.Booking()
-        fields = vars(booking_src).keys()
     else:
         dst_module = entities
         booking_dst = entities.Booking()
-        fields = vars(booking_dst).keys()
     for k in fields:
         if k == 'holds':
             booking_dst.holds = [_convert_object(
@@ -131,14 +130,13 @@ def convert_charge(charge_src):
         return None
 
     entity_to_db = isinstance(charge_src, entities.Charge)
+    fields = vars(entities.Charge()).keys()
     if entity_to_db:
         dst_module = schema
         charge_dst = schema.Charge()
-        fields = vars(charge_src).keys()
     else:
         dst_module = entities
         charge_dst = entities.Charge()
-        fields = vars(charge_dst).keys()
 
     for k in fields:
         if k == 'bond':
@@ -163,24 +161,14 @@ def convert_sentence(sentence_src):
         return None
 
     entity_to_db = isinstance(sentence_src, entities.Sentence)
+    fields = vars(entities.Sentence()).keys()
+    fields.remove('related_sentences')
     if entity_to_db:
         sentence_dst = schema.Sentence()
-        fields = vars(sentence_dst).keys()
-        fields.remove('related_sentences_a')
-        fields.remove('related_sentences_b')
     else:
         sentence_dst = entities.Sentence()
-        fields = vars(sentence_dst).keys()
-        fields.remove('related_sentences')
 
     for k in fields:
-        # if k == 'bond':
-        #     charge_dst.bond = _convert_object(
-        #         charge_src.bond, dst_module.Bond(), entity_to_db)
-        # elif k == 'sentence':
-        #     charge_dst.sentence = _convert_object(
-        #         charge_src.sentence, dst_module.Sentence(), entity_to_db)
-        # else:
         setattr(sentence_dst, k, getattr(sentence_src, k))
     return sentence_dst
 
