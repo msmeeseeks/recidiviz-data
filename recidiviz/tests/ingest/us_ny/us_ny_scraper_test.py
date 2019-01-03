@@ -168,7 +168,7 @@ class TestScraperDetailsPage(BaseScraperTest):
         expected = [{
             'endpoint': None,
             'task_type': constants.SCRAPE_DATA,
-            'content': html.tostring(_DETAILS_PAGE_HTML),
+            'content': html.tostring(_DETAILS_PAGE_HTML, encoding='unicode'),
         }]
 
         params = {
@@ -224,7 +224,7 @@ class TestIngest(BaseScraperTest):
         params = {
             'endpoint': None,
             'task_type': constants.SCRAPE_DATA,
-            'content': html.tostring(_DETAILS_PAGE_HTML),
+            'content': html.tostring(_DETAILS_PAGE_HTML, encoding='unicode'),
         }
 
         self.validate_and_return_populate_data(

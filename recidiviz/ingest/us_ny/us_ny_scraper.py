@@ -265,7 +265,7 @@ class UsNyScraper(BaseScraper):
         """
         params = {
             'endpoint': None,
-            'content': html.tostring(content),
+            'content': html.tostring(content, encoding='unicode'),
             'task_type': constants.SCRAPE_DATA,
         }
 

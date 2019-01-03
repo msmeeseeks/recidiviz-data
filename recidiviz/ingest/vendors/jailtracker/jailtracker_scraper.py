@@ -226,7 +226,8 @@ class JailTrackerScraper(BaseScraper):
 
         session_token = None
         try:
-            body_script = html.tostring(content.xpath("//body/div/script")[0])
+            body_script = html.tostring(content.xpath("//body/div/script")[0],
+                                        encoding='unicode')
             session_token = re.search(r"JailTracker.Web.Settings.init\('(.*)'",
                                       body_script).group(1)
         except Exception as exception:
