@@ -19,9 +19,13 @@
 """Scraper implementation for MT Gallatin County (Archonix)
 """
 
+import os
 from recidiviz.ingest.vendors.archonix.archonix_scraper import ArchonixScraper
 
 class UsMtGallatinScraper(ArchonixScraper):
     """Scraper for people in Gallatin County (MT) facilities."""
     def __init__(self):
-        super(UsMtGallatinScraper, self).__init__('us_mt_gallatin')
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), 'us_mt_gallatin.yaml')
+        super(UsMtGallatinScraper, self).__init__('us_mt_gallatin',
+                                                  key_mapping_file)
