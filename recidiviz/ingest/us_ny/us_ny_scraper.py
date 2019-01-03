@@ -63,8 +63,10 @@ class UsNyScraper(BaseScraper):
     TOKEN_NAME = 'DFH_STATE_TOKEN'
 
     def __init__(self):
-        self.mapping_filepath = os.path.join(os.path.dirname(__file__),
-                                             'us_ny.yaml')
+        self.booking_mapping_filepath = os.path.join(os.path.dirname(__file__),
+                                                     'us_ny_booking.yaml')
+        self.sentence_mapping_filepath = os.path.join(os.path.dirname(__file__),
+                                                      'us_ny_sentence.yaml')
 
         self._data_fields = [
             'M13_PAGE_CLICKI',
@@ -281,9 +283,9 @@ class UsNyScraper(BaseScraper):
         Returns:
             A completely filled in ingest_info object.
         """
-        data_extractor = DataExtractor(self.mapping_filepath)
-        ingest_info = data_extractor.extract_and_populate_data(content,
-                                                               ingest_info)
+        booking_extractor = DataExtractor(self.booking_mapping_filepath)
+        ingest_info = booking_extractor.extract_and_populate_data(content,
+                                                                  ingest_info)
 
         if len(ingest_info.person) != 1:
             logging.error("Data extraction did not produce a single person, "
@@ -302,6 +304,16 @@ class UsNyScraper(BaseScraper):
             release_date_string = content.xpath(
                 '//*[@headers="t1l"]')[0].text.split()[0]
             ingest_info.person[0].booking[0].release_date = release_date_string
+
+        sentence_extractor = DataExtractor(self.sentence_mapping_filepath)
+        sentence_info = sentence_extractor.extract_and_populate_data(content)
+        if len(sentence_info.person) != 1 or \
+                len(sentence_info.person[0].booking) != 1 or \
+                len(sentence_info.person[0].booking[0].charge) != 1 or \
+                sentence_info.person[0].booking[0].charge[0].sentence is None:
+            logging.error("Data extraction did not produce a single "
+                          "sentence, as it should")
+        sentence = sentence_info.person[0].booking[0].charge[0].sentence
 
         # Parse charge information
         for row in content.xpath('//*[@id="ii"]/table[2]/tr')[1:]:
@@ -344,6 +356,7 @@ class UsNyScraper(BaseScraper):
                 level=charge_level,
                 name=charge_name.strip(),
                 status=ChargeStatus.SENTENCED,
+                sentence=sentence,
             )
 
         return ingest_info

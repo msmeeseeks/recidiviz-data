@@ -19,7 +19,7 @@
 from lxml import html
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, \
-    _Charge
+    _Charge, _Sentence
 from recidiviz.ingest.us_ny.us_ny_scraper import UsNyScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
@@ -188,6 +188,9 @@ class TestIngest(BaseScraperTest):
 
     def test_parse(self):
 
+        expected_sentence = _Sentence(
+            min_length='0008 Years, 04 Months,\n                00 Days',
+            max_length='0025 Years, 00 Months,\n                00 Days')
         expected = IngestInfo(people=[_Person(
             birthdate='04/22/1972',
             bookings=[
@@ -201,6 +204,7 @@ class TestIngest(BaseScraperTest):
                             level='TWO',
                             name='ATT MANSLAUGHTER',
                             status='SENTENCED',
+                            sentence=expected_sentence,
                             ),
                         _Charge(
                             attempted='False',
@@ -208,6 +212,7 @@ class TestIngest(BaseScraperTest):
                             level='TWO',
                             name='ARMED ROBBERY',
                             status='SENTENCED',
+                            sentence=expected_sentence,
                         )
                     ],
                     custody_status='RELEASED',
