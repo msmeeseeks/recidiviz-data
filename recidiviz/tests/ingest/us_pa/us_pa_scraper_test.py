@@ -47,7 +47,7 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
                 _Booking(
                     facility="CHESTER",
                     charges=[_Charge(sentence=_Sentence(
-                        county_of_commitment="WASHINGTON"
+                        sentencing_region="WASHINGTON"
                     ))]
                 )
             ]

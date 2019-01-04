@@ -60,7 +60,7 @@ class UsPaScraper(BaseScraper):
         ingest_booking.facility = person['currloc']
 
         ingest_sentence = ingest_booking.create_charge().create_sentence()
-        ingest_sentence.county_of_commitment = person['cnty_name']
+        ingest_sentence.sentencing_region = person['cnty_name']
 
         return ingest_info
 
