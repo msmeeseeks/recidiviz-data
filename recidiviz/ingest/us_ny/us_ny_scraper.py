@@ -50,6 +50,7 @@ from lxml import html
 from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.common.constants.charge import ChargeDegree
 from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.constants.mappable_enum import EnumParsingError
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
@@ -341,7 +342,7 @@ class UsNyScraper(BaseScraper):
             try:
                 _ = ChargeDegree.from_str(charge_degree)
                 charge_name = ' '.join(charge_name.split()[:-1])
-            except KeyError:
+            except EnumParsingError:
                 charge_degree = None
 
             # Get whether the charge was an attempt
@@ -351,11 +352,11 @@ class UsNyScraper(BaseScraper):
 
             ingest_info.person[0].booking[0].create_charge(
                 attempted=attempted,
-                charge_class=ChargeClass.FELONY,
+                charge_class=ChargeClass.FELONY.value,
                 degree=charge_degree,
                 level=charge_level,
                 name=charge_name.strip(),
-                status=ChargeStatus.SENTENCED,
+                status=ChargeStatus.SENTENCED.value,
                 sentence=sentence,
             )
 
