@@ -62,7 +62,7 @@ class UsCoMesaScraper(BaseScraper):
         params = {
             'endpoint': self.get_region().base_url,
             'task_type': constants.GET_MORE_TASKS,
-            'data': {
+            'post_data': {
                 'SearchField': 'LName',
                 'SearchVal': '',
             },
@@ -77,7 +77,7 @@ class UsCoMesaScraper(BaseScraper):
             params_list.append({
                 'endpoint': self.get_region().base_url,
                 'task_type': constants.SCRAPE_DATA,
-                'data': {
+                'post_data': {
                     'SearchField': 'BookingNo',
                     'SearchVal': form_input.get('value')
                 },
