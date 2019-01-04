@@ -396,9 +396,8 @@ class JailTrackerScraper(BaseScraper):
 
         response_type = post_data.get(self._RESPONSE_TYPE, None)
         if response_type is None:
-            logging.error(
-                "Missing response type for endpoint %s. Data:\n%s"
-                % (endpoint, post_data))
+            logging.error("Missing response type for endpoint %s. Data:\n%s",
+                          endpoint, post_data)
             return -1
 
         # Remove response type before passing on data.
@@ -414,6 +413,6 @@ class JailTrackerScraper(BaseScraper):
                 return -1
             return json.loads(response.content)
 
-        logging.error("Unexpected response type %s for endpoint %s"
-                      % (response_type, endpoint))
+        logging.error("Unexpected response type %s for endpoint %s",
+                      response_type, endpoint)
         return -1
