@@ -37,8 +37,7 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
     def test_parse(self):
 
         expected = IngestInfo(people=[_Person(
-            given_names="FIRST MIDDLE",
-            surname="LAST",
+            full_name="FIRST MIDDLE LAST",
             birthdate="1/1/1970",
             bookings=[
                 _Booking(
@@ -133,4 +132,3 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
 
         self.validate_and_return_populate_data(
             _DETAILS_PAGE_HTML, {}, expected, IngestInfo())
-

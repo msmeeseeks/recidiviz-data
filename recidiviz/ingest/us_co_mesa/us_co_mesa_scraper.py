@@ -102,10 +102,7 @@ class UsCoMesaScraper(BaseScraper):
         table = content.cssselect('table')[0]
         for row in table:
             if row[0].text_content().startswith('Name'):
-                # TODO(#206): move name parsing to data converter
-                name = row[1].text_content().split()
-                person.given_names = ' '.join(name[:-1])
-                person.surname = name[-1]
+                person.full_name = row[1].text_content()
             if row[0].text_content().startswith('DOB'):
                 person.birthdate = row[1].text_content()
             if row[0].text_content().startswith('Booking#'):
