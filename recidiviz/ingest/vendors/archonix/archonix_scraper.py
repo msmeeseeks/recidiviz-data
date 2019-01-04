@@ -248,12 +248,6 @@ class ArchonixScraper(BaseScraper):
         """
         data_extractor = DataExtractor(self.yaml_file)
         data_extractor.extract_and_populate_data(content, ingest_info)
-        full_name = content.cssselect(
-            '[id=ctl00_ContentPlaceHolder1_spnInmateName]')[
-                0].text_content().strip()
-        surname, given_names = full_name.split(',')
-        ingest_info.person[0].given_names = given_names.strip()
-        ingest_info.person[0].surname = surname.strip()
         return ingest_info
 
 
