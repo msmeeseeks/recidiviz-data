@@ -30,6 +30,7 @@ from ..context import utils
 
 
 class TestEnvironment(unittest.TestCase):
+    """Tests for utils/environment.py."""
 
     @patch("os.getenv")
     def test_in_prod_false(self, mock_os):

@@ -26,11 +26,13 @@ from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.tests.ingest import fixtures
 
 class TestDataExtractor(unittest.TestCase):
+    """Tests for ingest/extractor/data_extractor_test.py"""
 
     def test_good_table(self):
         """Tests a well modelled table."""
         key_mapping_file = '../testdata/data_extractor/yaml/good_table.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -38,15 +40,18 @@ class TestDataExtractor(unittest.TestCase):
         person.birthdate = '1/15/2048'
 
         html_contents = html.fromstring(
-            fixtures.as_string('testdata/data_extractor/html', 'good_table.html'))
+            fixtures.as_string(
+                'testdata/data_extractor/html', 'good_table.html'))
 
         info = extractor.extract_and_populate_data(html_contents)
         assert expected_info == info
 
     def test_nested_good_table(self):
         """Tests a well modelled nested table."""
-        key_mapping_file = '../testdata/data_extractor/yaml/nested_good_table.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = (
+            '../testdata/data_extractor/yaml/nested_good_table.yaml')
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -85,7 +90,8 @@ class TestDataExtractor(unittest.TestCase):
     def test_bad_table(self):
         """Tests a table with an unusual cell layout."""
         key_mapping_file = '../testdata/data_extractor/yaml/bad_table.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -118,7 +124,8 @@ class TestDataExtractor(unittest.TestCase):
         bond3.bond_type = 'Surety Bond'
 
         html_contents = html.fromstring(
-            fixtures.as_string('testdata/data_extractor/html', 'bad_table.html'))
+            fixtures.as_string(
+                'testdata/data_extractor/html', 'bad_table.html'))
 
         info = extractor.extract_and_populate_data(html_contents)
 
@@ -128,10 +135,11 @@ class TestDataExtractor(unittest.TestCase):
         assert info == expected_info
 
     def test_multiple_people_with_maybe_charges(self):
-        """Tests for a page with many people, each with possibly a set of charges"""
+        """Tests for a page with many people, possibly with a set of charges"""
         key_mapping_file = ('../testdata/data_extractor/yaml/'
                             'multiple_people_sometimes_charges.yaml')
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -211,13 +219,15 @@ class TestDataExtractor(unittest.TestCase):
         assert info == expected_info
 
     def test_bad_lookup(self):
-        """Tests a yaml file with a lookup key that doesn't exist on the page."""
+        """Tests a yaml file with a lookup key that doesn't exist on the page"""
         key_mapping_file = '../testdata/data_extractor/yaml/bad_lookup.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         html_contents = html.fromstring(
-            fixtures.as_string('testdata/data_extractor/html', 'good_table.html'))
+            fixtures.as_string(
+                'testdata/data_extractor/html', 'good_table.html'))
 
         with self.assertWarns(UserWarning):
             extractor.extract_and_populate_data(html_contents)
@@ -225,11 +235,13 @@ class TestDataExtractor(unittest.TestCase):
     def test_bad_object(self):
         """Tests a yaml file with a db object that doesn't exist."""
         key_mapping_file = '../testdata/data_extractor/yaml/bad_object.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         html_contents = html.fromstring(
-            fixtures.as_string('testdata/data_extractor/html', 'good_table.html'))
+            fixtures.as_string(
+                'testdata/data_extractor/html', 'good_table.html'))
 
         with self.assertRaises(KeyError):
             extractor.extract_and_populate_data(html_contents)
@@ -237,11 +249,13 @@ class TestDataExtractor(unittest.TestCase):
     def test_bad_attr(self):
         """Tests a yaml file with a db attribute that doesn't exist."""
         key_mapping_file = '../testdata/data_extractor/yaml/bad_attr.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         html_contents = html.fromstring(
-            fixtures.as_string('testdata/data_extractor/html', 'good_table.html'))
+            fixtures.as_string(
+                'testdata/data_extractor/html', 'good_table.html'))
 
         with self.assertRaises(AttributeError):
             extractor.extract_and_populate_data(html_contents)
@@ -249,7 +263,8 @@ class TestDataExtractor(unittest.TestCase):
     def test_partial_table(self):
         """Tests a page with a table as well as unstructured data."""
         key_mapping_file = '../testdata/data_extractor/yaml/partial_table.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -276,7 +291,8 @@ class TestDataExtractor(unittest.TestCase):
     def test_labeled_fields(self):
         """Tests a page with field values in <span>s labeled by <label>s."""
         key_mapping_file = '../testdata/data_extractor/yaml/labeled_fields.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -305,9 +321,11 @@ class TestDataExtractor(unittest.TestCase):
         assert expected_info == info
 
     def test_bad_labels(self):
-        """Tests a page with field values in <span>s labeled by nested <label>s."""
+        """Tests a page with field values in <span>s
+           labeled by nested <label>s."""
         key_mapping_file = '../testdata/data_extractor/yaml/bad_labels.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -330,7 +348,8 @@ class TestDataExtractor(unittest.TestCase):
         charge.case_number = ''
 
         html_contents = html.fromstring(
-            fixtures.as_string('testdata/data_extractor/html', 'bad_labels.html'))
+            fixtures.as_string(
+                'testdata/data_extractor/html', 'bad_labels.html'))
 
         info = extractor.extract_and_populate_data(html_contents)
         assert expected_info == info
@@ -338,7 +357,8 @@ class TestDataExtractor(unittest.TestCase):
     def test_text_label(self):
         """Tests a page with a key/value pair in plain text."""
         key_mapping_file = '../testdata/data_extractor/yaml/text_label.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -371,7 +391,8 @@ class TestDataExtractor(unittest.TestCase):
         bond2.amount = '$100'
 
         html_contents = html.fromstring(
-            fixtures.as_string('testdata/data_extractor/html', 'text_label.html'))
+            fixtures.as_string(
+                'testdata/data_extractor/html', 'text_label.html'))
 
         info = extractor.extract_and_populate_data(html_contents)
         assert expected_info == info
@@ -380,7 +401,8 @@ class TestDataExtractor(unittest.TestCase):
     def test_th_rows(self):
         """Tests a yaml file with <th> keys in rows."""
         key_mapping_file = '../testdata/data_extractor/yaml/th_rows.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -389,7 +411,8 @@ class TestDataExtractor(unittest.TestCase):
         person.gender = 'M'
 
         html_contents = html.fromstring(
-            fixtures.as_string('testdata/data_extractor/html', 'th_rows.html'))
+            fixtures.as_string(
+                'testdata/data_extractor/html', 'th_rows.html'))
 
         info = extractor.extract_and_populate_data(html_contents)
         assert expected_info == info
@@ -397,7 +420,8 @@ class TestDataExtractor(unittest.TestCase):
     def test_content_is_not_modified(self):
         """Tests that the DataExtractor does not mutate |content|."""
         key_mapping_file = '../testdata/data_extractor/yaml/text_label.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -412,10 +436,11 @@ class TestDataExtractor(unittest.TestCase):
         assert html_contents.cssselect('td') == []
 
     def test_cell_ordering(self):
-        """Tests that the DataExtractor handles 'th' and 'td' cells in the correct
-        order."""
+        """Tests that the DataExtractor handles 'th' and 'td' cells in the
+           correct order."""
         key_mapping_file = '../testdata/data_extractor/yaml/good_table.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -424,19 +449,22 @@ class TestDataExtractor(unittest.TestCase):
         expected_info.create_person(birthdate='C')
 
         html_contents = html.fromstring(
-            fixtures.as_string('testdata/data_extractor/html', 'mixed_cells.html'))
+            fixtures.as_string(
+                'testdata/data_extractor/html', 'mixed_cells.html'))
 
         info = extractor.extract_and_populate_data(html_contents)
         assert expected_info.person[0] == info.person[0]
 
 
     def test_no_multi_key_parent(self):
-        """Tests that parent classes are created properly when a field is scraped
-        whose parent is a multi-key class that has not been scraped. In this
-        example, charges are multi-key classes, but a bond is scraped from a
-        booking with no charge information."""
-        key_mapping_file = '../testdata/data_extractor/yaml/charge_multi_key.yaml'
-        key_mapping_file = os.path.join(os.path.dirname(__file__), key_mapping_file)
+        """Tests that parent classes are created properly when a field is
+           scraped whose parent is a multi-key class that has not been scraped.
+           In this example, charges are multi-key classes, but a bond is
+           scraped from a booking with no charge information."""
+        key_mapping_file = (
+            '../testdata/data_extractor/yaml/charge_multi_key.yaml')
+        key_mapping_file = os.path.join(
+            os.path.dirname(__file__), key_mapping_file)
         extractor = DataExtractor(key_mapping_file)
 
         expected_info = IngestInfo()
@@ -444,11 +472,12 @@ class TestDataExtractor(unittest.TestCase):
         charge.create_bond(bond_id='1111')
 
         html_contents = html.fromstring(
-            fixtures.as_string('testdata/data_extractor/html', 'no_charges.html'))
+            fixtures.as_string(
+                'testdata/data_extractor/html', 'no_charges.html'))
 
-        # The extractor will warn that 'Charge Description' cannot be found. This
-        # is necessary because we need a field under multi_key_mappings so that
-        # charge is treated as a multi_key class.
+        # The extractor will warn that 'Charge Description' cannot be found.
+        # This is necessary because we need a field under multi_key_mappings
+        # so that charge is treated as a multi_key class.
         with self.assertWarns(UserWarning):
             info = extractor.extract_and_populate_data(html_contents)
         assert expected_info == info

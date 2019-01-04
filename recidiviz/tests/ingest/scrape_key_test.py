@@ -24,6 +24,7 @@ from recidiviz.ingest.models.scrape_key import ScrapeKey
 
 
 class TestScrapeKey(unittest.TestCase):
+    """Tests for ingest/models/scrape_key.py."""
 
     def test_eq_different_regions(self):
         left = ScrapeKey("us_ny", constants.BACKGROUND_SCRAPE)
