@@ -16,6 +16,7 @@
 # =============================================================================
 """Scraper tests for us_co_mesa."""
 
+import unittest
 from lxml import html
 from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, \
     _Charge, _Bond
@@ -27,7 +28,7 @@ _DETAILS_PAGE_HTML = html.fromstring(
     fixtures.as_string('us_co_mesa', 'details.html'))
 
 
-class TestScraperDetailsPage(BaseScraperTest):
+class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
 
     def _init_scraper_and_yaml(self):
         self.scraper = UsCoMesaScraper()

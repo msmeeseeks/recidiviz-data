@@ -18,6 +18,7 @@
 """Tests for Brooks Jeffrey scraper:
 ingest/vendors/brooks_jeffrey/brooks_jeffrey_scraper.py."""
 
+import unittest
 from lxml import html
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
@@ -33,7 +34,7 @@ _PERSON_PAGE_HTML = html.fromstring(
     fixtures.as_string('vendors/brooks_jeffrey', 'person_page.html'))
 
 
-class TestBrooksJeffreyScraper(BaseScraperTest):
+class TestBrooksJeffreyScraper(BaseScraperTest, unittest.TestCase):
     """Test class for TestBrooksJeffreyScraper."""
 
     def _init_scraper_and_yaml(self):

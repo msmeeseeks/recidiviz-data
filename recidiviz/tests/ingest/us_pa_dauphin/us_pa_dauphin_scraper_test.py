@@ -16,6 +16,7 @@
 # =============================================================================
 """Scraper tests for us_pa_dauphin."""
 
+import unittest
 from lxml import html
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.us_pa_dauphin.us_pa_dauphin_scraper import \
@@ -28,7 +29,7 @@ _FRONT_PAGE_HTML = html.fromstring(
     fixtures.as_string('us_pa_dauphin', 'website.html'))
 
 
-class TestScraperFrontPage(BaseScraperTest):
+class TestScraperFrontPage(BaseScraperTest, unittest.TestCase):
     """Scraper tests for us_pa_dauphin."""
 
     def _init_scraper_and_yaml(self):

@@ -16,6 +16,7 @@
 # =============================================================================
 
 """Scraper tests for us_fl_martin."""
+import unittest
 from lxml import html
 
 from recidiviz.ingest import constants
@@ -29,7 +30,7 @@ _REPORT_PAGE_HTML = html.fromstring(
     fixtures.as_string('us_fl_martin', 'report.html'))
 
 
-class TestUsFlMartinScraper(BaseScraperTest):
+class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
 
     def _init_scraper_and_yaml(self):
         # The scraper to be tested. Required.

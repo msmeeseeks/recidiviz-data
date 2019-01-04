@@ -16,6 +16,7 @@
 # =============================================================================
 """Scraper tests for us_ny."""
 
+import unittest
 from lxml import html
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, \
@@ -32,7 +33,7 @@ _DETAILS_PAGE_HTML = html.fromstring(
     fixtures.as_string('us_ny', 'person_page.html'))
 
 
-class TestScraperSearchPage(BaseScraperTest):
+class TestScraperSearchPage(BaseScraperTest, unittest.TestCase):
     """Test parsing the UsNy search page
     """
 
@@ -64,7 +65,7 @@ class TestScraperSearchPage(BaseScraperTest):
             _SEARCH_PAGE_HTML, {}, expected)
 
 
-class TestScraperSearchResultsPage(BaseScraperTest):
+class TestScraperSearchResultsPage(BaseScraperTest, unittest.TestCase):
     """Test parsing the UsNy search results page
     """
 
@@ -156,7 +157,7 @@ class TestScraperSearchResultsPage(BaseScraperTest):
             _SEARCH_RESULTS_PAGE_HTML, params, expected)
 
 
-class TestScraperDetailsPage(BaseScraperTest):
+class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
     """Test parsing the UsNy person details page
     """
 
@@ -179,7 +180,7 @@ class TestScraperDetailsPage(BaseScraperTest):
             _DETAILS_PAGE_HTML, params, expected)
 
 
-class TestIngest(BaseScraperTest):
+class TestIngest(BaseScraperTest, unittest.TestCase):
     """Test ingesting the data from the UsNy person detail page.
     """
 
