@@ -17,9 +17,8 @@
 """Tests for conversion_utils.py"""
 
 import datetime
-from unittest import TestCase
+import unittest
 
-import pytest
 from mock import patch
 
 from recidiviz.common.constants.person import Gender
@@ -28,7 +27,7 @@ from recidiviz.persistence.converter import converter_utils
 _NOW = datetime.datetime(2000, 1, 1)
 
 
-class TestConverterUtils(TestCase):
+class TestConverterUtils(unittest.TestCase):
     """Test conversion util methods."""
 
     def test_parseDate(self):
@@ -36,7 +35,7 @@ class TestConverterUtils(TestCase):
                datetime.datetime(year=2018, month=1, day=1)
 
     def test_parseBadDate(self):
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             converter_utils.parse_date('ABC')
 
     @patch('recidiviz.persistence.converter.converter_utils.datetime.datetime')
@@ -49,14 +48,14 @@ class TestConverterUtils(TestCase):
                expected_birthdate
 
     def test_parseBadAge(self):
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             converter_utils.calculate_birthdate_from_age('ABC')
 
     def test_parseTimeDuration(self):
         assert converter_utils.parse_days('10') == 10
 
     def test_parseBadTimeDuration(self):
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             converter_utils.parse_days('ABC')
 
     def test_parseName(self):
@@ -64,26 +63,26 @@ class TestConverterUtils(TestCase):
                ('LAST', 'FIRST')
 
     def test_parseBadName(self):
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             converter_utils.split_full_name('ABC')
 
     def test_parseDollarAmount(self):
         assert converter_utils.parse_dollars('$100.00') == 100
 
     def test_parseBadDollarAmount(self):
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             converter_utils.parse_dollars('ABC')
 
     def test_parseBool(self):
         assert converter_utils.parse_bool("True") is True
 
     def test_parseBadBoolField(self):
-        with pytest.raises(ValueError):
+        with self.assertRaises(ValueError):
             converter_utils.parse_bool('ABC')
 
     def test_parseEnum(self):
         assert Gender.from_str('Male') == Gender.MALE
 
     def test_parseBadEnum(self):
-        with pytest.raises(KeyError):
+        with self.assertRaises(KeyError):
             Gender.from_str('ABD')

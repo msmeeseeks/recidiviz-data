@@ -23,8 +23,6 @@
 from datetime import date
 from datetime import datetime
 
-import pytest
-
 from dateutil.relativedelta import relativedelta
 
 from recidiviz.tests.context import calculator

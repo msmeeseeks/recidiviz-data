@@ -19,8 +19,6 @@
 
 """Tests for utils/auth.py."""
 
-
-import pytest
 from flask import Flask, request
 from mock import patch
 

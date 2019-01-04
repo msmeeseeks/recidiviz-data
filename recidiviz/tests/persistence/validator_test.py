@@ -17,7 +17,6 @@
 """Tests for validating ingest_info protos."""
 
 import unittest
-import pytest
 
 from recidiviz.ingest.models.ingest_info_pb2 import IngestInfo, Person, \
     Booking, Arrest, Charge, Bond, Sentence
@@ -76,9 +75,9 @@ class TestValidator(unittest.TestCase):
             [Charge(charge_id=CHARGE_1), Charge(charge_id=CHARGE_2)])
 
         # Act
-        with pytest.raises(ValidationError) as e:
+        with self.assertRaises(ValidationError) as context:
             validator.validate(ingest_info)
-        result = e.value.errors
+        result = context.exception.errors
 
         # Assert
         expected_result = {
@@ -99,9 +98,9 @@ class TestValidator(unittest.TestCase):
         ingest_info.people.add(person_id='1', booking_ids=['2'])
 
         # Act
-        with pytest.raises(ValidationError) as e:
+        with self.assertRaises(ValidationError) as context:
             validator.validate(ingest_info)
-        result = e.value.errors
+        result = context.exception.errors
 
         # Assert
         expected_result = {
@@ -118,9 +117,9 @@ class TestValidator(unittest.TestCase):
         ingest_info.bookings.add(booking_id='1')
 
         # Act
-        with pytest.raises(ValidationError) as e:
+        with self.assertRaises(ValidationError) as context:
             validator.validate(ingest_info)
-        result = e.value.errors
+        result = context.exception.errors
 
         # Assert
         expected_result = {
@@ -171,9 +170,9 @@ class TestValidator(unittest.TestCase):
         ])
 
         # Act
-        with pytest.raises(ValidationError) as e:
+        with self.assertRaises(ValidationError) as context:
             validator.validate(ingest_info)
-        result = e.value.errors
+        result = context.exception.errors
 
         # Assert
         expected_result = {

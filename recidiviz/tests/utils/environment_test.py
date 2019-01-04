@@ -20,7 +20,7 @@
 """Tests for utils/environment.py."""
 
 
-import pytest
+import unittest
 from mock import mock_open, patch
 
 import recidiviz
@@ -29,65 +29,67 @@ from recidiviz.utils import environment
 from ..context import utils
 
 
-@patch("os.getenv")
-def test_in_prod_false(mock_os):
-    mock_os.return_value = 'not production'
-    assert not environment.in_prod()
+class TestEnvironment(unittest.TestCase):
+
+    @patch("os.getenv")
+    def test_in_prod_false(self, mock_os):
+        mock_os.return_value = 'not production'
+        assert not environment.in_prod()
 
 
-@patch("os.getenv")
-def test_in_prod_true(mock_os):
-    mock_os.return_value = 'production'
-    assert environment.in_prod()
+    @patch("os.getenv")
+    def test_in_prod_true(self, mock_os):
+        mock_os.return_value = 'production'
+        assert environment.in_prod()
 
 
-def test_local_only_is_local():
-    track = 'Emerald Rush'
+    def test_local_only_is_local(self):
+        track = 'Emerald Rush'
 
-    @environment.local_only
-    def get():
-        return (track, 200)
+        @environment.local_only
+        def get():
+            return (track, 200)
 
-    response = get()
-    assert response == (track, 200)
-
-
-@patch("os.getenv")
-def test_local_only_is_prod(mock_os):
-    track = 'Emerald Rush'
-    mock_os.return_value = 'production'
-
-    @environment.local_only
-    def get():
-        return (track, 200)
-
-    response = get()
-    assert response == ('Not available, see service logs.', 500)
+        response = get()
+        assert response == (track, 200)
 
 
-def test_test_only_is_test():
-    track = 'Emerald Rush'
+    @patch("os.getenv")
+    def test_local_only_is_prod(self, mock_os):
+        track = 'Emerald Rush'
+        mock_os.return_value = 'production'
 
-    @environment.test_only
-    def get():
-        return track
+        @environment.local_only
+        def get():
+            return (track, 200)
 
-    assert get() == track
+        response = get()
+        assert response == ('Not available, see service logs.', 500)
 
 
-def test_test_only_not_test():
-    track = 'Emerald Rush'
+    def test_test_only_is_test(self):
+        track = 'Emerald Rush'
 
-    @environment.test_only
-    def get():
-        return track
+        @environment.test_only
+        def get():
+            return track
 
-    with patch.dict('recidiviz.__dict__'):
-        del recidiviz.__dict__['called_from_test']
-        assert not hasattr(recidiviz, 'called_from_test')
+        assert get() == track
 
-        with pytest.raises(RuntimeError) as exception:
-            get()
-        assert str(exception.value) == 'Function may only be called from tests'
 
-    assert hasattr(recidiviz, 'called_from_test')
+    def test_test_only_not_test(self):
+        track = 'Emerald Rush'
+
+        @environment.test_only
+        def get():
+            return track
+
+        with patch.dict('recidiviz.__dict__'):
+            del recidiviz.__dict__['called_from_test']
+            assert not hasattr(recidiviz, 'called_from_test')
+
+            expected_error_message = 'Function may only be called from tests'
+            with self.assertRaisesRegex(RuntimeError, expected_error_message):
+                get()
+
+        assert hasattr(recidiviz, 'called_from_test')

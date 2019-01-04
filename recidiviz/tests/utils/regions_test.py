@@ -19,8 +19,7 @@
 
 """Tests for utils/regions.py."""
 
-
-import pytest
+import unittest
 
 from ..context import utils
 from mock import patch, mock_open
@@ -85,12 +84,12 @@ FULL_MANIFEST = {
 }
 
 
-class TestRegions:
+class TestRegions(unittest.TestCase):
     """Tests for regions.py."""
-    def setup_method(self, _test_method):
+    def setUp(self):
         regions.MANIFEST = None
 
-    def teardown_method(self, _test_method):
+    def tearDown(self):
         regions.MANIFEST = None
 
     def test_get_full_manifest(self):
@@ -104,13 +103,13 @@ class TestRegions:
 
 
     def test_get_region_manifest_not_found(self):
-        with pytest.raises(Exception) as exception:
+        expected_error_message = "Region 'us_az' not found in manifest."
+        with self.assertRaisesRegex(Exception, expected_error_message):
             with patch("builtins.open",
                        mock_open(read_data=MANIFEST_CONTENTS)) \
                        as mock_file:
                 regions.get_region_manifest('us_az')
 
-        assert str(exception.value) == "Region 'us_az' not found in manifest."
         mock_file.assert_called_with('region_manifest.yaml', 'r')
 
 

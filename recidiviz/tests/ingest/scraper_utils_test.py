@@ -17,14 +17,13 @@
 
 """Tests for ingest/scraper_utils.py."""
 
-
+import unittest
 from mock import patch
-import pytest
 
 from recidiviz.ingest import scraper_utils
 
 
-class TestGetProxies:
+class TestGetProxies(unittest.TestCase):
     """Tests for the get_proxies method in the module."""
 
     @patch('recidiviz.utils.secrets.get_secret')
@@ -51,9 +50,8 @@ class TestGetProxies:
         }
         mock_secret.side_effect = test_secrets.get
 
-        with pytest.raises(Exception) as exception:
+        with self.assertRaisesRegex(Exception, 'No proxy user/pass'):
             scraper_utils.get_proxies()
-        assert str(exception.value) == 'No proxy user/pass'
 
     @patch('recidiviz.utils.secrets.get_secret')
     @patch('recidiviz.utils.environment.in_prod')
@@ -69,7 +67,8 @@ class TestGetProxies:
         proxies = scraper_utils.get_proxies()
         assert proxies is None
 
-class TestGetHeaders:
+
+class TestGetHeaders(unittest.TestCase):
     """Tests for the get_headers method in the module."""
 
     @patch('recidiviz.utils.secrets.get_secret')
@@ -91,9 +90,8 @@ class TestGetHeaders:
                                                     mock_secret):
         mock_in_prod.return_value = True
         mock_secret.return_value = None
-        with pytest.raises(Exception) as exception:
+        with self.assertRaisesRegex(Exception, 'No user agent string'):
             scraper_utils.get_headers()
-        assert str(exception.value) == 'No user agent string'
 
     @patch('recidiviz.utils.environment.in_prod')
     def test_get_headers_local(self, mock_in_prod):
