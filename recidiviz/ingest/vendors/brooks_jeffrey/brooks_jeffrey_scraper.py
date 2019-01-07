@@ -18,6 +18,7 @@
 """Scraper implementation for all websites using Brooks Jeffery marketing.
 """
 
+import logging
 import os
 
 from recidiviz.ingest import constants
@@ -78,4 +79,16 @@ class BrooksJeffreyScraper(BaseScraper):
         data_extractor = DataExtractor(self.mapping_filepath)
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
+
+        for person in ingest_info.person:
+            if len(person.booking) != 1 or len(person.booking[0].charge) > 1:
+                logging.error("Data extraction did not produce a single "
+                              "booking with at most one charge, as it should")
+
+            if person.booking[0].charge:
+                charge_names = person.booking[0].charge[0].name.split('\n')
+                person.booking[0].charge = []
+                for charge_name in charge_names:
+                    person.booking[0].create_charge(name=charge_name)
+
         return ingest_info

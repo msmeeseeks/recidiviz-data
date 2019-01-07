@@ -81,8 +81,9 @@ class TestBrooksJeffreyScraper(BaseScraperTest, unittest.TestCase):
         booking.admission_date = "1-1-2048- 12:30 am"
         booking.total_bond_amount = "$695.00"
 
-        charge = booking.create_charge()
-        charge.name = "Charge 1"
+        booking.create_charge(name="Charge 1")
+        booking.create_charge(name="Charge 2")
+        booking.create_charge(name="Charge 3")
 
         arrest = booking.create_arrest()
         arrest.agency = "Agency"
