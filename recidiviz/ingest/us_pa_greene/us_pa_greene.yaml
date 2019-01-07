@@ -16,6 +16,7 @@ keys_to_ignore:
   - Release Date-Time
   - Offense DateTime
   - Arrest DateTime
+  - "No Records Found."
 
 multi_key_mapping:
   Statute Code: charge.statute

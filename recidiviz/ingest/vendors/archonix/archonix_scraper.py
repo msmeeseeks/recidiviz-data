@@ -247,9 +247,7 @@ class ArchonixScraper(BaseScraper):
             ingest_info: The IngestInfo object to populate
         """
         data_extractor = DataExtractor(self.yaml_file)
-        data_extractor.extract_and_populate_data(content, ingest_info)
-        return ingest_info
-
+        return data_extractor.extract_and_populate_data(content, ingest_info)
 
 
     def transform_post_data(self, data):
