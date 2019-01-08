@@ -31,6 +31,10 @@ _SEARCH_RESULTS_PAGE_HTML = html.fromstring(
     fixtures.as_string('us_ny', 'search_results_page.html'))
 _DETAILS_PAGE_HTML = html.fromstring(
     fixtures.as_string('us_ny', 'person_page.html'))
+_DETAILS_PAGE_WHITE_HISPANIC_HTML = html.fromstring(
+    fixtures.as_string('us_ny', 'person_page_white_hispanic.html'))
+_DETAILS_PAGE_BLACK_HISPANIC_HTML = html.fromstring(
+    fixtures.as_string('us_ny', 'person_page_black_hispanic.html'))
 
 
 class TestScraperSearchPage(BaseScraperTest, unittest.TestCase):
@@ -235,3 +239,103 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
 
         self.validate_and_return_populate_data(
             _DETAILS_PAGE_HTML, params, expected, IngestInfo())
+
+    def test_parse_white_hispanic(self):
+        expected_sentence = _Sentence(
+            min_length='0008 Years, 04 Months,\n                00 Days',
+            max_length='0025 Years, 00 Months,\n                00 Days')
+        expected = IngestInfo(people=[_Person(
+            birthdate='04/22/1972',
+            bookings=[
+                _Booking(
+                    admission_date='05/10/2013',
+                    charges=[
+                        _Charge(
+                            attempted='True',
+                            charge_class='FELONY',
+                            degree='1ST',
+                            level='TWO',
+                            name='ATT MANSLAUGHTER',
+                            status='SENTENCED',
+                            sentence=expected_sentence,
+                        ),
+                        _Charge(
+                            attempted='False',
+                            charge_class='FELONY',
+                            level='TWO',
+                            name='ARMED ROBBERY',
+                            status='SENTENCED',
+                            sentence=expected_sentence,
+                        )
+                    ],
+                    custody_status='RELEASED',
+                    facility='QUEENSBORO',
+                    projected_release_date='07/04/1998',
+                    release_date='04/07/14',
+                )],
+            gender='MALE',
+            person_id='1234567',
+            race='WHITE',
+            ethnicity='HISPANIC',
+            surname='SIMPSON, BART',
+        )])
+
+        params = {
+            'endpoint': None,
+            'task_type': constants.SCRAPE_DATA,
+            'content': html.tostring(
+                _DETAILS_PAGE_WHITE_HISPANIC_HTML, encoding='unicode'),
+        }
+
+        self.validate_and_return_populate_data(
+            _DETAILS_PAGE_WHITE_HISPANIC_HTML, params, expected, IngestInfo())
+
+    def test_parse_black_hispanic(self):
+        expected_sentence = _Sentence(
+            min_length='0008 Years, 04 Months,\n                00 Days',
+            max_length='0025 Years, 00 Months,\n                00 Days')
+        expected = IngestInfo(people=[_Person(
+            birthdate='04/22/1972',
+            bookings=[
+                _Booking(
+                    admission_date='05/10/2013',
+                    charges=[
+                        _Charge(
+                            attempted='True',
+                            charge_class='FELONY',
+                            degree='1ST',
+                            level='TWO',
+                            name='ATT MANSLAUGHTER',
+                            status='SENTENCED',
+                            sentence=expected_sentence,
+                        ),
+                        _Charge(
+                            attempted='False',
+                            charge_class='FELONY',
+                            level='TWO',
+                            name='ARMED ROBBERY',
+                            status='SENTENCED',
+                            sentence=expected_sentence,
+                        )
+                    ],
+                    custody_status='RELEASED',
+                    facility='QUEENSBORO',
+                    projected_release_date='07/04/1998',
+                    release_date='04/07/14',
+                )],
+            gender='MALE',
+            person_id='1234567',
+            race='BLACK',
+            ethnicity='HISPANIC',
+            surname='SIMPSON, BART',
+        )])
+
+        params = {
+            'endpoint': None,
+            'task_type': constants.SCRAPE_DATA,
+            'content': html.tostring(
+                _DETAILS_PAGE_BLACK_HISPANIC_HTML, encoding='unicode'),
+        }
+
+        self.validate_and_return_populate_data(
+            _DETAILS_PAGE_BLACK_HISPANIC_HTML, params, expected, IngestInfo())

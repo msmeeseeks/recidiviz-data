@@ -50,6 +50,8 @@ from lxml import html
 from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.common.constants.charge import ChargeDegree
 from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.constants.person import Ethnicity
+from recidiviz.common.constants.person import Race
 from recidiviz.common.constants.mappable_enum import EnumParsingError
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
@@ -297,6 +299,14 @@ class UsNyScraper(BaseScraper):
             logging.error("Data extraction did not produce a single booking, "
                           "as it should")
             return None
+
+        # Handle this special case for the race.
+        if ingest_info.person[0].race == 'WHITE/HISPANIC':
+            ingest_info.person[0].race = Race.WHITE.value
+            ingest_info.person[0].ethnicity = Ethnicity.HISPANIC.value
+        elif ingest_info.person[0].race == 'BLACK/HISPANIC':
+            ingest_info.person[0].race = Race.BLACK.value
+            ingest_info.person[0].ethnicity = Ethnicity.HISPANIC.value
 
         # Get release date, if released
         if (ingest_info.person[0].booking[0].custody_status == 'RELEASED' or
