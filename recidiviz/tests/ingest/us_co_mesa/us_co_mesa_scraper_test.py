@@ -42,7 +42,6 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
             bookings=[
                 _Booking(
                     booking_id="2018-0000XXXX",
-                    total_bond_amount="$9051",
                     charges=[
                         _Charge(
                             name="FAILURE TO APPEAR WARRANT",

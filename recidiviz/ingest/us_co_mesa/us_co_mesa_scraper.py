@@ -35,7 +35,8 @@ Background scraping procedure:
          (2a) A list of person results --> (follow, each entry leads to 3)
     3. A details page for a person's current booking
 """
-
+from recidiviz.common.constants.bond import BondType
+from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.models.ingest_info import _Bond
@@ -109,7 +110,6 @@ class UsCoMesaScraper(BaseScraper):
                 booking.booking_id = row[1].text_content()
             if row[0].text_content().startswith('Bonds'):
                 bond_list = row.getnext()[1][0]
-                total_bond_amount = 0
                 # Each "bond" occupies two elements in the list, a header
                 # element and a list of relevant charges. We iterate over the
                 # bonds list in twos to handle this.
@@ -125,7 +125,6 @@ class UsCoMesaScraper(BaseScraper):
                         amount=bond_amount.strip(),
                         bond_type=bond_type,
                     )
-                    total_bond_amount += int(bond_amount.strip(' $'))
 
                     # Get list of charges
                     charge_list = bond_element.getnext()
@@ -146,6 +145,22 @@ class UsCoMesaScraper(BaseScraper):
                             charge_class=charge_class,
                             bond=bond,
                         )
-                booking.total_bond_amount = '${}'.format(total_bond_amount)
 
         return ingest_info
+
+    def get_enum_overrides(self):
+        return {
+            'M1': ChargeClass.MISDEMEANOR,
+            'M2': ChargeClass.MISDEMEANOR,
+            'M3': ChargeClass.MISDEMEANOR,
+            'M4': ChargeClass.MISDEMEANOR,
+            'M5': ChargeClass.MISDEMEANOR,
+            'F1': ChargeClass.FELONY,
+            'F2': ChargeClass.FELONY,
+            'F3': ChargeClass.FELONY,
+            'F4': ChargeClass.FELONY,
+            'F5': ChargeClass.FELONY,
+            '(CASH) CASH': BondType.CASH,
+            '(CS) CASH/SURETY': BondType.CASH,
+            'DPO': None  # Ignore DPO Charges
+        }

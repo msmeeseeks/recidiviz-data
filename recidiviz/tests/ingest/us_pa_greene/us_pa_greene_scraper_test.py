@@ -43,7 +43,7 @@ class UsPaGreeneScraperTest(BaseScraperTest, unittest.TestCase):
     def test_populate_data(self):
         expected_result = IngestInfo(people=[
             _Person(person_id='18-00000', full_name='LAST, FIRST',
-                    birthdate='01/01/0001', gender='Male', age='1111',
+                    birthdate='01/01/2001', gender='Male', age='1111',
                     race='White/Eurp/ N.Afr/Mid Eas',
                     bookings=[
                         _Booking(booking_id='18-00000',

@@ -94,7 +94,7 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
         expected_result.person[0].booking[0].create_charge(
             statute="FS*893.13(6A)",
             name="CHARGE 2",
-            charge_class="Unkown"
+            charge_class="Unknown"
         ).create_bond(amount="$0.00")
 
         expected_result.create_person(
