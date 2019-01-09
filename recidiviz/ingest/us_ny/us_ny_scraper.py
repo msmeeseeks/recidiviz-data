@@ -326,6 +326,11 @@ class UsNyScraper(BaseScraper):
                           "sentence, as it should")
         sentence = sentence_info.person[0].booking[0].charge[0].sentence
 
+        # Handle special case of life sentences.
+        if sentence.max_length.upper().startswith('LIFE'):
+            sentence.max_length = None
+            sentence.is_life = "True"
+
         # Parse charge information
         for row in content.xpath('//*[@id="ii"]/table[2]/tr')[1:]:
             charge_name = row.xpath('td[1]')[0].text.strip().rstrip()
