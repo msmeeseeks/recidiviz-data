@@ -52,7 +52,7 @@ import re
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
-from recidiviz.ingest.extractor.data_extractor import DataExtractor
+from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 
 
 class ArchonixScraper(BaseScraper):
@@ -246,7 +246,7 @@ class ArchonixScraper(BaseScraper):
             params: dict of parameters passed from the last scrape session.
             ingest_info: The IngestInfo object to populate
         """
-        data_extractor = DataExtractor(self.yaml_file)
+        data_extractor = HtmlDataExtractor(self.yaml_file)
         return data_extractor.extract_and_populate_data(content, ingest_info)
 
 

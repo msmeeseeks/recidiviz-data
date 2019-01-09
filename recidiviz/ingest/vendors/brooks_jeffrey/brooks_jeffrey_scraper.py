@@ -23,7 +23,7 @@ import os
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
-from recidiviz.ingest.extractor.data_extractor import DataExtractor
+from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 
 
 class BrooksJeffreyScraper(BaseScraper):
@@ -76,7 +76,7 @@ class BrooksJeffreyScraper(BaseScraper):
         return params_list
 
     def populate_data(self, content, params, ingest_info):
-        data_extractor = DataExtractor(self.mapping_filepath)
+        data_extractor = HtmlDataExtractor(self.mapping_filepath)
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
 

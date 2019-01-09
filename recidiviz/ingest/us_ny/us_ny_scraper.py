@@ -56,7 +56,7 @@ from recidiviz.common.constants.mappable_enum import EnumParsingError
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
-from recidiviz.ingest.extractor.data_extractor import DataExtractor
+from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 
 
 class UsNyScraper(BaseScraper):
@@ -286,7 +286,7 @@ class UsNyScraper(BaseScraper):
         Returns:
             A completely filled in ingest_info object.
         """
-        booking_extractor = DataExtractor(self.booking_mapping_filepath)
+        booking_extractor = HtmlDataExtractor(self.booking_mapping_filepath)
         ingest_info = booking_extractor.extract_and_populate_data(content,
                                                                   ingest_info)
 
@@ -316,7 +316,7 @@ class UsNyScraper(BaseScraper):
                 '//*[@headers="t1l"]')[0].text.split()[0]
             ingest_info.person[0].booking[0].release_date = release_date_string
 
-        sentence_extractor = DataExtractor(self.sentence_mapping_filepath)
+        sentence_extractor = HtmlDataExtractor(self.sentence_mapping_filepath)
         sentence_info = sentence_extractor.extract_and_populate_data(content)
         if len(sentence_info.person) != 1 or \
                 len(sentence_info.person[0].booking) != 1 or \
