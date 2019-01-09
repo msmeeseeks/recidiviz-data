@@ -292,7 +292,10 @@ class UsNyScraper(BaseScraper):
 
         if len(ingest_info.person) != 1:
             logging.error("Data extraction did not produce a single person, "
-                          "as it should")
+                          "as it should.")
+            # TODO This is for debugging issue #483. Remove when that
+            # issue is solved.
+            logging.error("params: %r", params)
             return None
 
         if len(ingest_info.person[0].booking) != 1:
