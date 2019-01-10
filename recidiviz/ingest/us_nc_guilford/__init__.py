@@ -15,10 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-""" Vendor classes that handle vendor specific navigation and data extraction.
-All regions that use one of these vendors should inherit from the vendor
-specific classes.
-"""
 
-import recidiviz.ingest.vendors.archonix
-import recidiviz.ingest.vendors.superion
+"""us_nc_guilford specific regional functionality."""
+from recidiviz.ingest.us_nc_guilford import us_nc_guilford_scraper

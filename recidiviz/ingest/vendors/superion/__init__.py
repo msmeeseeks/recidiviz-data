@@ -15,10 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-""" Vendor classes that handle vendor specific navigation and data extraction.
-All regions that use one of these vendors should inherit from the vendor
-specific classes.
+""" Specific functionality for the vendor Superion.
 """
-
-import recidiviz.ingest.vendors.archonix
-import recidiviz.ingest.vendors.superion
+from recidiviz.ingest.vendors.superion import superion_scraper

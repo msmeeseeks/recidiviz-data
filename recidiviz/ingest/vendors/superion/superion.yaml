@@ -1,0 +1,16 @@
+key_mappings:
+  Name: person.full_name
+  Age: person.age
+  Arrest Date: booking.admission_date
+  Release Date: booking.release_date
+  Next Court Date: charge.next_court_date
+
+css_key_mappings:
+  "#mainContent_CenterColumnContent_lblRace": person.race
+  "#mainContent_CenterColumnContent_lblSex": person.gender
+
+multi_key_mapping:
+  Charge: charge.name
+  Status: charge.status
+  "Docket #": charge.case_number
+  Bond Amount: bond.amount
