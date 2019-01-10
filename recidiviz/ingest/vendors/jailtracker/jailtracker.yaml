@@ -1,0 +1,27 @@
+key_mappings:
+  booking.Last Name: person.surname
+  booking.First Name: person.given_names
+  booking.Current Age: person.age
+  booking.Race: person.race
+  booking.Sex: person.gender
+
+  booking.booking_id: booking.booking_id
+  booking.Booking Date: booking.admission_date
+  booking.Date Released: booking.release_date
+  booking.Custody Status: booking.custody_status
+  booking.Release Reason: booking.release_reason
+  booking.Facility: booking.facility
+
+  charges.ChargeId: charge.charge_id
+  charges.CaseNo: charge.case_number
+  charges.CourtType: charge.court_type
+  charges.ChargeStatus: charge.status
+  charges.OffenseDate: charge.offense_date
+  charges.Counts: charge.number_of_counts
+  charges.CrimeType: charge.charge_class
+  charges.Description: charge.name
+
+  charges.BondAmount: bond.amount
+  charges.BondType: bond.bond_type
+
+

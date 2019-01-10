@@ -33,15 +33,21 @@ Scraper flow:
     3. For each person on each page of the roster, sequentially requests the
         person, cases, and charges details.
     4. When all requests for an individual person are completed, passes the
-        data to process_record.
+        data to populate_data.
 """
 
 import abc
 import json
 import logging
 import re
-
+import os
 from lxml import html
+
+from recidiviz.common.constants.booking import CustodyStatus, ReleaseReason
+from recidiviz.common.constants.charge import ChargeClass
+from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
+
+from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 
 
@@ -63,28 +69,33 @@ class JailTrackerScraper(BaseScraper):
     #
     # Must be provided with 'session', 'start', and 'limit' fields before being
     # used.
-    _ROSTER_REQUEST_SUFFIX_TEMPLATE = "(S({session}))//(S({session}))/"
-    "JailTracker/GetInmates?start={start}&limit={limit}&sort=LastName&dir=ASC"
+    _ROSTER_REQUEST_SUFFIX_TEMPLATE = (
+        "(S({session}))//(S({session}))/"
+        "JailTracker/GetInmates?start={start}&limit={limit}&sort=LastName&dir="
+        "ASC")
 
     # Template for URL suffix used to request data on a specific person.
     #
     # Must be provided with 'session' and 'arrest' fields before being used.
-    _PERSON_REQUEST_SUFFIX_TEMPLATE = "(S({session}))//(S({session}))/"
-    "JailTracker/GetInmate?arrestNo={arrest}"
+    _PERSON_REQUEST_SUFFIX_TEMPLATE = (
+        "(S({session}))//(S({session}))/"
+        "JailTracker/GetInmate?arrestNo={arrest}")
 
     # Template for URL suffix used to request data on cases associated with a
     # specific person.
     #
     # Must be provided with 'session' and 'arrest' fields before being used.
-    _CASES_REQUEST_SUFFIX_TEMPLATE = "(S({session}))//(S({session}))/"
-    "JailTracker/GetCases?arrestNo={arrest}"
+    _CASES_REQUEST_SUFFIX_TEMPLATE = (
+        "(S({session}))//(S({session}))/"
+        "JailTracker/GetCases?arrestNo={arrest}")
 
     # Template for URL suffix used to request data on charges associated with
     # a specific person.
     #
     # Must be provided with 'session' field before being used.
-    _CHARGES_REQUEST_SUFFIX_TEMPLATE = "(S({session}))//(S({session}))/"
-    "JailTracker/GetCharges"
+    _CHARGES_REQUEST_SUFFIX_TEMPLATE = (
+        "(S({session}))//(S({session}))/"
+        "JailTracker/GetCharges")
 
     # Constant strings needed for param and data dicts.
     #
@@ -102,7 +113,7 @@ class JailTrackerScraper(BaseScraper):
     # Value in param dict for a request targeting the charges endpoint.
     _CHARGES_REQUEST = "charges_request"
     # Key in param dict for data dict passed to _fetch_content.
-    _DATA = "data"
+    _DATA = "post_data"
     # Key in param dict for endpoint requested.
     _ENDPOINT = "endpoint"
     # Value in data dict for an expected response type of HTML.
@@ -119,19 +130,21 @@ class JailTrackerScraper(BaseScraper):
     _RESPONSE_TYPE = "response_type"
     # Value in param dict for a request targeting the roster endpoint.
     _ROSTER_REQUEST = "roster_request"
-    # Key in param dict for scrape type.
-    _SCRAPE_TYPE = "scrape_type"
     # Key in param dict for session token.
     _SESSION_TOKEN = "session_token"
     # Key in param dict for task type.
     _TASK_TYPE = "task_type"
 
-    def __init__(self, region_name):
+    def __init__(self, region_name, yaml_file=None):
         super(JailTrackerScraper, self).__init__(region_name)
 
         # Set initial endpoint using region-specific landing page index.
         landing_page_url_suffix = self._LANDING_PAGE_URL_SUFFIX_TEMPLATE.format(
             index=self.get_jailtracker_index())
+        # A yaml file can be passed in if the fields in the child scraper
+        # instance are different or expanded.
+        self.yaml = yaml_file or os.path.join(
+            os.path.dirname(__file__), 'jailtracker.yaml')
         self._initial_endpoint = "/".join(
             [self._URL_BASE, landing_page_url_suffix])
 
@@ -143,17 +156,6 @@ class JailTrackerScraper(BaseScraper):
         A JailTracker landing page URL ends with: "/jailtracker/index/<INDEX>".
         This value can either be text or a number. In either case, this method
         should return the value as a string.
-        """
-
-    @abc.abstractmethod
-    def process_record(self, person, cases, charges):
-        """Performs region-specific processing on the fetched data for a
-        specific person.
-
-        Args:
-            person: JSON object for a specific person
-            cases: JSON object for that person's cases
-            charges: JSON object for that person's charges
         """
 
     def get_initial_endpoint(self):
@@ -184,7 +186,7 @@ class JailTrackerScraper(BaseScraper):
 
         if self.is_initial_task(task_type):
             roster_request_params = \
-                self._process_landing_page_and_get_next_task(content, params)
+                self._process_landing_page_and_get_next_task(content)
             if roster_request_params == -1:
                 return -1
             next_tasks.append(roster_request_params)
@@ -204,21 +206,54 @@ class JailTrackerScraper(BaseScraper):
                 self._process_cases_response_and_get_next_task(
                     content, params))
 
-        elif params[self._REQUEST_TARGET] == self._CHARGES_REQUEST:
-            # Once all three requests have been made for a specific person, the
-            # data can be passed to the region-specific scraper for handling.
-            self.process_record(
-                params[self._PERSON], params[self._CASES], content)
-
         return next_tasks
 
-    def _process_landing_page_and_get_next_task(self, content, params):
+    def find_session_token(self, content):
+        """Finds the session token of the page given the content."""
+
+        body_script = html.tostring(content, encoding='unicode')
+        return re.search(r"JailTracker.Web.Settings.init\('(.*)'",
+                         body_script).group(1)
+
+    def populate_data(self, content, params, ingest_info):
+        """
+        Populates the ingest info object from the content and params given
+
+        Args:
+            content: An lxml html tree.
+            params: dict of parameters passed from the last scrape session.
+            ingest_info: The IngestInfo object to populate
+        """
+        data_extractor = JsonDataExtractor(self.yaml)
+        facility, parole_agency = self.extract_agencies(
+            params[self._PERSON]['data'])
+        booking_data = self._field_val_pairs_to_dict(
+            params[self._PERSON]['data'])
+        booking_data['booking_id'] = params[self._ARREST_NUMBER]
+        # Infer their release if the agency is a parole agency.
+        if facility is None and parole_agency is not None:
+            booking_data['Custody Status'] = CustodyStatus.RELEASED.value
+            booking_data['Release Reason'] = ReleaseReason.PROBATION.value
+        elif facility:
+            booking_data['Facility'] = facility
+        data = {
+            'booking': booking_data,
+            'charges': content['data'],
+        }
+        data_extractor.extract_and_populate_data(data, ingest_info)
+        return ingest_info
+
+    def get_enum_overrides(self):
+        return {
+            'O': ChargeClass.PROBATION_VIOLATION,
+        }
+
+    def _process_landing_page_and_get_next_task(self, content):
         """Scrapes session token from landing page and creates params for
         first roster request.
 
         Args:
             content: lxml html tree of landing page content
-            params: dict of parameters used for last request
 
         Returns:
             Param dict for first roster request on success or -1 on failure.
@@ -226,10 +261,7 @@ class JailTrackerScraper(BaseScraper):
 
         session_token = None
         try:
-            body_script = html.tostring(content.xpath("//body/div/script")[0],
-                                        encoding='unicode')
-            session_token = re.search(r"JailTracker.Web.Settings.init\('(.*)'",
-                                      body_script).group(1)
+            session_token = self.find_session_token(content)
         except Exception as exception:
             logging.error("Error, could not parse session token from the "
                           "landing page HTML. Error: %s\nPage content:\n\n%s",
@@ -248,8 +280,8 @@ class JailTrackerScraper(BaseScraper):
             self._DATA: {self._RESPONSE_TYPE: self._JSON},
             self._ENDPOINT: roster_request_endpoint,
             self._REQUEST_TARGET: self._ROSTER_REQUEST,
-            self._SCRAPE_TYPE: params[self._SCRAPE_TYPE],
-            self._SESSION_TOKEN: session_token
+            self._SESSION_TOKEN: session_token,
+            self._TASK_TYPE: constants.GET_MORE_TASKS,
         }
 
     def _process_roster_response_and_get_next_tasks(self, response, params):
@@ -288,8 +320,8 @@ class JailTrackerScraper(BaseScraper):
                 self._DATA: {self._RESPONSE_TYPE: self._JSON},
                 self._ENDPOINT: person_request_endpoint,
                 self._REQUEST_TARGET: self._PERSON_REQUEST,
-                self._SCRAPE_TYPE: params[self._SCRAPE_TYPE],
-                self._SESSION_TOKEN: params[self._SESSION_TOKEN]
+                self._SESSION_TOKEN: params[self._SESSION_TOKEN],
+                self._TASK_TYPE: constants.GET_MORE_TASKS,
             })
 
         # If we aren't done reading the roster, request another page
@@ -308,8 +340,8 @@ class JailTrackerScraper(BaseScraper):
                 self._DATA: {self._RESPONSE_TYPE: self._JSON},
                 self._ENDPOINT: roster_request_endpoint,
                 self._REQUEST_TARGET: self._ROSTER_REQUEST,
-                self._SCRAPE_TYPE: params[self._SCRAPE_TYPE],
-                self._SESSION_TOKEN: params[self._SESSION_TOKEN]
+                self._SESSION_TOKEN: params[self._SESSION_TOKEN],
+                self._TASK_TYPE: constants.GET_MORE_TASKS,
             })
 
         return next_tasks
@@ -341,8 +373,8 @@ class JailTrackerScraper(BaseScraper):
             self._ENDPOINT: cases_request_endpoint,
             self._PERSON: response,
             self._REQUEST_TARGET: self._CASES_REQUEST,
-            self._SCRAPE_TYPE: params[self._SCRAPE_TYPE],
-            self._SESSION_TOKEN: params[self._SESSION_TOKEN]
+            self._SESSION_TOKEN: params[self._SESSION_TOKEN],
+            self._TASK_TYPE: constants.GET_MORE_TASKS,
         }
 
     def _process_cases_response_and_get_next_task(self, response, params):
@@ -366,8 +398,7 @@ class JailTrackerScraper(BaseScraper):
 
         return {
             self._CASES: response,
-            # For this request, arrest number must be passed in the request data
-            # and not via the endpoint URL.
+            self._ARREST_NUMBER: params[self._ARREST_NUMBER],
             self._DATA: {
                 "arrestNo": params[self._ARREST_NUMBER],
                 self._RESPONSE_TYPE: self._JSON
@@ -375,8 +406,8 @@ class JailTrackerScraper(BaseScraper):
             self._ENDPOINT: charges_request_endpoint,
             self._PERSON: params[self._PERSON],
             self._REQUEST_TARGET: self._CHARGES_REQUEST,
-            self._SCRAPE_TYPE: params[self._SCRAPE_TYPE],
-            self._SESSION_TOKEN: params[self._SESSION_TOKEN]
+            self._SESSION_TOKEN: params[self._SESSION_TOKEN],
+            self._TASK_TYPE: constants.SCRAPE_DATA,
         }
 
     # Overrides method in GenericScraper to handle JSON responses.
@@ -393,7 +424,6 @@ class JailTrackerScraper(BaseScraper):
         Returns:
             Returns the content of the response on success or -1 on failure.
         """
-
         response_type = post_data.get(self._RESPONSE_TYPE, None)
         if response_type is None:
             logging.error("Missing response type for endpoint %s. Data:\n%s",
@@ -408,7 +438,8 @@ class JailTrackerScraper(BaseScraper):
             return super(JailTrackerScraper, self)._fetch_content(
                 endpoint, post_data)
         if response_type == self._JSON:
-            response = self.fetch_page(endpoint)
+            logging.info('Fetching json content with endpoint: %s', endpoint)
+            response = self.fetch_page(endpoint, post_data=post_data or None)
             if response == -1:
                 return -1
             return json.loads(response.content)
@@ -416,3 +447,64 @@ class JailTrackerScraper(BaseScraper):
         logging.error("Unexpected response type %s for endpoint %s",
                       response_type, endpoint)
         return -1
+
+    def extract_agencies(self, person_data):
+        """Get the list of agencies with jurisdiction over this person. There
+        can be more than one agency with jurisdiction if someone is
+        incarcerated but already has a parole agency assigned.
+        Args:
+            person_data: (list of key/value pairs) The data scraped
+                from the person's detail page.
+        Returns:
+            A tuple where the first entry is the name of the
+            residential facility with custody over this person (or
+            None) and the second entry is the probation or parole
+            office in charge of supervising this person (or None).
+            Returns None on error.
+        """
+
+        def is_parole_agency(agency):
+            return 'parole' in agency.lower()
+
+        facility = None
+        parole_agency = None
+
+        # when multiple agencies are present, 'Field' is None for
+        # agencies after the first, but they are sequential.
+        last_was_agency = False  # if the last named field was an agency
+        for entry in person_data:
+            if (last_was_agency and entry['Field'] is None or
+                    entry['Field'] in ['Agency:', 'Agencies:']):
+                last_was_agency = True
+
+                agency_name = entry['Value']
+                # choose between agency type
+                if is_parole_agency(agency_name):
+                    # repeated names happen
+                    if agency_name == parole_agency:
+                        continue
+                    parole_agency = agency_name
+                else:
+                    facility = agency_name
+
+            else:  # Not an agency
+                last_was_agency = False
+
+        return facility, parole_agency
+
+    def _field_val_pairs_to_dict(self, field_val_pair):
+        """Convert an array of dict entries where each dict consists of only
+        the fields 'Field' and 'Value' to a dictionary with the
+        values of those fields as the keys and values.
+        """
+        items = {}
+        for pair in field_val_pair:
+            field = pair['Field']
+            if field is None:
+                continue
+            if field.endswith(':'):
+                field = field[:-1]
+
+            items[field] = pair['Value']
+
+        return items

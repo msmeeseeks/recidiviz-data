@@ -1,0 +1,210 @@
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>
+
+	Vermont DOC
+
+</title>
+    <!--<meta http-equiv="X-UA-Compatible" content="IE=11" />-->
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="shortcut icon" href="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Content/Images/JTIcons/myfavicon.ico" type="image/x-icon" />
+
+    <link href="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Content/Site.css" rel="stylesheet" type="text/css" />
+      <link href="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/resources/css/ext-all.css" rel="stylesheet" type="text/css" />
+
+
+
+      <link href="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/gridsearch/css/icons.css" rel="stylesheet" type="text/css" />
+      <link href="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/gridsearch/css/Ext.ux.grid.RowActions.css" rel="stylesheet" type="text/css" />
+      <link href="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/gridsearch/css/empty.css" rel="stylesheet" type="text/css" />
+      <link href="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/ux/MultiselectItemSelector-3.0/Multiselect.css" rel="stylesheet" type="text/css" />
+      <link href="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/JailTracker/css/MugshotLineupDataView.css" rel="stylesheet" type="text/css" />
+      <link href="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/Ext.ux.CheckboxCombo/Ext.ux.form.CheckboxCombo.css"  rel="stylesheet" type="text/css" />
+
+	<!-- fix for issue with ext-all.js due to IE 9 error because createContextualFragment is no longer supported -->
+	<!-- this will be added to future extjs versions and this fragment will no longer be required -->
+    <script type="text/javascript">
+	<!--
+        var ROOT = '/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/';
+        if ((typeof Range !== "undefined") && !Range.prototype.createContextualFragment)
+        {
+	        Range.prototype.createContextualFragment = function(html)
+	        {
+		        var frag = document.createDocumentFragment(),
+		        div = document.createElement("div");
+		        frag.appendChild(div);
+		        div.outerHTML = html;
+		        return frag;
+	        };
+	    }
+
+	    if (!String.prototype.format) {
+	        String.prototype.format = function() {
+	            var args = arguments;
+	            return this.replace(/{(\d+)}/g, function(match, number) {
+	                return typeof args[number] != 'undefined'
+                        ? args[number] : match;
+	            });
+	        };
+	    }
+
+	    /*if (typeof Range.prototype.createContextualFragment == "undefined") {
+	        Range.prototype.createContextualFragment = function(html) {
+	            var doc = window.document;
+	            var container = doc.createElement("div");
+	            container.innerHTML = html;
+	            var frag = doc.createDocumentFragment(), n;
+	            while ((n = container.firstChild)) {
+	                frag.appendChild(n);
+	            }
+	            return frag;
+	        };
+	    } */
+
+
+        -->
+    </script>
+
+
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/jquery-1.4.1.js"></script>
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/adapter/jquery/ext-jquery-adapter.js"></script>
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/ext-all.js"></script>
+
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/gridsearch/Ext.ux.grid.Search.js"></script>
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/gridsearch/Ext.ux.grid.RowActions.js"></script>
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/ux/MultiselectItemSelector-3.0/DDView.js"></script>
+
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/ux/MultiselectItemSelector-3.0/Multiselect.js"></script>
+
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/TabCloseMenu.js"></script>
+
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/Ext.ux.Printer/Printer.js"></script>
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/Ext.ux.Printer/renderers/Base.js"></script>
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/Ext.ux.Printer/renderers/DataView.js"></script>
+    <script src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/Ext.ux.CheckboxCombo/Ext.ux.form.CheckboxCombo.min.js" type="text/javascript"></script>
+    <!-- production   -->
+    <script type="text/javascript" src="/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/JailTracker/Production/JailTracker.js"   ></script>
+
+
+    <!-- moved from master end -->
+
+
+
+    <style type="text/css">
+        /* added to make the size of the pagenumber textbox smaller */
+        .x-tbar-page-number
+        {
+            width:30px !important;
+        }
+         ul.x-tab-strip li.x-tab-edge {height: 21px;}
+    </style>
+   <meta http-equiv="Expires" content="0"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+    <meta http-equiv="Cache-Control" content="no-cache"/>
+
+
+
+
+
+</head>
+
+<body>
+    <div id='page' class="page">
+
+
+
+
+
+
+              <!-- style="width:99%;margin-left:auto;margin-right:auto;border-color:#015A85 !Important;border: solid 1px "   -->
+                  <div id="mainForm-div" style="width:99%;margin-left:auto;margin-right:auto;border-color:#015A85;border: solid 1px !Important;"></div>
+
+
+
+<script type="text/javascript">
+
+    Ext.onReady(function() {
+        Ext.util.CSS.swapStyleSheet("theme","/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))//Scripts/ext/resources/css/xtheme-gray.css");
+        Ext.ns('JailTracker.Web');
+        Ext.BLANK_IMAGE_URL ='/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/resources/images/default/s.gif';
+        printPage = 'print.css';
+        if ('False' == 'True') {
+            printPage = 'printOneMugshotPerPage.css';
+        }
+
+        Ext.ux.Printer.BaseRenderer.prototype.stylesheetPath = '/jtclientweb/(S(yznvp4bq2qt42qmqwswr3wqw))/Scripts/ext/plugins/Ext.ux.Printer/' + printPage;
+        Ext.ns('JailTracker');
+        printArrestNumbers = false; // global that is used in DataView.js and frmMugShotLineup.js as a way to communicate between the two
+
+        JailTracker.Web.Settings.init('yznvp4bq2qt42qmqwswr3wqw'
+                                      , 'False' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'False' == 'True' ? true : false
+                                      , '161'
+                                      , '20.00'
+                                      , '0.05'
+                                      , 'False' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'False' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'False' == 'True' ? true : false
+                                      , 'False' == 'True' ? true : false
+                                      , 'False' == 'True' ? true : false
+                                      , 'http://192.168.140.154/OMSReports/' != '' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , '46000'
+                                      , '2'
+                                      , 'True' == 'True' ? true : false
+                                      , 'False' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'False' == 'True' ? true : false
+                                      , 'False' == 'True' ? true : false
+                                      , 'False' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'True' == 'True' ? true : false
+                                      , 'False' == 'True' ? true : false
+                                      , ''
+                                      , 'False' == 'True' ? true : false
+                                      );
+
+        var frmApplication = new JailTracker.Web.frmApplication({ applicationDiv: 'mainForm-div' });
+
+
+
+    });
+</script>
+
+
+
+			          <span style="font-size:large" ><br /><a href="../indexmobile/161" target="_top">Mobile Site</a></span><br />
+
+              <div id="footer">
+                      <span>
+                      <!--If you have reason to believe that any inmate information contained here is inaccurate, please contact this facility.
+                      JailTracker is not responsible for changing any inmate information that is provided by this facility. -->
+                      If you have reason to believe any information contained here is inaccurate, please contact the facility.
+                      Content on this website is determined by the facility; JailTracker is not responsible, and assumes no liability,
+                      for any content or for any improper or incorrect use of the information. In no event shall JailTracker,
+                      InterAct or its parent companies or employees be liable for damages of any kind, arising in any way out of the
+                      use of information available on this website. <a target="_blank" href=../disclaimer/>Click here for JailTracker's full disclaimer</a>
+                      </span>
+                  </div>
+
+
+
+
+
+
+    </div>
+</body>
+</html>

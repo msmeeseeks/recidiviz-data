@@ -1,5 +1,5 @@
 # Recidiviz - a platform for tracking granular recidivism metrics in real time
-# Copyright (C) 2018 Recidiviz, Inc.
+# Copyright (C) 2019 Recidiviz, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,22 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""The ingest portion of the Recidiviz data platform.
-
-This includes infrastructure, logic, and models for ingesting, validating,
-normalizing, and storing records ingested from various criminal justice data
-sources.
+"""us_vt specific regional functionality.
 """
-
-import recidiviz.ingest.us_ar_van_buren
-import recidiviz.ingest.us_co_mesa
-import recidiviz.ingest.us_fl_martin
-import recidiviz.ingest.us_mt_gallatin
-import recidiviz.ingest.us_mo_stone
-import recidiviz.ingest.us_ny
-import recidiviz.ingest.us_nc_guilford
-import recidiviz.ingest.us_pa
-import recidiviz.ingest.us_pa_dauphin
-import recidiviz.ingest.us_pa_greene
-import recidiviz.ingest.us_vt
-import recidiviz.ingest.worker
+from recidiviz.ingest.us_vt import us_vt_scraper
