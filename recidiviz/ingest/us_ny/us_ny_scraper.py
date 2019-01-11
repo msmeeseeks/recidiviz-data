@@ -329,8 +329,14 @@ class UsNyScraper(BaseScraper):
                           "sentence, as it should")
         sentence = sentence_info.person[0].booking[0].charge[0].sentence
 
-        # Handle special case of life sentences.
-        if sentence.max_length.upper().startswith('LIFE'):
+        # Handle empty sentence lengths.
+        empty_length = 'Years,Months,Days'
+        if ''.join(sentence.min_length.split()) == empty_length:
+            sentence.min_length = None
+        if ''.join(sentence.max_length.split()) == empty_length:
+            sentence.max_length = None
+        elif sentence.max_length.upper().startswith('LIFE'):
+            # Handle special case of life sentences.
             sentence.max_length = None
             sentence.is_life = "True"
 
