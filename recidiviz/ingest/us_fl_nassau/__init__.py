@@ -15,24 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""The ingest portion of the Recidiviz data platform.
-
-This includes infrastructure, logic, and models for ingesting, validating,
-normalizing, and storing records ingested from various criminal justice data
-sources.
+"""us_fl_nassau specific regional functionality.
 """
-
-import recidiviz.ingest.us_ar_van_buren
-import recidiviz.ingest.us_co_mesa
-import recidiviz.ingest.us_fl_nassau
-import recidiviz.ingest.us_fl_martin
-import recidiviz.ingest.us_fl_osceola
-import recidiviz.ingest.us_mt_gallatin
-import recidiviz.ingest.us_mo_stone
-import recidiviz.ingest.us_ny
-import recidiviz.ingest.us_nc_guilford
-import recidiviz.ingest.us_pa
-import recidiviz.ingest.us_pa_dauphin
-import recidiviz.ingest.us_pa_greene
-import recidiviz.ingest.us_vt
-import recidiviz.ingest.worker
+from recidiviz.ingest.us_fl_nassau import us_fl_nassau_scraper

@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="generator" content="New World Systems http://www.newworldsystems.com" />
+	<meta name="viewport" content="width=device-width" />
+	<title>Inmate Search</title>
+	<link type="text/css" rel="stylesheet" href="/NewWorld.InmateInquiry/Content/jquery-ui-1.8.7.custom.css" />
+	<link type="text/css" rel="stylesheet" href="/NewWorld.InmateInquiry/Content/Site.css" />
+	<link type="text/css" rel="stylesheet" href="/NewWorld.InmateInquiry/nassau/Inmate/Css" />
+	<script type="text/javascript" src="/NewWorld.InmateInquiry/Content/jquery-1.4.4.min.js"></script>
+	<script type="text/javascript" src="/NewWorld.InmateInquiry/Content/jquery-ui-1.8.7.custom.datepicker.min.js"></script>
+	<script type="text/javascript" src="/NewWorld.InmateInquiry/Content/InmateInquiry.js"></script>
+</head>
+<body id="View_nassau">
+	<div id="SiteContainer">
+		<input type="hidden" id="Base" value="/NewWorld.InmateInquiry/" />
+		<div class="Header">
+			<h1>Nassau County Inmate Inquiry</h1>
+		</div>
+		<div class="Article" id="Inmate_Index">
+			
+<h1>Inmate Search</h1>
+<div class="Search">
+<form action="/NewWorld.InmateInquiry/nassau" method="get">		<div>
+			<ul>
+				<li class="Name">
+					<label for="uxName">Name</label>
+					<input id="uxName" type="text" name="Name" />
+				</li>
+				<li class="SubjectNumber">
+					<label for="uxSubjectNumber">Global Subject Number</label>
+					<input id="uxSubjectNumber" type="text" name="SubjectNumber" />
+				</li>
+				<li class="BookingNumber">
+					<label for="uxBookingNumber">Booking Number</label>
+					<input id="uxBookingNumber" type="text" name="BookingNumber" />
+				</li>
+				<li class="FromDate">
+					<label for="uxBookingFromDate">Booking From Date</label>
+					<input id="uxBookingFromDate" type="text" class="Date" name="BookingFromDate" value="" />
+				</li>
+				<li class="ToDate">
+					<label for="uxBookingToDate">Booking To Date</label>
+					<input id="uxBookingToDate" type="text" class="Date" name="BookingToDate" value="" />
+				</li>
+				<li class="InCustody">
+					<label for="uxInCustody">In Custody</label>
+					<input id="uxInCustody" type="checkbox" name="InCustody" value="True"  title="Currently jailed only" />
+				</li>
+			</ul>
+			<input type="submit" value="Search" />
+		</div>
+</form></div>
+	<div class="Results">
+			<div class="ShowingRecordCount">
+				Showing
+				1
+				to
+				100
+				of
+				6575
+			</div>
+		<div class="Grid">
+<table border="1">
+<thead>
+<tr>
+<th class="Photo">Photo</th>
+<th class="Name">Name</th>
+<th class="InCustody">In Custody</th>
+<th class="Race">Race</th>
+<th class="Gender">Gender</th>
+<th class="Height">Height</th>
+<th class="Weight">Weight</th>
+<th class="MultipleBookings">Multiple Bookings</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="Photo"><img src="" alt="" /></td>
+<td class="Name"><a href="/NewWorld.InmateInquiry/nassau/Inmate/Detail/-1">AARDVARK, ARTHUR</a></td>
+<td class="InCustody"></td>
+<td class="Race">White</td>
+<td class="Gender">Male</td>
+<td class="Height">5&#39; 7&quot;</td>
+<td class="Weight">170.0 lbs</td>
+<td class="MultipleBookings"></td>
+</tr>
+<tr>
+<td class="Photo"><img src="" alt="" /></td>
+<td class="Name"><a href="/NewWorld.InmateInquiry/nassau/Inmate/Detail/-2">AARDVARK, BART</a></td>
+<td class="InCustody"></td>
+<td class="Race">White</td>
+<td class="Gender">Male</td>
+<td class="Height">5&#39; 11&quot;</td>
+<td class="Weight">230.0 lbs</td>
+<td class="MultipleBookings">Yes</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+			<div class="Pager">
+					<a class="First">First</a>
+					<a class="Previous">Previous</a>
+				<form action="/NewWorld.InmateInquiry/nassau" method="get">					<div>
+						<input type="hidden" name="Name" />
+						<input type="hidden" name="SubjectNumber" />
+						<input type="hidden" name="BookingNumber" />
+						<input type="hidden" name="BookingFromDate" value="" />
+						<input type="hidden" name="BookingToDate" value="" />
+						<input type="hidden" name="InCustody" />
+						<select name="Page">
+								<option selected="selected">1</option>
+								<option >2</option>
+								<option >3</option>
+						</select>
+						<input type="submit" value="Go" />
+					</div>
+</form>				<a class="Next" href="/NewWorld.InmateInquiry/nassau?Page=2">Next</a> <a class="Last" href="/NewWorld.InmateInquiry/nassau?Page=66">Last</a>			</div>
+	</div>
+<div class="ContentEnd"></div>
+		</div>
+		<div class="Footer">
+			Brought to you by the Nassau County Sheriff's Office.
+		</div>
+	</div>
+</body>
+</html>

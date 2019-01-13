@@ -15,24 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""The ingest portion of the Recidiviz data platform.
+"""Scraper implementation for us_fl_nassau."""
+from recidiviz.ingest.vendors.newworld.newworld_scraper import NewWorldScraper
 
-This includes infrastructure, logic, and models for ingesting, validating,
-normalizing, and storing records ingested from various criminal justice data
-sources.
-"""
 
-import recidiviz.ingest.us_ar_van_buren
-import recidiviz.ingest.us_co_mesa
-import recidiviz.ingest.us_fl_nassau
-import recidiviz.ingest.us_fl_martin
-import recidiviz.ingest.us_fl_osceola
-import recidiviz.ingest.us_mt_gallatin
-import recidiviz.ingest.us_mo_stone
-import recidiviz.ingest.us_ny
-import recidiviz.ingest.us_nc_guilford
-import recidiviz.ingest.us_pa
-import recidiviz.ingest.us_pa_dauphin
-import recidiviz.ingest.us_pa_greene
-import recidiviz.ingest.us_vt
-import recidiviz.ingest.worker
+class UsFlNassauScraper(NewWorldScraper):
+    """Scraper implementation for us_fl_nassau."""
+    def __init__(self, mapping_filepath=None):
+        super(UsFlNassauScraper, self).__init__('us_fl_nassau')
