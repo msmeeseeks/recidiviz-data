@@ -1,0 +1,22 @@
+key_mappings:
+  MNI NUMBER: person.person_id
+  Birth Date: person.birthdate
+  Race: person.race
+  Sex: person.gender
+  Last Known Address: person.place_of_residence
+  Booking Date: booking.admission_date
+  Release Date: booking.release_date
+
+css_key_mappings:
+  '#WADAPageTitle > h3': person.full_name
+  'td[align="right"] h2': booking.custody_status
+  'a[href^="javascript:ChargeList"]': booking.booking_id
+
+keys_to_ignore:
+  - Height
+  - Weight
+  - Hair
+  - Eyes
+  - Aliases
+  - Release Date
+  - Custody Status
