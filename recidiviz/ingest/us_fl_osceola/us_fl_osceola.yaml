@@ -1,0 +1,23 @@
+key_mappings:
+  Name: person.full_name
+  Race: person.race
+  Sex: person.gender
+  DOB: person.birthdate
+  Inmate ID: person.person_id
+  Booking: booking.booking_id
+
+keys_to_ignore:
+  - Category
+
+  # Column in charge list is progamatically renamed
+  # so it doesnt conflict with first instance
+  - Booking Column
+
+multi_key_mapping:
+  # Booking: booking.booking_id
+  Reference: charge.case_number
+  Bond: bond.amount
+  Statute: charge.statute
+  DSP Date: charge.offense_date
+  Offense: charge.charge_id
+
