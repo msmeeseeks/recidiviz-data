@@ -312,11 +312,11 @@ class UsNyScraper(BaseScraper):
             ingest_info.person[0].ethnicity = Ethnicity.HISPANIC.value
 
         # Get release date, if released
+        release_date_fields = content.xpath('//*[@headers="t1l"]')
         if (ingest_info.person[0].booking[0].custody_status == 'RELEASED' or
                 ingest_info.person[0].booking[0].custody_status ==
-                'DISCHARGED'):
-            release_date_string = content.xpath(
-                '//*[@headers="t1l"]')[0].text.split()[0]
+                'DISCHARGED') and release_date_fields:
+            release_date_string = release_date_fields[0].text.split()[0]
             ingest_info.person[0].booking[0].release_date = release_date_string
 
         sentence_extractor = HtmlDataExtractor(self.sentence_mapping_filepath)

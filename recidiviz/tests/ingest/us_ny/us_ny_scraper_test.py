@@ -35,6 +35,8 @@ _DETAILS_PAGE_WHITE_HISPANIC_HTML = html.fromstring(
     fixtures.as_string('us_ny', 'person_page_white_hispanic.html'))
 _DETAILS_PAGE_BLACK_HISPANIC_HTML = html.fromstring(
     fixtures.as_string('us_ny', 'person_page_black_hispanic.html'))
+_DETAILS_PAGE_NO_RELEASE_HTML = html.fromstring(
+    fixtures.as_string('us_ny', 'person_page_no_release_date.html'))
 _DETAILS_PAGE_LIFE_SENTENCE_HTML = html.fromstring(
     fixtures.as_string('us_ny', 'person_page_life_sentence.html'))
 
@@ -391,3 +393,51 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
 
         self.validate_and_return_populate_data(
             _DETAILS_PAGE_LIFE_SENTENCE_HTML, params, expected, IngestInfo())
+
+    def test_parse_no_release_date(self):
+        expected_sentence = _Sentence(
+            min_length='0008 Years, 04 Months,\n                00 Days',
+            max_length='0025 Years, 00 Months,\n                00 Days')
+        expected = IngestInfo(people=[_Person(
+            birthdate='04/22/1972',
+            bookings=[
+                _Booking(
+                    admission_date='05/10/2013',
+                    charges=[
+                        _Charge(
+                            attempted='True',
+                            charge_class='FELONY',
+                            degree='1ST',
+                            level='TWO',
+                            name='ATT MANSLAUGHTER',
+                            status='SENTENCED',
+                            sentence=expected_sentence,
+                        ),
+                        _Charge(
+                            attempted='False',
+                            charge_class='FELONY',
+                            level='TWO',
+                            name='ARMED ROBBERY',
+                            status='SENTENCED',
+                            sentence=expected_sentence,
+                        )
+                    ],
+                    custody_status='DISCHARGED',
+                    facility='QUEENSBORO',
+                )],
+            gender='MALE',
+            person_id='1234567',
+            race='BLACK',
+            ethnicity='HISPANIC',
+            surname='SIMPSON, BART',
+        )])
+
+        params = {
+            'endpoint': None,
+            'task_type': constants.SCRAPE_DATA,
+            'content': html.tostring(
+                _DETAILS_PAGE_NO_RELEASE_HTML, encoding='unicode'),
+        }
+
+        self.validate_and_return_populate_data(
+            _DETAILS_PAGE_NO_RELEASE_HTML, params, expected, IngestInfo())
