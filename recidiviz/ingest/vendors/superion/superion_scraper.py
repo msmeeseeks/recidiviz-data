@@ -176,12 +176,12 @@ class SuperionScraper(BaseScraper):
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
 
-        if len(ingest_info.person) != 1:
+        if len(ingest_info.people) != 1:
             logging.error("Data extractor didn't find exactly one person as "
                           "it should have")
             return ingest_info
 
-        person = ingest_info.person[0]
+        person = ingest_info.people[0]
 
         person.age = person.age.strip().split()[0]
 
@@ -189,8 +189,8 @@ class SuperionScraper(BaseScraper):
         # contents of the 'Bond Amount' field to contain both the bond
         # type and bond amount. When there is no bond, there is no '$'
         # character, and just the bond type.
-        for booking in person.booking:
-            for charge in booking.charge:
+        for booking in person.bookings:
+            for charge in booking.charges:
                 bond = charge.bond
                 if '$' in bond.amount:  # check for dollar amount present
                     type_and_amount = bond.amount
@@ -201,7 +201,7 @@ class SuperionScraper(BaseScraper):
                     bond.amount = None
 
         # Test if the release date is a projected one
-        for booking in person.booking:
+        for booking in person.bookings:
             if booking.release_date is not None and \
                    'ESTIMATED' in booking.release_date.upper():
                 booking.projected_release_date = \

@@ -46,11 +46,11 @@ class UsFlHendryScraper(BaseScraper):
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
 
-        if len(ingest_info.person) != 1:
+        if len(ingest_info.people) != 1:
             raise Exception("Expected only 1 person on page, but found %i" %
                             len(ingest_info.person))
 
-        person = ingest_info.person[0]
+        person = ingest_info.people[0]
 
         tables = content.cssselect('table')
         for table in tables:
@@ -59,12 +59,12 @@ class UsFlHendryScraper(BaseScraper):
 
                 i = 0
                 for tr in table[1:]:
-                    if len(person.booking) <= i:
+                    if len(person.bookings) <= i:
                         raise Exception("DataExtractor did not create enough "
                                         "bookings. %i expected, %i found" %
                                         (len(table[1:]), len(person.booking)))
 
-                    booking = person.booking[i]
+                    booking = person.bookings[i]
 
                     charge_table = tr.cssselect('table')
                     for charge_td in charge_table[0]:

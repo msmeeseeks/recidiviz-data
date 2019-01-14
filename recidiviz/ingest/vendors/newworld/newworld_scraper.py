@@ -38,12 +38,12 @@ class NewWorldScraper(BaseScraper):
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
 
-        if len(ingest_info.person) != 1:
+        if len(ingest_info.people) != 1:
             raise Exception("Expected exactly one person per page, "
                             "but got %i" % len(ingest_info.person))
 
-        for booking in ingest_info.person[0].booking:
-            for charge in booking.charge:
+        for booking in ingest_info.people[0].bookings:
+            for charge in booking.charges:
                 if charge.bond and charge.bond.bond_id == "No data":
                     charge.bond = None
 

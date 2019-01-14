@@ -80,18 +80,18 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
             birthdate="01/01/1994",
             race="B")
 
-        expected_result.person[0].create_booking().create_arrest(
+        expected_result.people[0].create_booking().create_arrest(
             agency="AAA",
             date="01/01/2018")
         # date="01/01/2018 10:00:00")
 
-        expected_result.person[0].booking[0].create_charge(
+        expected_result.people[0].bookings[0].create_charge(
             statute="FS*893.13(6b)",
             name="CHARGE 1",
             charge_class="Misdemeanor",
         ).create_bond(amount="$0.00")
 
-        expected_result.person[0].booking[0].create_charge(
+        expected_result.people[0].bookings[0].create_charge(
             statute="FS*893.13(6A)",
             name="CHARGE 2",
             charge_class="Unknown"
@@ -106,12 +106,12 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
             birthdate="01/01/1975",
             race="W")
 
-        expected_result.person[1].create_booking().create_arrest(
+        expected_result.people[1].create_booking().create_arrest(
             agency="CCC",
             date="01/01/2018")
         # date="01/01/2018 08:00:00")
 
-        expected_result.person[1].booking[0].create_charge(
+        expected_result.people[1].bookings[0].create_charge(
             statute="FS*893.147",
             name="CHARGE 1",
             charge_class="Felony",

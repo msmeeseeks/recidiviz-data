@@ -80,15 +80,15 @@ class BrooksJeffreyScraper(BaseScraper):
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
 
-        for person in ingest_info.person:
-            if len(person.booking) != 1 or len(person.booking[0].charge) > 1:
+        for person in ingest_info.people:
+            if len(person.bookings) != 1 or len(person.bookings[0].charges) > 1:
                 logging.error("Data extraction did not produce a single "
                               "booking with at most one charge, as it should")
 
-            if person.booking[0].charge:
-                charge_names = person.booking[0].charge[0].name.split('\n')
-                person.booking[0].charge = []
+            if person.bookings[0].charges:
+                charge_names = person.bookings[0].charges[0].name.split('\n')
+                person.bookings[0].charges = []
                 for charge_name in charge_names:
-                    person.booking[0].create_charge(name=charge_name)
+                    person.bookings[0].create_charge(name=charge_name)
 
         return ingest_info

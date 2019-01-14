@@ -290,7 +290,7 @@ class UsNyScraper(BaseScraper):
         ingest_info = booking_extractor.extract_and_populate_data(content,
                                                                   ingest_info)
 
-        if len(ingest_info.person) != 1:
+        if len(ingest_info.people) != 1:
             logging.error("Data extraction did not produce a single person, "
                           "as it should.")
             # TODO This is for debugging issue #483. Remove when that
@@ -298,36 +298,36 @@ class UsNyScraper(BaseScraper):
             logging.error("params: %r", params)
             return None
 
-        if len(ingest_info.person[0].booking) != 1:
+        if len(ingest_info.people[0].bookings) != 1:
             logging.error("Data extraction did not produce a single booking, "
                           "as it should")
             return None
 
         # Handle this special case for the race.
-        if ingest_info.person[0].race == 'WHITE/HISPANIC':
-            ingest_info.person[0].race = Race.WHITE.value
-            ingest_info.person[0].ethnicity = Ethnicity.HISPANIC.value
-        elif ingest_info.person[0].race == 'BLACK/HISPANIC':
-            ingest_info.person[0].race = Race.BLACK.value
-            ingest_info.person[0].ethnicity = Ethnicity.HISPANIC.value
+        if ingest_info.people[0].race == 'WHITE/HISPANIC':
+            ingest_info.people[0].race = Race.WHITE.value
+            ingest_info.people[0].ethnicity = Ethnicity.HISPANIC.value
+        elif ingest_info.people[0].race == 'BLACK/HISPANIC':
+            ingest_info.people[0].race = Race.BLACK.value
+            ingest_info.people[0].ethnicity = Ethnicity.HISPANIC.value
 
         # Get release date, if released
         release_date_fields = content.xpath('//*[@headers="t1l"]')
-        if (ingest_info.person[0].booking[0].custody_status == 'RELEASED' or
-                ingest_info.person[0].booking[0].custody_status ==
+        if (ingest_info.people[0].bookings[0].custody_status == 'RELEASED' or
+                ingest_info.people[0].bookings[0].custody_status ==
                 'DISCHARGED') and release_date_fields:
             release_date_string = release_date_fields[0].text.split()[0]
-            ingest_info.person[0].booking[0].release_date = release_date_string
+            ingest_info.people[0].bookings[0].release_date = release_date_string
 
         sentence_extractor = HtmlDataExtractor(self.sentence_mapping_filepath)
         sentence_info = sentence_extractor.extract_and_populate_data(content)
-        if len(sentence_info.person) != 1 or \
-                len(sentence_info.person[0].booking) != 1 or \
-                len(sentence_info.person[0].booking[0].charge) != 1 or \
-                sentence_info.person[0].booking[0].charge[0].sentence is None:
+        if len(sentence_info.people) != 1 or \
+                len(sentence_info.people[0].bookings) != 1 or \
+                len(sentence_info.people[0].bookings[0].charges) != 1 or \
+                sentence_info.people[0].bookings[0].charges[0].sentence is None:
             logging.error("Data extraction did not produce a single "
                           "sentence, as it should")
-        sentence = sentence_info.person[0].booking[0].charge[0].sentence
+        sentence = sentence_info.people[0].bookings[0].charges[0].sentence
 
         # Handle empty sentence lengths.
         empty_length = 'Years,Months,Days'
@@ -374,7 +374,7 @@ class UsNyScraper(BaseScraper):
             if charge_name.lower().startswith('att'):
                 attempted = 'True'
 
-            ingest_info.person[0].booking[0].create_charge(
+            ingest_info.people[0].bookings[0].create_charge(
                 attempted=attempted,
                 charge_class=ChargeClass.FELONY.value,
                 degree=charge_degree,
