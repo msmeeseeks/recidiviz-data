@@ -158,16 +158,12 @@ class JailTrackerScraper(BaseScraper):
         should return the value as a string.
         """
 
-    def get_initial_endpoint(self):
-        """Returns the initial endpoint to hit on the first call."""
-
-        return self._initial_endpoint
-
-    def get_initial_data(self):
-        """Returns the initial data to send on the first call."""
-
-        # First request will be for landing page, which gives an HTML response.
-        return {self._RESPONSE_TYPE: self._HTML}
+    def get_initial_params(self):
+        # First request is for landing page which gives an HTML response.
+        return {
+            'endpoint': self._initial_endpoint,
+            'post_data': {self._RESPONSE_TYPE: self._HTML},
+        }
 
     def get_more_tasks(self, content, params):
         """Gets more tasks based on the content and params passed in.
@@ -181,10 +177,9 @@ class JailTrackerScraper(BaseScraper):
             A list of param dicts, one for each task we want to run.
         """
 
-        task_type = params.get(self._TASK_TYPE, self.get_initial_task_type())
         next_tasks = []
 
-        if self.is_initial_task(task_type):
+        if self.is_initial_task(params[self._TASK_TYPE]):
             roster_request_params = \
                 self._process_landing_page_and_get_next_task(content)
             if roster_request_params == -1:
@@ -411,7 +406,8 @@ class JailTrackerScraper(BaseScraper):
         }
 
     # Overrides method in GenericScraper to handle JSON responses.
-    def _fetch_content(self, endpoint, post_data=None, json_data=None):
+    def _fetch_content(self, endpoint, headers=None, post_data=None,
+                       json_data=None):
         """Returns the response content, either HTML or JSON.
 
         'post_data' is expected to contain an entry keyed on '_RESPONSE_TYPE',
@@ -436,10 +432,11 @@ class JailTrackerScraper(BaseScraper):
         if response_type == self._HTML:
             # Fall back on GenericScraper behavior.
             return super(JailTrackerScraper, self)._fetch_content(
-                endpoint, post_data)
+                endpoint, headers=headers, post_data=post_data)
         if response_type == self._JSON:
             logging.info('Fetching json content with endpoint: %s', endpoint)
-            response = self.fetch_page(endpoint, post_data=post_data or None)
+            response = self.fetch_page(endpoint, headers=headers,
+                                       post_data=post_data)
             if response == -1:
                 return -1
             return json.loads(response.content)

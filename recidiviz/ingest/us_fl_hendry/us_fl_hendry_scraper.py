@@ -95,14 +95,11 @@ class UsFlHendryScraper(BaseScraper):
         return ingest_info
 
     def get_more_tasks(self, content, params):
-        task_type = params.get('task_type', self.get_initial_task_type())
-        endpoint = params.get('endpoint', self.get_initial_task_type())
-
-        if self.is_initial_task(task_type):
+        if self.is_initial_task(params['task_type']):
             return [self._get_search_page()]
 
         tasks = []
-        tasks.extend(self._get_next_page(content, endpoint))
+        tasks.extend(self._get_next_page(content, params['endpoint']))
         tasks.extend(self._get_profiles(content))
         return tasks
 

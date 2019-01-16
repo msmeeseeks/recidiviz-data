@@ -152,13 +152,12 @@ class SuperionScraper(BaseScraper):
         Returns:
             A list of params containing endpoint and task_type at minimum.
         """
-        task_type = params.get('task_type', self.get_initial_task_type())
         params_list = []
 
-        if self.is_initial_task(task_type):
+        if self.is_initial_task(params['task_type']):
             # If it is our first task, grab the total number of people.
             params_list.append(self._get_num_people_params(content, params))
-        elif self.should_get_more_tasks(task_type):
+        else:
             # Add the next person, if there is one
             params_list.extend(self._get_people_params(content, params))
         return params_list
@@ -226,24 +225,14 @@ class SuperionScraper(BaseScraper):
             return ''.join(text.split()).split(':')[1]
         return None
 
-    def get_initial_endpoint(self):
-        """Returns the initial endpoint to hit on the first call
-        Returns:
-            A string representing the initial endpoint to hit
-        """
-        return self._search_endpoint
-
-    def get_initial_data(self):
-        """Returns the initial data to send on the first call
-        Returns:
-            A dict of data to send in the request.
-        """
-        data = {
-            't': 'ii',
-            '_search': 'false',
-            'rows': '1',
-            'page': '1',
-            'sidx': 'disp_name',
+    def get_initial_params(self):
+        return {
+            'endpoint': self._search_endpoint,
+            'post_data': {
+                't': 'ii',
+                '_search': 'false',
+                'rows': '1',
+                'page': '1',
+                'sidx': 'disp_name',
+            },
         }
-
-        return data

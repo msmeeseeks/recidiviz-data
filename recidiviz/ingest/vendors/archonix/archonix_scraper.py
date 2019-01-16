@@ -218,7 +218,7 @@ class ArchonixScraper(BaseScraper):
         Returns:
             A list of params containing endpoint and task_type at minimum.
         """
-        task_type = params.get('task_type', self.get_initial_task_type())
+        task_type = params['task_type']
         params_list = []
         page_size = scraper_utils.get_value_from_html_tree(
             content, self._page_size_id)
@@ -227,10 +227,10 @@ class ArchonixScraper(BaseScraper):
         if self.is_initial_task(task_type):
             params_list.append(self._get_all_people_params(content))
         # In this case, we need to return more people so scraping can go faster.
-        elif self.should_get_more_tasks(task_type) and page_size == '10':
+        elif page_size == '10':
             params_list.append(self._get_page_size_50_params(content))
         # We can start sending people to be scraped.
-        elif self.should_get_more_tasks(task_type) and page_size == '50':
+        elif page_size == '50':
             # First find all people we need to scrape on this page.
             params_list.extend(self._get_person_params(content))
             # Next check to see if there is another page we can scrape.
@@ -280,12 +280,10 @@ class ArchonixScraper(BaseScraper):
 
     # pylint:disable=unused-argument
 
-    def get_initial_endpoint(self):
-        """Returns the initial endpoint to hit on the first call
-        Returns:
-            A string representing the initial endpoint to hit
-        """
-        return self._initial_endpoint
+    def get_initial_params(self):
+        return {
+            'endpoint': self._initial_endpoint,
+        }
 
     def set_initial_vars(self, content, params):
         """

@@ -66,9 +66,7 @@ class UsPaScraper(BaseScraper):
 
 
     def get_more_tasks(self, content, params):
-        task_type = params.get('task_type', self.get_initial_task_type())
-
-        if self.is_initial_task(task_type):
+        if self.is_initial_task(params['task_type']):
             return self._get_js_params(content)
 
         if 'endpoint' in params and params['endpoint'].endswith('.js'):

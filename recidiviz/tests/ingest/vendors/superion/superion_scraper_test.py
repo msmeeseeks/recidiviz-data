@@ -49,7 +49,11 @@ class SuperionScraperTest(BaseScraperTest, unittest.TestCase):
             'num_people': 916,
         }]
 
-        self.validate_and_return_get_more_tasks(_NUM_PEOPLE_JSON, {},
+        params = {
+            'task_type': constants.INITIAL_TASK_AND_MORE,
+        }
+
+        self.validate_and_return_get_more_tasks(_NUM_PEOPLE_JSON, params,
                                                 expected_result)
 
     def test_get_session_vars(self):

@@ -40,13 +40,11 @@ class BrooksJeffreyScraper(BaseScraper):
         pass
 
     def get_more_tasks(self, content, params):
-        task_type = params.get('task_type', self.get_initial_task_type())
+        content.make_links_absolute(self.get_region().base_url)
+
         params_list = []
-        if self.is_initial_task(task_type) or self.should_get_more_tasks(
-                task_type):
-            content.make_links_absolute(self.get_initial_endpoint())
-            params_list.extend(self._get_person_params(content))
-            params_list.extend(self._get_next_page_if_exists(content))
+        params_list.extend(self._get_person_params(content))
+        params_list.extend(self._get_next_page_if_exists(content))
         return params_list
 
     def _get_next_page_if_exists(self, content):

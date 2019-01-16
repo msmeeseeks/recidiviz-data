@@ -59,8 +59,8 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
 
     def test_get_more_tasks_landing(self):
         params = {
-            'endpoint': self.scraper.get_initial_endpoint(),
             'task_type': constants.INITIAL_TASK_AND_MORE,
+            **self.scraper.get_initial_params()
         }
 
         expected_result = [{

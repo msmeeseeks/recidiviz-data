@@ -58,7 +58,7 @@ class UsFlOsceolaScraper(BaseScraper):
         return ingest_info
 
     def get_more_tasks(self, content, params):
-        task_type = params.get('task_type', self.get_initial_task_type())
+        task_type = params['task_type']
 
         if self.is_initial_task(task_type):
             return [{

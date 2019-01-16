@@ -69,8 +69,12 @@ class TestScraperSearchPage(BaseScraperTest, unittest.TestCase):
             'task_type': 4,
         }]
 
+        params = {
+            'task_type': constants.INITIAL_TASK_AND_MORE,
+        }
+
         self.validate_and_return_get_more_tasks(
-            _SEARCH_PAGE_HTML, {}, expected)
+            _SEARCH_PAGE_HTML, params, expected)
 
 
 class TestScraperSearchResultsPage(BaseScraperTest, unittest.TestCase):

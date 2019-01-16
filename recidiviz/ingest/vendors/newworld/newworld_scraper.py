@@ -51,11 +51,9 @@ class NewWorldScraper(BaseScraper):
 
 
     def get_more_tasks(self, content, params):
-        task_type = params.get('task_type', self.get_initial_task_type())
-
         # print(len(content), content.text_content())
 
-        if self.is_initial_task(task_type):
+        if self.is_initial_task(params['task_type']):
             return [self._get_first_page()]
 
         tasks = []

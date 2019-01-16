@@ -101,12 +101,12 @@ class UsNyScraper(BaseScraper):
         super(UsNyScraper, self).__init__('us_ny')
 
     def get_more_tasks(self, content, params):
-        task_type = params.get('task_type', self.get_initial_task_type())
+        task_type = params['task_type']
         params_list = []
 
         if self.is_initial_task(task_type):
             params_list.append(self._get_first_search_page_params(content))
-        elif self.should_get_more_tasks(task_type):
+        else:
             # Search and disambiguation pages have lists of people to
             # be scraped, person pages do not. Decide here if we're
             # handling a person detail page based on whether a list of
