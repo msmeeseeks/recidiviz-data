@@ -32,9 +32,6 @@ class UsFlMartinScraper(BaseScraper):
 
         super(UsFlMartinScraper, self).__init__('us_fl_martin')
 
-    def set_initial_vars(self, content, params):
-        pass
-
     def populate_data(self, content, params, ingest_info):
         data_extractor = HtmlDataExtractor(self.mapping_filepath)
         ingest_info = data_extractor.extract_and_populate_data(content, \

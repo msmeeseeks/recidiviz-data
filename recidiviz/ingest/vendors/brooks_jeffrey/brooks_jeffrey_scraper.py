@@ -36,9 +36,6 @@ class BrooksJeffreyScraper(BaseScraper):
         self.mapping_filepath = mapping_filepath
         super(BrooksJeffreyScraper, self).__init__(region_name)
 
-    def set_initial_vars(self, content, params):
-        pass
-
     def get_more_tasks(self, content, params):
         content.make_links_absolute(self.get_region().base_url)
 

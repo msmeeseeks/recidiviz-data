@@ -50,9 +50,6 @@ class UsCoMesaScraper(BaseScraper):
     def __init__(self):
         super(UsCoMesaScraper, self).__init__('us_co_mesa')
 
-    def set_initial_vars(self, content, params):
-        pass
-
     def get_more_tasks(self, content, params):
         if self.is_initial_task(params['task_type']):
             return [self._get_all_people_params()]

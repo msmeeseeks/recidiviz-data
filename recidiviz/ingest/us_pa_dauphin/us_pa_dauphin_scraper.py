@@ -26,9 +26,6 @@ class UsPaDauphinScraper(BaseScraper):
     def __init__(self):
         super(UsPaDauphinScraper, self).__init__('us_pa_dauphin')
 
-    def set_initial_vars(self, content, params):
-        pass
-
     def populate_data(self, content, _, __):
         names = content.xpath('//table')[1].xpath('.//font')
 

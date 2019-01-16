@@ -285,15 +285,6 @@ class ArchonixScraper(BaseScraper):
             'endpoint': self._initial_endpoint,
         }
 
-    def set_initial_vars(self, content, params):
-        """
-        Sets initial vars in the params that it will pass on to future scrapes
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-        """
-
     def person_id_is_fuzzy(self):
         """Returns whether or not this scraper generates person ids
 
