@@ -49,13 +49,18 @@ class NewWorldScraper(BaseScraper):
 
         return ingest_info
 
+    def get_initial_params(self):
+        params = {
+            'endpoint': self.get_region().base_url
+                        +"/NewWorld.InmateInquiry/nassau?Page=1",
+            'task_type': constants.GET_MORE_TASKS,
+            'data': {
+                'page': 1
+            }
+        }
+        return params
 
     def get_more_tasks(self, content, params):
-        # print(len(content), content.text_content())
-
-        if self.is_initial_task(params['task_type']):
-            return [self._get_first_page()]
-
         tasks = []
         if params['data']['page'] == 1:
             tasks.extend(self._get_remaining_pages(content))
@@ -84,17 +89,6 @@ class NewWorldScraper(BaseScraper):
                 for e in b:
                     c.append(e)
 
-
-    def _get_first_page(self):
-        params = {
-            'endpoint': self.get_region().base_url
-                        +"/NewWorld.InmateInquiry/nassau?Page=1",
-            'task_type': constants.GET_MORE_TASKS,
-            'data': {
-                'page': 1
-            }
-        }
-        return params
 
     def _get_remaining_pages(self, content):
         tasks = []

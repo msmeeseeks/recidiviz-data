@@ -33,39 +33,25 @@ _DETAILS_HTML = html.fromstring(
 
 
 class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
-    """ Test FL Nassau scaper """
+    """ Test FL Nassau scraper """
 
     def _init_scraper_and_yaml(self):
-        # The scraper to be tested. Required.
         self.scraper = UsFlNassauScraper()
-        # The path to the yaml mapping. Optional.
-        self.yaml = None
 
-    def test_get_more_task(self):
-        content = html.fromstring('navigation page')
+    def test_get_more_tasks(self):
+        content = _SEARCH_RESULTS_HTML
         params = {
-            'endpoint': None,
-            'task_type': constants.INITIAL_TASK,
+            'endpoint': self.scraper.get_region().base_url
+                        + "/NewWorld.InmateInquiry/nassau?Page=1",
+            'task_type': constants.GET_MORE_TASKS,
+            'data': {
+                'page': 1
+            }
         }
         expected = [
             {
                 'endpoint': self.scraper.get_region().base_url
-                            +"/NewWorld.InmateInquiry/nassau?Page=1",
-                'task_type': constants.GET_MORE_TASKS,
-                'data': {
-                    'page': 1
-                }
-            }
-        ]
-
-        self.validate_and_return_get_more_tasks(content, params, expected)
-
-        content = _SEARCH_RESULTS_HTML
-        params = expected[0]
-        expected = [
-            {
-                'endpoint': self.scraper.get_region().base_url
-                            +"/NewWorld.InmateInquiry/nassau?Page=2",
+                            + "/NewWorld.InmateInquiry/nassau?Page=2",
                 'task_type': constants.GET_MORE_TASKS,
                 'data': {
                     'page': 2
@@ -73,7 +59,7 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
             },
             {
                 'endpoint': self.scraper.get_region().base_url
-                            +"/NewWorld.InmateInquiry/nassau?Page=3",
+                            + "/NewWorld.InmateInquiry/nassau?Page=3",
                 'task_type': constants.GET_MORE_TASKS,
                 'data': {
                     'page': 3
@@ -81,19 +67,18 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
             },
             {
                 'endpoint': self.scraper.get_region().base_url
-                            +'/NewWorld.InmateInquiry/nassau/Inmate/Detail/-1',
+                            + '/NewWorld.InmateInquiry/nassau/Inmate/Detail/-1',
                 'task_type': constants.SCRAPE_DATA
             },
             {
                 'endpoint': self.scraper.get_region().base_url
-                            +'/NewWorld.InmateInquiry/nassau/Inmate/Detail/-2',
+                            + '/NewWorld.InmateInquiry/nassau/Inmate/Detail/-2',
                 'task_type': constants.SCRAPE_DATA
             }
 
         ]
 
         self.validate_and_return_get_more_tasks(content, params, expected)
-
 
     def test_populate_data(self):
         content = _DETAILS_HTML
