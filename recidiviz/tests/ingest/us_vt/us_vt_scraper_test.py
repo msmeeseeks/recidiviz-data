@@ -64,9 +64,9 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
         }
 
         expected_result = [{
-            'post_data': {self.scraper._RESPONSE_TYPE: self.scraper._JSON},
             'endpoint': self.roster_endpoint,
             self.scraper._REQUEST_TARGET: self.scraper._ROSTER_REQUEST,
+            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
             self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
             'task_type': constants.GET_MORE_TASKS,
         }]
@@ -77,9 +77,9 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
     def test_get_more_tasks_roster(self):
 
         params = {
-            'post_data': {self.scraper._RESPONSE_TYPE: self.scraper._JSON},
             'endpoint': self.roster_endpoint,
             self.scraper._REQUEST_TARGET: self.scraper._ROSTER_REQUEST,
+            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
             self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
             'task_type': constants.GET_MORE_TASKS,
         }
@@ -99,17 +99,17 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
         expected_result = []
         expected_result.append({
             self.scraper._ARREST_NUMBER: 1,
-            'post_data': {self.scraper._RESPONSE_TYPE: self.scraper._JSON},
             'endpoint': person_endpoint1,
             self.scraper._REQUEST_TARGET: self.scraper._PERSON_REQUEST,
+            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
             self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
             'task_type': constants.GET_MORE_TASKS,
         })
         expected_result.append({
             self.scraper._ARREST_NUMBER: 2,
-            'post_data': {self.scraper._RESPONSE_TYPE: self.scraper._JSON},
             'endpoint': person_endpoint2,
             self.scraper._REQUEST_TARGET: self.scraper._PERSON_REQUEST,
+            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
             self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
             'task_type': constants.GET_MORE_TASKS,
         })
@@ -120,9 +120,9 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
     def test_populate_data_probation(self):
         params = {
             self.scraper._ARREST_NUMBER: 1,
-            'post_data': {self.scraper._RESPONSE_TYPE: self.scraper._JSON},
             'endpoint': 'test',
             self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
+            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
             self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
             'task_type': constants.SCRAPE_DATA,
             self.scraper._PERSON: _PERSON_PROBATION_JSON,
@@ -172,9 +172,9 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
     def test_populate_data_facility(self):
         params = {
             self.scraper._ARREST_NUMBER: 1,
-            'post_data': {self.scraper._RESPONSE_TYPE: self.scraper._JSON},
             'endpoint': 'test',
             self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
+            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
             self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
             'task_type': constants.SCRAPE_DATA,
             self.scraper._PERSON: _PERSON_AGENCIES_JSON,

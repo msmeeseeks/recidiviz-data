@@ -37,7 +37,6 @@ Scraper flow:
 """
 
 import abc
-import json
 import logging
 import re
 import os
@@ -116,17 +115,13 @@ class JailTrackerScraper(BaseScraper):
     _DATA = "post_data"
     # Key in param dict for endpoint requested.
     _ENDPOINT = "endpoint"
-    # Value in data dict for an expected response type of HTML.
-    _HTML = "HTML"
-    # Value in data dict for an expected response type of JSON.
-    _JSON = "JSON"
     # Key in param dict for JSON object for a person.
     _PERSON = "person"
     # Value in param dict for a request targeting the person endpoint.
     _PERSON_REQUEST = "person_request"
     # Key in param dict specifying the type of endpoint requested.
     _REQUEST_TARGET = "request_target"
-    # Key in data dict for the expected response type.
+    # Key in param dict for the expected response type.
     _RESPONSE_TYPE = "response_type"
     # Value in param dict for a request targeting the roster endpoint.
     _ROSTER_REQUEST = "roster_request"
@@ -161,8 +156,8 @@ class JailTrackerScraper(BaseScraper):
     def get_initial_params(self):
         # First request is for landing page which gives an HTML response.
         return {
-            'endpoint': self._initial_endpoint,
-            'post_data': {self._RESPONSE_TYPE: self._HTML},
+            self._ENDPOINT: self._initial_endpoint,
+            self._RESPONSE_TYPE: constants.HTML_RESPONSE_TYPE,
         }
 
     def get_more_tasks(self, content, params):
@@ -272,7 +267,7 @@ class JailTrackerScraper(BaseScraper):
             [self._URL_BASE, roster_request_suffix])
 
         return {
-            self._DATA: {self._RESPONSE_TYPE: self._JSON},
+            self._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
             self._ENDPOINT: roster_request_endpoint,
             self._REQUEST_TARGET: self._ROSTER_REQUEST,
             self._SESSION_TOKEN: session_token,
@@ -312,7 +307,7 @@ class JailTrackerScraper(BaseScraper):
 
             next_tasks.append({
                 self._ARREST_NUMBER: arrest_number,
-                self._DATA: {self._RESPONSE_TYPE: self._JSON},
+                self._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
                 self._ENDPOINT: person_request_endpoint,
                 self._REQUEST_TARGET: self._PERSON_REQUEST,
                 self._SESSION_TOKEN: params[self._SESSION_TOKEN],
@@ -332,7 +327,7 @@ class JailTrackerScraper(BaseScraper):
                 [self._URL_BASE, roster_request_suffix])
 
             next_tasks.append({
-                self._DATA: {self._RESPONSE_TYPE: self._JSON},
+                self._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
                 self._ENDPOINT: roster_request_endpoint,
                 self._REQUEST_TARGET: self._ROSTER_REQUEST,
                 self._SESSION_TOKEN: params[self._SESSION_TOKEN],
@@ -364,7 +359,7 @@ class JailTrackerScraper(BaseScraper):
 
         return {
             self._ARREST_NUMBER: params[self._ARREST_NUMBER],
-            self._DATA: {self._RESPONSE_TYPE: self._JSON},
+            self._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
             self._ENDPOINT: cases_request_endpoint,
             self._PERSON: response,
             self._REQUEST_TARGET: self._CASES_REQUEST,
@@ -396,54 +391,14 @@ class JailTrackerScraper(BaseScraper):
             self._ARREST_NUMBER: params[self._ARREST_NUMBER],
             self._DATA: {
                 "arrestNo": params[self._ARREST_NUMBER],
-                self._RESPONSE_TYPE: self._JSON
             },
             self._ENDPOINT: charges_request_endpoint,
             self._PERSON: params[self._PERSON],
             self._REQUEST_TARGET: self._CHARGES_REQUEST,
+            self._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
             self._SESSION_TOKEN: params[self._SESSION_TOKEN],
             self._TASK_TYPE: constants.SCRAPE_DATA,
         }
-
-    # Overrides method in GenericScraper to handle JSON responses.
-    def _fetch_content(self, endpoint, headers=None, post_data=None,
-                       json_data=None):
-        """Returns the response content, either HTML or JSON.
-
-        'post_data' is expected to contain an entry keyed on '_RESPONSE_TYPE',
-        indicating whether the expected response type is HTML or JSON.
-
-        Args:
-            endpoint: the endpoint to make a request to.
-            post_data: dict of parameters to pass into the request.
-
-        Returns:
-            Returns the content of the response on success or -1 on failure.
-        """
-        response_type = post_data.get(self._RESPONSE_TYPE, None)
-        if response_type is None:
-            logging.error("Missing response type for endpoint %s. Data:\n%s",
-                          endpoint, post_data)
-            return -1
-
-        # Remove response type before passing on data.
-        post_data.pop(self._RESPONSE_TYPE)
-
-        if response_type == self._HTML:
-            # Fall back on GenericScraper behavior.
-            return super(JailTrackerScraper, self)._fetch_content(
-                endpoint, headers=headers, post_data=post_data)
-        if response_type == self._JSON:
-            logging.info('Fetching json content with endpoint: %s', endpoint)
-            response = self.fetch_page(endpoint, headers=headers,
-                                       post_data=post_data)
-            if response == -1:
-                return -1
-            return json.loads(response.content)
-
-        logging.error("Unexpected response type %s for endpoint %s",
-                      response_type, endpoint)
-        return -1
 
     def extract_agencies(self, person_data):
         """Get the list of agencies with jurisdiction over this person. There
