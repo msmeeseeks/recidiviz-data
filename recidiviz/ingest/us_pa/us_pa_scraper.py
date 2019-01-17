@@ -24,9 +24,7 @@ location.
 """
 
 import re
-import json
 from copy import deepcopy
-from lxml import etree
 
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest import constants
@@ -43,14 +41,11 @@ class UsPaScraper(BaseScraper):
 
 
     def populate_data(self, content, params, ingest_info):
-        response = json.loads(content.text)
         # 'inmatedetails' may contain multiple entries if this person has
         #  multiple aliases; the fields are otherwise identical.
-        person = response['inmatedetails'][0]
+        person = content['inmatedetails'][0]
 
         ingest_person = ingest_info.create_person()
-        ingest_person.given_names = person['inm_firstname']
-        ingest_person.surname = person['inm_lastname']
         ingest_person.person_id = person['inmate_number']
         ingest_person.birthdate = person['dob']
         ingest_person.race = person['race']
@@ -78,18 +73,17 @@ class UsPaScraper(BaseScraper):
         raise ValueError('unexpected params: %s' % str(params))
 
     def _get_js_params(self, content):
-        homepage = etree.tostring(content)
-        jsfile_pattern = re.compile(r'src=\"(main\.\w+?\.js)\"')
-        matches = jsfile_pattern.findall(homepage)
+        matches = content.xpath('//script[starts-with(@src, "main.")]')
 
         if len(matches) != 1:
             raise ValueError('Was not able to parse main.*.js filename.')
 
-        js_filename = matches[0]
+        js_filename = matches[0].attrib['src']
         js_url = '{}/{}'.format(self.get_region().base_url, js_filename)
 
         return [{
             'endpoint': js_url,
+            'response_type': constants.TEXT_RESPONSE_TYPE,
             'task_type': constants.GET_MORE_TASKS,
         }]
 
@@ -101,11 +95,10 @@ class UsPaScraper(BaseScraper):
         are limited to 500 results, so if a location has more than 500 people
         we split searches for that location by the county of committment.
         """
-        input_text = etree.tostring(content)
         keyvalue_pattern = re.compile(
             r'\[\[\"value\",\"(\w+)\"\]\].+?\[\"(.+?)\"\]\)\)')
 
-        _, remaining_text = input_text.split('"inmateGender"')
+        _, remaining_text = content.split('"inmateGender"')
         _, remaining_text = remaining_text.split('"inmateRace"')
         _, remaining_text = remaining_text.split('"committingCounty"')
         county_text, remaining_text = remaining_text.split('"currentLocation"')
@@ -117,6 +110,7 @@ class UsPaScraper(BaseScraper):
         params_list = [
             {
                 'endpoint': _SEARCH_RESULTS_PAGE,
+                'response_type': constants.JSON_RESPONSE_TYPE,
                 'task_type': constants.GET_MORE_TASKS,
                 'json': {
                     'age': '',
@@ -180,16 +174,15 @@ class UsPaScraper(BaseScraper):
         the search with the additional 'age' parameter to get fewer results
         per search.
         """
-        response = json.loads(content.text)
-
-        total_records = int(response['pagestats'][0]['totalrecords'])
+        total_records = int(content['pagestats'][0]['totalrecords'])
         if total_records <= 500:
             params_list = [
                 {
                     'endpoint': '{}/{}'.format(_DETAILS_PAGE,
                                                person['inmate_number']),
+                    'response_type': constants.JSON_RESPONSE_TYPE,
                     'task_type': constants.SCRAPE_DATA
-                } for person in response['inmates']
+                } for person in content['inmates']
             ]
             return params_list
 
