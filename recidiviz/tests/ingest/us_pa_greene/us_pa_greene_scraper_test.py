@@ -22,7 +22,7 @@ import pytest
 from lxml import html
 
 from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, \
-    _Booking, _Charge, _Bond
+    _Booking, _Charge, _Bond, _Hold
 from recidiviz.ingest.us_pa_greene.us_pa_greene_scraper import UsPaGreeneScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
@@ -48,7 +48,8 @@ class UsPaGreeneScraperTest(BaseScraperTest, unittest.TestCase):
                     bookings=[
                         _Booking(booking_id='18-00000',
                                  admission_date='01/01/2001 00:00',
-                                 hold='District Court 11-1-11',
+                                 holds=[_Hold(jurisdiction_name=
+                                              'District Court 11-1-11')],
                                  charges=[
                                      _Charge(statute='0000(a)(1)',
                                              name='charge 1',
