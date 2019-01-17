@@ -31,12 +31,12 @@ class UsPaDauphinScraper(BaseScraper):
 
         ingest_info = IngestInfo()
         for name in names:
-            ingest_info.create_person(surname=name.text)
+            ingest_info.create_person(full_name=name.text)
 
         return ingest_info
 
     def get_more_tasks(self, content, params):
         pass
 
-    def get_initial_task_type(self):
-        return constants.SCRAPE_DATA
+    def get_initial_params(self):
+        return {'task_type': constants.SCRAPE_DATA}

@@ -39,11 +39,11 @@ class TestScraperFrontPage(BaseScraperTest, unittest.TestCase):
     def test_website(self):
         expected_result = IngestInfo()
         expected_result.create_person(
-            surname="FIRST_A           ,LAST_A     MIDDLE_A      ")
+            full_name="FIRST_A           ,LAST_A     MIDDLE_A      ")
         expected_result.create_person(
-            surname="FIRST_B                ,LAST_B     MIDDLE_B      ")
+            full_name="FIRST_B                ,LAST_B     MIDDLE_B      ")
         expected_result.create_person(
-            surname="FIRST_C            ,LAST_C     MIDDLE_C         ")
+            full_name="FIRST_C            ,LAST_C     MIDDLE_C         ")
 
         self.validate_and_return_populate_data(
             _FRONT_PAGE_HTML, {}, expected_result)
