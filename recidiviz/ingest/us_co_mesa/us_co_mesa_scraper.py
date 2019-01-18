@@ -93,7 +93,7 @@ class UsCoMesaScraper(BaseScraper):
         # Get person status
         person_status = get_person_status(table[0].text_content())
         if person_status is _PersonStatus.HOLD:
-            booking.create_hold(hold_status=HoldStatus.ACTIVE.value)
+            booking.create_hold(status=HoldStatus.ACTIVE.value)
 
         # Parse rest of data from table
         for row in table[1:]:
