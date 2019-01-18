@@ -1,6 +1,6 @@
 key_mappings:
   DIN (Department Identification Number): person.person_id
-  Inmate Name: person.surname
+  Inmate Name: person.full_name
   Sex: person.gender
   Date of Birth: person.birthdate
   Race / Ethnicity: person.race

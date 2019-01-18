@@ -236,7 +236,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             gender='MALE',
             person_id='1234567',
             race='WHITE',
-            surname='SIMPSON, BART',
+            full_name='SIMPSON, BART',
         )])
 
         params = {
@@ -285,7 +285,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             person_id='1234567',
             race='WHITE',
             ethnicity='HISPANIC',
-            surname='SIMPSON, BART',
+            full_name='SIMPSON, BART',
         )])
 
         params = {
@@ -335,7 +335,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             person_id='1234567',
             race='BLACK',
             ethnicity='HISPANIC',
-            surname='SIMPSON, BART',
+            full_name='SIMPSON, BART',
         )])
 
         params = {
@@ -385,7 +385,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             person_id='1234567',
             race='BLACK',
             ethnicity='HISPANIC',
-            surname='SIMPSON, BART',
+            full_name='SIMPSON, BART',
         )])
 
         params = {
@@ -433,7 +433,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             person_id='1234567',
             race='BLACK',
             ethnicity='HISPANIC',
-            surname='SIMPSON, BART',
+            full_name='SIMPSON, BART',
         )])
 
         params = {
