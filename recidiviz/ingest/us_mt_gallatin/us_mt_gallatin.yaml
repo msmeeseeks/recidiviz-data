@@ -4,7 +4,7 @@ key_mappings:
   Age: person.age
   Race: person.race
   "Booking #": booking.booking_id
-  Committed By: booking.hold
+  Committed By: arrest.agency
   Booking Date-Time: booking.admission_date
 
 css_key_mappings:
