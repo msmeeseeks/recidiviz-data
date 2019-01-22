@@ -16,11 +16,11 @@ keys_to_ignore:
   - Total Bond Amount
   - Prisoner Type # Admission Reason #536
   - Booking Origin
+  - Sentence Date
 
 multi_key_mapping:
   Charge Description: charge.name
   Offense Date: charge.offense_date
-  Sentence Date: sentence.date_imposed
   Sentence Length: [sentence.min_length, sentence.max_length]
   Crime Class: charge.charge_class
   Court Date: charge.next_court_date
