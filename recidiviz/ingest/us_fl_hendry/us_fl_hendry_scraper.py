@@ -19,9 +19,12 @@
 """Scraper implementation for us_fl_hendry."""
 import os
 import re
+from typing import Optional
+
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest import constants
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
 
 
 class UsFlHendryScraper(BaseScraper):
@@ -35,7 +38,8 @@ class UsFlHendryScraper(BaseScraper):
 
         super(UsFlHendryScraper, self).__init__('us_fl_hendry')
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
 
         # Modify duplicate fields so dataextractor can differentiate
         headers = content.xpath("//th/div[text()=\"Release Date:\"]")
@@ -48,7 +52,7 @@ class UsFlHendryScraper(BaseScraper):
 
         if len(ingest_info.people) != 1:
             raise Exception("Expected only 1 person on page, but found %i" %
-                            len(ingest_info.person))
+                            len(ingest_info.people))
 
         person = ingest_info.people[0]
 
@@ -62,37 +66,41 @@ class UsFlHendryScraper(BaseScraper):
                     if len(person.bookings) <= i:
                         raise Exception("DataExtractor did not create enough "
                                         "bookings. %i expected, %i found" %
-                                        (len(table[1:]), len(person.booking)))
+                                        (len(table[1:]), len(person.bookings)))
 
                     booking = person.bookings[i]
 
                     charge_table = tr.cssselect('table')
                     for charge_td in charge_table[0]:
-                        charge_search = re.search(
-                            "Charge:\\W(\\S+\\W*/\\W*.+)\\n" +
-                            "\\W+(.+)\\W+Counts:\\W*" +
-                            "Bond\\WAmount:\\W*(\\d*)\\W*(\\$\\d*)",
-                            charge_td.text_content(), re.I)
-
-                        charge = booking.create_charge()
-                        charge.statute = charge_search.group(1)
-
-                        charge.name = charge_search.group(2)\
-                            .replace('\n', '')\
-                            .replace('\t', '')\
-                            .replace(u'\xa0', u'')\
-                            .strip()
-
-                        if charge.name == '':
-                            charge.name = None
-
-                        if charge_search.group(3):
-                            charge.number_of_counts = charge_search.group(3)
-
-                        charge.create_bond(amount=charge_search.group(4))
+                        self._add_charge(charge_td, booking)
                     i += 1
 
         return ingest_info
+
+    def _add_charge(self, charge_td, booking):
+        charge_search = re.search(
+            "Charge:\\W(\\S+\\W*/\\W*.+)\\n" +
+            "\\W+(.+)\\W+Counts:\\W*" +
+            "Bond\\WAmount:\\W*(\\d*)\\W*(\\$\\d*)",
+            charge_td.text_content(), re.I)
+
+        if charge_search:
+            charge = booking.create_charge()
+            charge.statute = charge_search.group(1)
+
+            charge.name = charge_search.group(2)\
+                .replace('\n', '')\
+                .replace('\t', '')\
+                .replace(u'\xa0', u'')\
+                .strip()
+
+            if charge.name == '':
+                charge.name = None
+
+            if charge_search.group(3):
+                charge.number_of_counts = charge_search.group(3)
+
+            charge.create_bond(amount=charge_search.group(4))
 
     def get_more_tasks(self, content, params):
         if self.is_initial_task(params['task_type']):

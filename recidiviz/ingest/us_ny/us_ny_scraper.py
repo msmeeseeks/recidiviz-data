@@ -44,6 +44,7 @@ Roster scraping procedure:
 import copy
 import logging
 import os
+from typing import Optional
 
 from lxml import html
 
@@ -57,6 +58,7 @@ from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
 
 
 class UsNyScraper(BaseScraper):
@@ -276,7 +278,8 @@ class UsNyScraper(BaseScraper):
 
         return params
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
         """Extracts data from the content passed into an ingest_info object.
         Args:
             content: (html tree) a webpage with the person details.

@@ -36,13 +36,14 @@ Background scraping procedure:
     3. A details page for a person's current booking
 """
 import enum
+from typing import Optional
 
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.common.constants.hold import HoldStatus
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
-from recidiviz.ingest.models.ingest_info import _Bond
+from recidiviz.ingest.models.ingest_info import IngestInfo, _Bond
 
 
 class UsCoMesaScraper(BaseScraper):
@@ -84,7 +85,8 @@ class UsCoMesaScraper(BaseScraper):
 
         return params_list
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
         person = ingest_info.create_person()
         booking = person.create_booking()
 

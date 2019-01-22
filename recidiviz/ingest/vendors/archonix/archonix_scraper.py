@@ -48,11 +48,13 @@ Background scraping procedure:
 """
 
 import re
+from typing import Optional
 
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
 
 
 class ArchonixScraper(BaseScraper):
@@ -237,7 +239,8 @@ class ArchonixScraper(BaseScraper):
             params_list.extend(self._get_next_page_if_exists(content))
         return params_list
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
         """
         Populates the ingest info object from the content and params given
 

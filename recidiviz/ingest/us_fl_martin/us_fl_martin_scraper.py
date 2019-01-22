@@ -17,9 +17,12 @@
 
 """Scraper implementation for us_fl_martin."""
 import os
+from typing import Optional
+
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest import constants
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
 
 class UsFlMartinScraper(BaseScraper):
     """Scraper implementation for us_fl_martin."""
@@ -32,7 +35,8 @@ class UsFlMartinScraper(BaseScraper):
 
         super(UsFlMartinScraper, self).__init__('us_fl_martin')
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
         data_extractor = HtmlDataExtractor(self.mapping_filepath)
         ingest_info = data_extractor.extract_and_populate_data(content, \
             ingest_info)

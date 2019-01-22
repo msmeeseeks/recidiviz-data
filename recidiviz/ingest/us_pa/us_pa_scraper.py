@@ -25,9 +25,11 @@ location.
 
 import re
 from copy import deepcopy
+from typing import Optional
 
-from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest import constants
+from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.models.ingest_info import IngestInfo
 
 _SEARCH_RESULTS_PAGE = 'https://captorapi.cor.pa.gov/InmLocAPI/' + \
     'api/v1/InmateLocator/SearchResults'
@@ -40,7 +42,8 @@ class UsPaScraper(BaseScraper):
         super(UsPaScraper, self).__init__('us_pa')
 
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
         # 'inmatedetails' may contain multiple entries if this person has
         #  multiple aliases; the fields are otherwise identical.
         person = content['inmatedetails'][0]

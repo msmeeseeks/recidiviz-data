@@ -17,9 +17,12 @@
 
 """Scraper implementation for us_fl_osceola."""
 import os
+from typing import Optional
+
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
 
 class UsFlOsceolaScraper(BaseScraper):
     """Scraper implementation for us_fl_osceola."""
@@ -32,7 +35,8 @@ class UsFlOsceolaScraper(BaseScraper):
 
         super(UsFlOsceolaScraper, self).__init__('us_fl_osceola')
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
 
         # Modify table column title
         headers = content.xpath("//th[text()=\"Booking\"]")
@@ -45,15 +49,16 @@ class UsFlOsceolaScraper(BaseScraper):
 
         if len(ingest_info.people) != 1:
             raise Exception("Expected exactly one person per page, "
-                            "but got %i" % len(ingest_info.person))
+                            "but got %i" % len(ingest_info.people))
 
         # Split statute and charge name
         for booking in ingest_info.people[0].bookings:
             for charge in booking.charges:
-                s = charge.statute.split(' - ')
-                if len(s) == 2:
-                    charge.statute = s[0]
-                    charge.name = s[1]
+                if charge.statute:
+                    s = charge.statute.split(' - ')
+                    if len(s) == 2:
+                        charge.statute = s[0]
+                        charge.name = s[1]
 
         return ingest_info
 

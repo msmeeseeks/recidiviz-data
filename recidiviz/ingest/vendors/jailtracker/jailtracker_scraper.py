@@ -38,16 +38,18 @@ Scraper flow:
 
 import abc
 import logging
-import re
 import os
+import re
+from typing import Optional
+
 from lxml import html
 
 from recidiviz.common.constants.booking import CustodyStatus, ReleaseReason
 from recidiviz.common.constants.charge import ChargeClass
-from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
-
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
 
 
 class JailTrackerScraper(BaseScraper):
@@ -205,7 +207,8 @@ class JailTrackerScraper(BaseScraper):
         return re.search(r"JailTracker.Web.Settings.init\('(.*)'",
                          body_script).group(1)
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
         """
         Populates the ingest info object from the content and params given
 

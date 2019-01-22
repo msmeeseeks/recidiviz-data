@@ -36,11 +36,13 @@ import copy
 import json
 import logging
 import os
+from typing import Optional
 
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
 
 
 class SuperionScraper(BaseScraper):
@@ -162,7 +164,8 @@ class SuperionScraper(BaseScraper):
             params_list.extend(self._get_people_params(content, params))
         return params_list
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
         """
         Populates the ingest info object from the content and params given
 
@@ -182,7 +185,8 @@ class SuperionScraper(BaseScraper):
 
         person = ingest_info.people[0]
 
-        person.age = person.age.strip().split()[0]
+        if person.age:
+            person.age = person.age.strip().split()[0]
 
         # Separate bond type and amount. Superion overloads the
         # contents of the 'Bond Amount' field to contain both the bond
@@ -190,14 +194,18 @@ class SuperionScraper(BaseScraper):
         # character, and just the bond type.
         for booking in person.bookings:
             for charge in booking.charges:
-                bond = charge.bond
-                if '$' in bond.amount:  # check for dollar amount present
-                    type_and_amount = bond.amount
-                    bond.bond_type = ' '.join(type_and_amount.split('$')[:-1])
-                    bond.amount = type_and_amount.split('$')[-1]
-                else:  # just a bond type, no amount
-                    bond.bond_type = bond.amount
-                    bond.amount = None
+                if charge.bond:
+                    bond = charge.bond
+                    if bond.amount:
+                        # check for dollar amount present
+                        if '$' in bond.amount:
+                            type_and_amount = bond.amount
+                            bond.bond_type = ' '.join(
+                                type_and_amount.split('$')[:-1])
+                            bond.amount = type_and_amount.split('$')[-1]
+                        else:  # just a bond type, no amount
+                            bond.bond_type = bond.amount
+                            bond.amount = None
 
         # Test if the release date is a projected one
         for booking in person.bookings:

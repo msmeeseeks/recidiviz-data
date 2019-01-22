@@ -20,10 +20,12 @@
 
 import logging
 import os
+from typing import Optional
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
 
 
 class BrooksJeffreyScraper(BaseScraper):
@@ -70,7 +72,8 @@ class BrooksJeffreyScraper(BaseScraper):
             })
         return params_list
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
         data_extractor = HtmlDataExtractor(self.mapping_filepath)
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
@@ -81,9 +84,11 @@ class BrooksJeffreyScraper(BaseScraper):
                               "booking with at most one charge, as it should")
 
             if person.bookings[0].charges:
-                charge_names = person.bookings[0].charges[0].name.split('\n')
-                person.bookings[0].charges = []
-                for charge_name in charge_names:
-                    person.bookings[0].create_charge(name=charge_name)
+                charge_names_raw = person.bookings[0].charges[0].name
+                if charge_names_raw:
+                    charge_names = charge_names_raw.split('\n')
+                    person.bookings[0].charges = []
+                    for charge_name in charge_names:
+                        person.bookings[0].create_charge(name=charge_name)
 
         return ingest_info

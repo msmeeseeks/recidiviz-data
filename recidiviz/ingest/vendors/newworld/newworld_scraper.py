@@ -17,9 +17,12 @@
 
 """Scraper implementation for NewWorld vendor."""
 import os
+from typing import Optional
+
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest import constants
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
 
 class NewWorldScraper(BaseScraper):
     """ NewWorld Vendor scraper """
@@ -30,7 +33,8 @@ class NewWorldScraper(BaseScraper):
         self.mapping_filepath = mapping_filepath
         super(NewWorldScraper, self).__init__(region_name)
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, params,
+                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
         # Bonds and charges are split in two tables. Merging them together
         self._merge_charge_and_bonds(content)
 
@@ -40,7 +44,7 @@ class NewWorldScraper(BaseScraper):
 
         if len(ingest_info.people) != 1:
             raise Exception("Expected exactly one person per page, "
-                            "but got %i" % len(ingest_info.person))
+                            "but got %i" % len(ingest_info.people))
 
         for booking in ingest_info.people[0].bookings:
             for charge in booking.charges:
