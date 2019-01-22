@@ -45,12 +45,10 @@ TABLE_EXPORT_QUERY = (
     '\\copy (SELECT ROW_TO_JSON(row) FROM '
     '(SELECT {columns} FROM {table}) row) TO {table}_export.json;')
 
-TABLE_EXPORT_QUERIES = [
-    TABLE_EXPORT_QUERY.format(columns=', '.join(columns), table=table)
+TABLE_EXPORT_QUERIES = {
+    table: TABLE_EXPORT_QUERY.format(columns=', '.join(columns), table=table)
     for table, columns in TABLE_COLUMNS_TO_EXPORT.items()
-]
-
-TABLE_EXPORT_QUERY_STRING = '\n'.join(TABLE_EXPORT_QUERIES)
+}
 
 TABLE_EXPORT_SCHEMA = {
     table.name: [
@@ -63,11 +61,13 @@ TABLE_EXPORT_SCHEMA = {
     for table in TABLES_TO_EXPORT
 }
 
+
 if __name__ == '__main__':
     import json
 
-    with open('export_tables.sql', 'w') as output_file:
-        output_file.write(TABLE_EXPORT_QUERY_STRING)
+    for table, query in TABLE_EXPORT_QUERIES.items():
+        with open('{}_export.sql'.format(table), 'w') as output_file:
+            output_file.write('{}\n'.format(query))
 
     for table, schema in TABLE_EXPORT_SCHEMA.items():
         with open('{}_schema.json'.format(table), 'w') as output_file:
