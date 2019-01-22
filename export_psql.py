@@ -27,8 +27,10 @@ TABLES_TO_EXPORT = [
 
 TABLES_TO_EXPORT = [table.__table__ for table in TABLES_TO_EXPORT]
 
-ALL_TABLE_COLUMNS = {table.name: [column.name for column in table.columns]
-                     for table in TABLES_TO_EXPORT}
+ALL_TABLE_COLUMNS = {
+    table.name: [column.name for column in table.columns]
+    for table in TABLES_TO_EXPORT
+}
 
 COLUMNS_TO_EXCLUDE = {
     'person': ['full_name'],
@@ -43,7 +45,8 @@ TABLE_COLUMNS_TO_EXPORT = {
 
 TABLE_EXPORT_QUERY = (
     '\\copy (SELECT ROW_TO_JSON(row) FROM '
-    '(SELECT {columns} FROM {table}) row) TO {table}_export.json;')
+    '(SELECT {columns} FROM {table}) row) TO {table}_export.json;'
+)
 
 TABLE_EXPORT_QUERIES = {
     table: TABLE_EXPORT_QUERY.format(columns=', '.join(columns), table=table)
