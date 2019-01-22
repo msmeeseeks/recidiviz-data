@@ -19,12 +19,13 @@
 """Scraper implementation for us_fl_hendry."""
 import os
 import re
-from typing import Optional
+from typing import List, Optional, Set
 
-from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest import constants
+from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 
 
 class UsFlHendryScraper(BaseScraper):
@@ -38,7 +39,7 @@ class UsFlHendryScraper(BaseScraper):
 
         super(UsFlHendryScraper, self).__init__('us_fl_hendry')
 
-    def populate_data(self, content, params,
+    def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[IngestInfo]:
 
         # Modify duplicate fields so dataextractor can differentiate
@@ -102,24 +103,23 @@ class UsFlHendryScraper(BaseScraper):
 
             charge.create_bond(amount=charge_search.group(4))
 
-    def get_more_tasks(self, content, params):
-        if self.is_initial_task(params['task_type']):
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
+        if self.is_initial_task(task.task_type):
             return [self._get_search_page()]
 
         tasks = []
-        tasks.extend(self._get_next_page(content, params['endpoint']))
+        tasks.extend(self._get_next_page(content, task.endpoint))
         tasks.extend(self._get_profiles(content))
         return tasks
 
-    def _get_search_page(self):
-        return {
-            'endpoint': self.get_region().base_url +
-                        "/inmate_search/INMATE_Results.php",
+    def _get_search_page(self) -> Task:
+        return Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.get_region().base_url +
+            "/inmate_search/INMATE_Results.php",
+        )
 
-            'task_type': constants.GET_MORE_TASKS
-        }
-
-    def _get_next_page(self, content, endpoint):
+    def _get_next_page(self, content, endpoint) -> List[Task]:
         next_button = content.cssselect('[title="Next"]')
         if next_button:
             next_endpoint = self.get_region().base_url + \
@@ -129,25 +129,25 @@ class UsFlHendryScraper(BaseScraper):
                 # the last page
                 return []
 
-            return [{
-                'endpoint': next_endpoint,
-                'task_type': constants.GET_MORE_TASKS
-            }]
+            return [Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=next_endpoint,
+            )]
 
         return []
 
-    def _get_profiles(self, content):
+    def _get_profiles(self, content) -> List[Task]:
         link_elms = content.cssselect('td.WADAResultsTableCell > a')
 
         tasks = []
-        links = []
+        links: Set[str] = set()
         for elm in link_elms:
             if elm.get('href') not in links:
-                links.append(elm.get('href'))
-                tasks.append({
-                    'endpoint': self.get_region().base_url +
-                                '/inmate_search/' + elm.get('href'),
-                    'task_type': constants.SCRAPE_DATA
-                })
+                links.add(elm.get('href'))
+                tasks.append(Task(
+                    task_type=constants.TaskType.SCRAPE_DATA,
+                    endpoint=self.get_region().base_url +
+                    '/inmate_search/' + elm.get('href'),
+                ))
 
         return tasks

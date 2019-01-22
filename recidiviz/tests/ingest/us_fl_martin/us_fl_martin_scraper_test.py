@@ -21,6 +21,7 @@ from lxml import html
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 from recidiviz.tests.ingest import fixtures
 from recidiviz.ingest.us_fl_martin.us_fl_martin_scraper \
@@ -44,31 +45,27 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
         # after navigation. Chain multiple calls to
         # |validate_and_return_get_more_tasks| together if necessary.
         content = ""
-        params = {
-            'endpoint': None,
-            'task_type': constants.INITIAL_TASK,
-        }
+        task = Task(
+            task_type=constants.TaskType.INITIAL,
+            endpoint=None,
+        )
 
         endpoint = self.scraper.get_region().base_url + '?RunReport=Run+Report'
         expected_result = [
-            {
-                'endpoint': endpoint,
-                'task_type': constants.SCRAPE_DATA
-            }
+            Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint=endpoint,
+            )
         ]
 
         self.validate_and_return_get_more_tasks(
-            content, params, expected_result)
+            content, task, expected_result)
 
     def test_populate_data(self):
         # Tests scraping data. Fill in |content| and |params| with the state of
         # the page containing person data, and |expected_result| with the
         # IngestInfo objects that should be scraped from the page.
         content = _REPORT_PAGE_HTML
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-        }
         expected_result = IngestInfo()
 
         expected_result.create_person(
@@ -117,5 +114,4 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
             charge_class="Felony",
         ).create_bond(amount="$500.00")
 
-        self.validate_and_return_populate_data(
-            content, params, expected_result)
+        self.validate_and_return_populate_data(content, expected_result)

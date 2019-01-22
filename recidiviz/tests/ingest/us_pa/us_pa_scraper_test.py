@@ -49,5 +49,4 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
             ]
         ), ])
 
-        self.validate_and_return_populate_data(
-            _DETAILS_PAGE_HTML, {}, expected, IngestInfo())
+        self.validate_and_return_populate_data(_DETAILS_PAGE_HTML, expected)

@@ -41,6 +41,7 @@ import logging
 import os
 import re
 from typing import Optional
+from typing import List
 
 from lxml import html
 
@@ -50,6 +51,7 @@ from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 
 
 class JailTrackerScraper(BaseScraper):
@@ -113,24 +115,16 @@ class JailTrackerScraper(BaseScraper):
     _CASES_REQUEST = "cases_request"
     # Value in param dict for a request targeting the charges endpoint.
     _CHARGES_REQUEST = "charges_request"
-    # Key in param dict for data dict passed to _fetch_content.
-    _DATA = "post_data"
-    # Key in param dict for endpoint requested.
-    _ENDPOINT = "endpoint"
     # Key in param dict for JSON object for a person.
     _PERSON = "person"
     # Value in param dict for a request targeting the person endpoint.
     _PERSON_REQUEST = "person_request"
     # Key in param dict specifying the type of endpoint requested.
     _REQUEST_TARGET = "request_target"
-    # Key in param dict for the expected response type.
-    _RESPONSE_TYPE = "response_type"
     # Value in param dict for a request targeting the roster endpoint.
     _ROSTER_REQUEST = "roster_request"
     # Key in param dict for session token.
     _SESSION_TOKEN = "session_token"
-    # Key in param dict for task type.
-    _TASK_TYPE = "task_type"
 
     def __init__(self, region_name, yaml_file=None):
         super(JailTrackerScraper, self).__init__(region_name)
@@ -155,14 +149,15 @@ class JailTrackerScraper(BaseScraper):
         should return the value as a string.
         """
 
-    def get_initial_params(self):
+    def get_initial_task(self) -> Task:
         # First request is for landing page which gives an HTML response.
-        return {
-            self._ENDPOINT: self._initial_endpoint,
-            self._RESPONSE_TYPE: constants.HTML_RESPONSE_TYPE,
-        }
+        return Task(
+            task_type=constants.TaskType.INITIAL_AND_MORE,
+            endpoint=self._initial_endpoint,
+            response_type=constants.ResponseType.HTML,
+        )
 
-    def get_more_tasks(self, content, params):
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
         """Gets more tasks based on the content and params passed in.
 
         Args:
@@ -174,31 +169,26 @@ class JailTrackerScraper(BaseScraper):
             A list of param dicts, one for each task we want to run.
         """
 
-        next_tasks = []
-
-        if self.is_initial_task(params[self._TASK_TYPE]):
+        if self.is_initial_task(task.task_type):
             roster_request_params = \
                 self._process_landing_page_and_get_next_task(content)
-            if roster_request_params == -1:
-                return -1
-            next_tasks.append(roster_request_params)
+            if roster_request_params is None:
+                return []
+            return [roster_request_params]
 
-        elif params[self._REQUEST_TARGET] == self._ROSTER_REQUEST:
-            next_tasks.extend(
-                self._process_roster_response_and_get_next_tasks(
-                    content, params))
+        if task.custom[self._REQUEST_TARGET] == self._ROSTER_REQUEST:
+            return self._process_roster_response_and_get_next_tasks(
+                content, task)
 
-        elif params[self._REQUEST_TARGET] == self._PERSON_REQUEST:
-            next_tasks.append(
-                self._process_person_response_and_get_next_task(
-                    content, params))
+        if task.custom[self._REQUEST_TARGET] == self._PERSON_REQUEST:
+            return [self._process_person_response_and_get_next_task(
+                content, task)]
 
-        elif params[self._REQUEST_TARGET] == self._CASES_REQUEST:
-            next_tasks.append(
-                self._process_cases_response_and_get_next_task(
-                    content, params))
+        if task.custom[self._REQUEST_TARGET] == self._CASES_REQUEST:
+            return [self._process_cases_response_and_get_next_task(
+                content, task)]
 
-        return next_tasks
+        return []
 
     def find_session_token(self, content):
         """Finds the session token of the page given the content."""
@@ -207,7 +197,7 @@ class JailTrackerScraper(BaseScraper):
         return re.search(r"JailTracker.Web.Settings.init\('(.*)'",
                          body_script).group(1)
 
-    def populate_data(self, content, params,
+    def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[IngestInfo]:
         """
         Populates the ingest info object from the content and params given
@@ -219,10 +209,10 @@ class JailTrackerScraper(BaseScraper):
         """
         data_extractor = JsonDataExtractor(self.yaml)
         facility, parole_agency = self.extract_agencies(
-            params[self._PERSON]['data'])
+            task.custom[self._PERSON]['data'])
         booking_data = self._field_val_pairs_to_dict(
-            params[self._PERSON]['data'])
-        booking_data['booking_id'] = params[self._ARREST_NUMBER]
+            task.custom[self._PERSON]['data'])
+        booking_data['booking_id'] = task.custom[self._ARREST_NUMBER]
         # Infer their release if the agency is a parole agency.
         if facility is None and parole_agency is not None:
             booking_data['Custody Status'] = CustodyStatus.RELEASED.value
@@ -241,7 +231,8 @@ class JailTrackerScraper(BaseScraper):
             'O': ChargeClass.PROBATION_VIOLATION,
         }
 
-    def _process_landing_page_and_get_next_task(self, content):
+    def _process_landing_page_and_get_next_task(
+            self, content) -> Optional[Task]:
         """Scrapes session token from landing page and creates params for
         first roster request.
 
@@ -260,7 +251,7 @@ class JailTrackerScraper(BaseScraper):
                           "landing page HTML. Error: %s\nPage content:\n\n%s",
                           exception, content)
             logging.error(exception)
-            return -1
+            return None
 
         roster_request_suffix = self._ROSTER_REQUEST_SUFFIX_TEMPLATE.format(
             session=session_token,
@@ -269,15 +260,18 @@ class JailTrackerScraper(BaseScraper):
         roster_request_endpoint = "/".join(
             [self._URL_BASE, roster_request_suffix])
 
-        return {
-            self._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-            self._ENDPOINT: roster_request_endpoint,
-            self._REQUEST_TARGET: self._ROSTER_REQUEST,
-            self._SESSION_TOKEN: session_token,
-            self._TASK_TYPE: constants.GET_MORE_TASKS,
-        }
+        return Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=roster_request_endpoint,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self._REQUEST_TARGET: self._ROSTER_REQUEST,
+                self._SESSION_TOKEN: session_token,
+            },
+        )
 
-    def _process_roster_response_and_get_next_tasks(self, response, params):
+    def _process_roster_response_and_get_next_tasks(
+            self, response, task: Task) -> List[Task]:
         """Returns next tasks from a single roster response.
 
         One task will be created for each person in the response. Additionally,
@@ -303,24 +297,26 @@ class JailTrackerScraper(BaseScraper):
             arrest_number = roster_entry["ArrestNo"]
 
             person_request_suffix = self._PERSON_REQUEST_SUFFIX_TEMPLATE.format(
-                session=params[self._SESSION_TOKEN],
+                session=task.custom[self._SESSION_TOKEN],
                 arrest=arrest_number)
             person_request_endpoint = "/".join(
                 [self._URL_BASE, person_request_suffix])
 
-            next_tasks.append({
-                self._ARREST_NUMBER: arrest_number,
-                self._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-                self._ENDPOINT: person_request_endpoint,
-                self._REQUEST_TARGET: self._PERSON_REQUEST,
-                self._SESSION_TOKEN: params[self._SESSION_TOKEN],
-                self._TASK_TYPE: constants.GET_MORE_TASKS,
-            })
+            next_tasks.append(Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=person_request_endpoint,
+                response_type=constants.ResponseType.JSON,
+                custom={
+                    self._ARREST_NUMBER: arrest_number,
+                    self._REQUEST_TARGET: self._PERSON_REQUEST,
+                    self._SESSION_TOKEN: task.custom[self._SESSION_TOKEN],
+                },
+            ))
 
         # If we aren't done reading the roster, request another page
         if response["totalCount"] > max_index_present:
             roster_request_suffix = self._ROSTER_REQUEST_SUFFIX_TEMPLATE.format(
-                session=params[self._SESSION_TOKEN],
+                session=task.custom[self._SESSION_TOKEN],
                 # max_index_present doesn't need to be incremented because the
                 # returned RowIndex is 1-based while the index in the request
                 # is 0-based.
@@ -329,17 +325,20 @@ class JailTrackerScraper(BaseScraper):
             roster_request_endpoint = "/".join(
                 [self._URL_BASE, roster_request_suffix])
 
-            next_tasks.append({
-                self._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-                self._ENDPOINT: roster_request_endpoint,
-                self._REQUEST_TARGET: self._ROSTER_REQUEST,
-                self._SESSION_TOKEN: params[self._SESSION_TOKEN],
-                self._TASK_TYPE: constants.GET_MORE_TASKS,
-            })
+            next_tasks.append(Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=roster_request_endpoint,
+                response_type=constants.ResponseType.JSON,
+                custom={
+                    self._REQUEST_TARGET: self._ROSTER_REQUEST,
+                    self._SESSION_TOKEN: task.custom[self._SESSION_TOKEN],
+                },
+            ))
 
         return next_tasks
 
-    def _process_person_response_and_get_next_task(self, response, params):
+    def _process_person_response_and_get_next_task(
+            self, response, task: Task) -> Task:
         """Creates cases request task for the person provided in the response.
 
         The returned params will also include the JSON person object from the
@@ -355,22 +354,25 @@ class JailTrackerScraper(BaseScraper):
         """
 
         cases_request_suffix = self._CASES_REQUEST_SUFFIX_TEMPLATE.format(
-            session=params[self._SESSION_TOKEN],
-            arrest=params[self._ARREST_NUMBER])
+            session=task.custom[self._SESSION_TOKEN],
+            arrest=task.custom[self._ARREST_NUMBER])
         cases_request_endpoint = "/".join(
             [self._URL_BASE, cases_request_suffix])
 
-        return {
-            self._ARREST_NUMBER: params[self._ARREST_NUMBER],
-            self._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-            self._ENDPOINT: cases_request_endpoint,
-            self._PERSON: response,
-            self._REQUEST_TARGET: self._CASES_REQUEST,
-            self._SESSION_TOKEN: params[self._SESSION_TOKEN],
-            self._TASK_TYPE: constants.GET_MORE_TASKS,
-        }
+        return Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=cases_request_endpoint,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self._ARREST_NUMBER: task.custom[self._ARREST_NUMBER],
+                self._PERSON: response,
+                self._REQUEST_TARGET: self._CASES_REQUEST,
+                self._SESSION_TOKEN: task.custom[self._SESSION_TOKEN],
+            },
+        )
 
-    def _process_cases_response_and_get_next_task(self, response, params):
+    def _process_cases_response_and_get_next_task(
+            self, response, task: Task) -> Task:
         """Creates charges request task for the person provided in params.
 
         The returned params will also include the JSON objects for both person
@@ -385,23 +387,25 @@ class JailTrackerScraper(BaseScraper):
         """
 
         charges_request_suffix = self._CHARGES_REQUEST_SUFFIX_TEMPLATE.format(
-            session=params[self._SESSION_TOKEN])
+            session=task.custom[self._SESSION_TOKEN])
         charges_request_endpoint = "/".join(
             [self._URL_BASE, charges_request_suffix])
 
-        return {
-            self._CASES: response,
-            self._ARREST_NUMBER: params[self._ARREST_NUMBER],
-            self._DATA: {
-                "arrestNo": params[self._ARREST_NUMBER],
+        return Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint=charges_request_endpoint,
+            response_type=constants.ResponseType.JSON,
+            post_data={
+                "arrestNo": task.custom[self._ARREST_NUMBER],
             },
-            self._ENDPOINT: charges_request_endpoint,
-            self._PERSON: params[self._PERSON],
-            self._REQUEST_TARGET: self._CHARGES_REQUEST,
-            self._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-            self._SESSION_TOKEN: params[self._SESSION_TOKEN],
-            self._TASK_TYPE: constants.SCRAPE_DATA,
-        }
+            custom={
+                self._CASES: response,
+                self._ARREST_NUMBER: task.custom[self._ARREST_NUMBER],
+                self._PERSON: task.custom[self._PERSON],
+                self._REQUEST_TARGET: self._CHARGES_REQUEST,
+                self._SESSION_TOKEN: task.custom[self._SESSION_TOKEN],
+            },
+        )
 
     def extract_agencies(self, person_data):
         """Get the list of agencies with jurisdiction over this person. There

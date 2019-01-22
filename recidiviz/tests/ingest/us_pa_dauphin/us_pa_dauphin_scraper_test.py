@@ -46,4 +46,4 @@ class TestScraperFrontPage(BaseScraperTest, unittest.TestCase):
             full_name="FIRST_C            ,LAST_C     MIDDLE_C         ")
 
         self.validate_and_return_populate_data(
-            _FRONT_PAGE_HTML, {}, expected_result)
+            _FRONT_PAGE_HTML, expected_result)

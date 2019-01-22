@@ -32,17 +32,16 @@ Background scraping procedure:
     3. A request for each person.
 """
 
-import copy
 import json
 import logging
 import os
-from typing import Optional
+from typing import List, Optional
 
-from recidiviz.ingest import constants
-from recidiviz.ingest import scraper_utils
+from recidiviz.ingest import constants, scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 
 
 class SuperionScraper(BaseScraper):
@@ -88,7 +87,7 @@ class SuperionScraper(BaseScraper):
 
         return data
 
-    def _get_num_people_params(self, content, params):
+    def _get_num_people_task(self, content) -> Task:
         """Returns the params needed to start scraping people.
 
         Args:
@@ -102,15 +101,15 @@ class SuperionScraper(BaseScraper):
         json_content = json.loads(content.text)
         num_people = int(json_content['records'])
 
-        params = {
-            'endpoint': self._session_endpoint,
-            'task_type': constants.GET_MORE_TASKS,
-            'num_people': num_people,
-        }
+        return Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self._session_endpoint,
+            custom={
+                'num_people': num_people,
+            },
+        )
 
-        return params
-
-    def _get_people_params(self, content, params):
+    def _get_people_tasks(self, content, task) -> List[Task]:
         """Returns the params needed to get all person data.
 
         Args:
@@ -125,23 +124,21 @@ class SuperionScraper(BaseScraper):
         session_params = self._retrieve_session_vars(content)
 
         # add tasks for all people
-        people_params = []
-        for person_idx in range(params['num_people']):
-            person_params = {
-                'post_data': copy.deepcopy(session_params),
-                'endpoint': self._session_endpoint,
-                'task_type': constants.SCRAPE_DATA,
-            }
-
+        tasks = []
+        for person_idx in range(task.custom['num_people']):
+            post_data = session_params.copy()
             # Setup the search for the first person
-            person_params['post_data'][self._person_index_param] = person_idx
-            person_params['post_data'][self._detail_indicator_field] = ''
+            post_data[self._person_index_param] = person_idx
+            post_data[self._detail_indicator_field] = ''
+            tasks.append(Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint=self._session_endpoint,
+                post_data=post_data,
+            ))
 
-            people_params.append(person_params)
+        return tasks
 
-        return people_params
-
-    def get_more_tasks(self, content, params):
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
         """
         Gets more tasks based on the content and params passed in.  This
         function should determine which task params, if any, should be
@@ -156,15 +153,15 @@ class SuperionScraper(BaseScraper):
         """
         params_list = []
 
-        if self.is_initial_task(params['task_type']):
+        if self.is_initial_task(task.task_type):
             # If it is our first task, grab the total number of people.
-            params_list.append(self._get_num_people_params(content, params))
+            params_list.append(self._get_num_people_task(content))
         else:
             # Add the next person, if there is one
-            params_list.extend(self._get_people_params(content, params))
+            params_list.extend(self._get_people_tasks(content, task))
         return params_list
 
-    def populate_data(self, content, params,
+    def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[IngestInfo]:
         """
         Populates the ingest info object from the content and params given
@@ -233,14 +230,15 @@ class SuperionScraper(BaseScraper):
             return ''.join(text.split()).split(':')[1]
         return None
 
-    def get_initial_params(self):
-        return {
-            'endpoint': self._search_endpoint,
-            'post_data': {
+    def get_initial_task(self) -> Task:
+        return Task(
+            task_type=constants.TaskType.INITIAL_AND_MORE,
+            endpoint=self._search_endpoint,
+            post_data={
                 't': 'ii',
                 '_search': 'false',
                 'rows': '1',
                 'page': '1',
                 'sidx': 'disp_name',
             },
-        }
+        )

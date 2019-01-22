@@ -17,12 +17,14 @@
 
 """Scraper implementation for NewWorld vendor."""
 import os
-from typing import Optional
+from typing import List, Optional
 
-from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest import constants
+from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
+
 
 class NewWorldScraper(BaseScraper):
     """ NewWorld Vendor scraper """
@@ -33,7 +35,7 @@ class NewWorldScraper(BaseScraper):
         self.mapping_filepath = mapping_filepath
         super(NewWorldScraper, self).__init__(region_name)
 
-    def populate_data(self, content, params,
+    def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[IngestInfo]:
         # Bonds and charges are split in two tables. Merging them together
         self._merge_charge_and_bonds(content)
@@ -53,20 +55,20 @@ class NewWorldScraper(BaseScraper):
 
         return ingest_info
 
-    def get_initial_params(self):
-        params = {
-            'endpoint': self.get_region().base_url
-                        +"/NewWorld.InmateInquiry/nassau?Page=1",
-            'task_type': constants.GET_MORE_TASKS,
-            'data': {
-                'page': 1
+    def get_initial_task(self) -> Task:
+        return Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.get_region().base_url
+            + "/NewWorld.InmateInquiry/nassau?Page=1",
+            post_data={
+                'page': '1'
             }
-        }
-        return params
+        )
 
-    def get_more_tasks(self, content, params):
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
         tasks = []
-        if params['data']['page'] == 1:
+        post_data = task.post_data or {}
+        if post_data['page'] == '1':
             tasks.extend(self._get_remaining_pages(content))
         tasks.extend(self._get_all_detail_pages(content))
         return tasks
@@ -94,29 +96,29 @@ class NewWorldScraper(BaseScraper):
                     c.append(e)
 
 
-    def _get_remaining_pages(self, content):
+    def _get_remaining_pages(self, content) -> List[Task]:
         tasks = []
         options = content.cssselect('select[name="Page"] > option')
         for page in options[1:]:
             page_num = page.text_content()
-            tasks.append({
-                'endpoint': self.get_region().base_url
-                            +"/NewWorld.InmateInquiry/nassau?Page="+page_num,
-                'task_type': constants.GET_MORE_TASKS,
-                'data': {
-                    'page': int(page_num)
+            tasks.append(Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=self.get_region().base_url
+                +"/NewWorld.InmateInquiry/nassau?Page="+page_num,
+                post_data={
+                    'page': page_num
                 }
-            })
+            ))
         return tasks
 
-    def _get_all_detail_pages(self, content):
+    def _get_all_detail_pages(self, content) -> List[Task]:
         tasks = []
         links = content.cssselect('td[class="Name"] > a')
 
         for link in links:
-            tasks.append({
-                'endpoint': self.get_region().base_url+link.get('href'),
-                'task_type': constants.SCRAPE_DATA
-            })
+            tasks.append(Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint=self.get_region().base_url+link.get('href'),
+            ))
 
         return tasks

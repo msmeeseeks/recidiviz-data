@@ -21,6 +21,7 @@ from lxml import html
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.us_vt.us_vt_scraper import UsVtScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
@@ -58,31 +59,29 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
             [self.scraper._URL_BASE, suffix_cases])
 
     def test_get_more_tasks_landing(self):
-        params = {
-            'task_type': constants.INITIAL_TASK_AND_MORE,
-            **self.scraper.get_initial_params()
-        }
-
-        expected_result = [{
-            'endpoint': self.roster_endpoint,
-            self.scraper._REQUEST_TARGET: self.scraper._ROSTER_REQUEST,
-            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-            self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
-            'task_type': constants.GET_MORE_TASKS,
-        }]
+        expected_result = [Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.roster_endpoint,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._REQUEST_TARGET: self.scraper._ROSTER_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+            },
+        )]
 
         self.validate_and_return_get_more_tasks(
-            _LANDING_HTML, params, expected_result)
+            _LANDING_HTML, self.scraper.get_initial_task(), expected_result)
 
     def test_get_more_tasks_roster(self):
-
-        params = {
-            'endpoint': self.roster_endpoint,
-            self.scraper._REQUEST_TARGET: self.scraper._ROSTER_REQUEST,
-            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-            self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
-            'task_type': constants.GET_MORE_TASKS,
-        }
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.roster_endpoint,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._REQUEST_TARGET: self.scraper._ROSTER_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+            },
+        )
 
         person_suffix = self.scraper._PERSON_REQUEST_SUFFIX_TEMPLATE.format(
             session=self.SESSION_TOKEN,
@@ -96,38 +95,42 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
         person_endpoint2 = "/".join(
             [self.scraper._URL_BASE, person_suffix])
 
-        expected_result = []
-        expected_result.append({
-            self.scraper._ARREST_NUMBER: 1,
-            'endpoint': person_endpoint1,
-            self.scraper._REQUEST_TARGET: self.scraper._PERSON_REQUEST,
-            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-            self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
-            'task_type': constants.GET_MORE_TASKS,
-        })
-        expected_result.append({
-            self.scraper._ARREST_NUMBER: 2,
-            'endpoint': person_endpoint2,
-            self.scraper._REQUEST_TARGET: self.scraper._PERSON_REQUEST,
-            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-            self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
-            'task_type': constants.GET_MORE_TASKS,
-        })
+        expected_result = [Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=person_endpoint1,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 1,
+                self.scraper._REQUEST_TARGET: self.scraper._PERSON_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+            },
+        ), Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=person_endpoint2,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 2,
+                self.scraper._REQUEST_TARGET: self.scraper._PERSON_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+            },
+        )]
 
         self.validate_and_return_get_more_tasks(
-            _ROSTER_JSON, params, expected_result)
+            _ROSTER_JSON, task, expected_result)
 
     def test_populate_data_probation(self):
-        params = {
-            self.scraper._ARREST_NUMBER: 1,
-            'endpoint': 'test',
-            self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
-            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-            self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
-            'task_type': constants.SCRAPE_DATA,
-            self.scraper._PERSON: _PERSON_PROBATION_JSON,
-            self.scraper._CASES: {},
-        }
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint='test',
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 1,
+                self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+                self.scraper._PERSON: _PERSON_PROBATION_JSON,
+                self.scraper._CASES: {},
+            }
+        )
 
         expected_info = IngestInfo()
 
@@ -167,19 +170,21 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
         bond.bond_type = 'CASH'
 
         self.validate_and_return_populate_data(
-            _CHARGES_JSON, params, expected_info, IngestInfo())
+            _CHARGES_JSON, expected_info, task, IngestInfo())
 
     def test_populate_data_facility(self):
-        params = {
-            self.scraper._ARREST_NUMBER: 1,
-            'endpoint': 'test',
-            self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
-            self.scraper._RESPONSE_TYPE: constants.JSON_RESPONSE_TYPE,
-            self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
-            'task_type': constants.SCRAPE_DATA,
-            self.scraper._PERSON: _PERSON_AGENCIES_JSON,
-            self.scraper._CASES: {},
-        }
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint='test',
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 1,
+                self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+                self.scraper._PERSON: _PERSON_AGENCIES_JSON,
+                self.scraper._CASES: {},
+            },
+        )
 
         expected_info = IngestInfo()
 
@@ -218,4 +223,4 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
         bond.bond_type = 'CASH'
 
         self.validate_and_return_populate_data(
-            _CHARGES_JSON, params, expected_info, IngestInfo())
+            _CHARGES_JSON, expected_info, task)

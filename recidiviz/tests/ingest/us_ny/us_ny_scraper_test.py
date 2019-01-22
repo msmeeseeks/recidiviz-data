@@ -21,6 +21,7 @@ from lxml import html
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, \
     _Charge, _Sentence
+from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.us_ny.us_ny_scraper import UsNyScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
@@ -49,8 +50,10 @@ class TestScraperSearchPage(BaseScraperTest, unittest.TestCase):
         self.scraper = UsNyScraper()
 
     def test_parse(self):
-        expected = [{
-            'post_data': {
+        expected = [Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint='http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ1/WINQ000',
+            post_data={
                 'K01': 'WINQ000',
                 'DFH_STATE_TOKEN': 'abcdefgh',
                 'DFH_MAP_STATE_TOKEN': '',
@@ -63,18 +66,17 @@ class TestScraperSearchPage(BaseScraperTest, unittest.TestCase):
                 'M00_MID_NAMEI': '',
                 'M00_NAME_SUFXI': '',
                 'M00_NYSID_FLD1I': '',
-                'M00_NYSID_FLD2I': ''},
-            'endpoint':
-                'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ1/WINQ000',
-            'task_type': 4,
-        }]
+                'M00_NYSID_FLD2I': '',
+            },
+        )]
 
-        params = {
-            'task_type': constants.INITIAL_TASK_AND_MORE,
-        }
+        task = Task(
+            task_type=constants.TaskType.INITIAL_AND_MORE,
+            endpoint='',
+        )
 
         self.validate_and_return_get_more_tasks(
-            _SEARCH_PAGE_HTML, params, expected)
+            _SEARCH_PAGE_HTML, task, expected)
 
 
 class TestScraperSearchResultsPage(BaseScraperTest, unittest.TestCase):
@@ -86,10 +88,11 @@ class TestScraperSearchResultsPage(BaseScraperTest, unittest.TestCase):
 
     def test_parse(self):
         expected = [
-            {'din': '1111aaa',
-             'endpoint':
-                 'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ3/WINQ130',
-             'post_data': {'DFH_MAP_STATE_TOKEN': '',
+            Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=
+                'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ3/WINQ130',
+                post_data={'DFH_MAP_STATE_TOKEN': '',
                            'DFH_STATE_TOKEN': 'abcdefgh',
                            'K01': 'WINQ130',
                            'K02': '1234567',
@@ -100,11 +103,12 @@ class TestScraperSearchResultsPage(BaseScraperTest, unittest.TestCase):
                            'M13_PAGE_CLICKI': '',
                            'M13_SEL_DINI': '1111aaa',
                            'din1': '1111aaa'},
-             'task_type': 4},
-            {'din': '2222bbb',
-             'endpoint':
-                 'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ3/WINQ130',
-             'post_data': {'DFH_MAP_STATE_TOKEN': '',
+                custom={'din': '1111aaa'},
+            ), Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=
+                'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ3/WINQ130',
+                post_data={'DFH_MAP_STATE_TOKEN': '',
                            'DFH_STATE_TOKEN': 'abcdefgh',
                            'K01': 'WINQ130',
                            'K02': '1234567',
@@ -115,11 +119,12 @@ class TestScraperSearchResultsPage(BaseScraperTest, unittest.TestCase):
                            'M13_PAGE_CLICKI': '',
                            'M13_SEL_DINI': '2222bbb',
                            'din2': '2222bbb'},
-             'task_type': 4},
-            {'din': '3333ccc',
-             'endpoint':
-                 'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ3/WINQ130',
-             'post_data': {'DFH_MAP_STATE_TOKEN': '',
+                custom={'din': '2222bbb'},
+            ), Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=
+                'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ3/WINQ130',
+                post_data={'DFH_MAP_STATE_TOKEN': '',
                            'DFH_STATE_TOKEN': 'abcdefgh',
                            'K01': 'WINQ130',
                            'K02': '1234567',
@@ -130,11 +135,12 @@ class TestScraperSearchResultsPage(BaseScraperTest, unittest.TestCase):
                            'M13_PAGE_CLICKI': '',
                            'M13_SEL_DINI': '3333ccc',
                            'din3': '3333ccc'},
-             'task_type': 4},
-            {'din': '4444ddd',
-             'endpoint':
-                 'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ3/WINQ130',
-             'post_data': {'DFH_MAP_STATE_TOKEN': '',
+                custom={'din': '3333ccc'},
+            ), Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=
+                'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ3/WINQ130',
+                post_data={'DFH_MAP_STATE_TOKEN': '',
                            'DFH_STATE_TOKEN': 'abcdefgh',
                            'K01': 'WINQ130',
                            'K02': '1234567',
@@ -145,10 +151,12 @@ class TestScraperSearchResultsPage(BaseScraperTest, unittest.TestCase):
                            'M13_PAGE_CLICKI': '',
                            'M13_SEL_DINI': '4444ddd',
                            'din4': '4444ddd'},
-             'task_type': 4},
-            {'endpoint':
-                 'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ3/WINQ130',
-             'post_data': {'DFH_MAP_STATE_TOKEN': '',
+                custom={'din': '4444ddd'},
+            ), Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=
+                'http://nysdoccslookup.doccs.ny.gov/GCA00P00/WIQ3/WINQ130',
+                post_data={'DFH_MAP_STATE_TOKEN': '',
                            'DFH_STATE_TOKEN': 'abcdefgh',
                            'K01': 'WINQ130',
                            'K02': '1234567',
@@ -158,15 +166,16 @@ class TestScraperSearchResultsPage(BaseScraperTest, unittest.TestCase):
                            'K06': '1',
                            'M13_PAGE_CLICKI': 'Y',
                            'M13_SEL_DINI': ''},
-             'task_type': 4},
+            )
         ]
 
-        params = {
-            'task_type': constants.GET_MORE_TASKS,
-        }
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint='',
+        )
 
         self.validate_and_return_get_more_tasks(
-            _SEARCH_RESULTS_PAGE_HTML, params, expected)
+            _SEARCH_RESULTS_PAGE_HTML, task, expected)
 
 
 class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
@@ -178,18 +187,20 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
 
     def test_parse(self):
 
-        expected = [{
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-            'content': html.tostring(_DETAILS_PAGE_HTML, encoding='unicode'),
-        }]
+        expected = [Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint=None,
+            content=html.tostring(_DETAILS_PAGE_HTML, encoding='unicode'),
+        )]
 
-        params = {
-            'task_type': constants.GET_MORE_TASKS,
-        }
+
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint='',
+        )
 
         self.validate_and_return_get_more_tasks(
-            _DETAILS_PAGE_HTML, params, expected)
+            _DETAILS_PAGE_HTML, task, expected)
 
 
 class TestIngest(BaseScraperTest, unittest.TestCase):
@@ -239,14 +250,14 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             full_name='SIMPSON, BART',
         )])
 
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-            'content': html.tostring(_DETAILS_PAGE_HTML, encoding='unicode'),
-        }
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint=None,
+            content=html.tostring(_DETAILS_PAGE_HTML, encoding='unicode'),
+        )
 
         self.validate_and_return_populate_data(
-            _DETAILS_PAGE_HTML, params, expected, IngestInfo())
+            _DETAILS_PAGE_HTML, expected, task)
 
     def test_parse_white_hispanic(self):
         expected_sentence = _Sentence(
@@ -288,15 +299,15 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             full_name='SIMPSON, BART',
         )])
 
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-            'content': html.tostring(
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint=None,
+            content=html.tostring(
                 _DETAILS_PAGE_WHITE_HISPANIC_HTML, encoding='unicode'),
-        }
+        )
 
         self.validate_and_return_populate_data(
-            _DETAILS_PAGE_WHITE_HISPANIC_HTML, params, expected, IngestInfo())
+            _DETAILS_PAGE_WHITE_HISPANIC_HTML, expected, task)
 
     def test_parse_black_hispanic(self):
         expected_sentence = _Sentence(
@@ -338,15 +349,15 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             full_name='SIMPSON, BART',
         )])
 
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-            'content': html.tostring(
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint=None,
+            content=html.tostring(
                 _DETAILS_PAGE_BLACK_HISPANIC_HTML, encoding='unicode'),
-        }
+        )
 
         self.validate_and_return_populate_data(
-            _DETAILS_PAGE_BLACK_HISPANIC_HTML, params, expected, IngestInfo())
+            _DETAILS_PAGE_BLACK_HISPANIC_HTML, expected, task)
 
     def test_parse_life_sentence(self):
         expected_sentence = _Sentence(
@@ -388,15 +399,15 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             full_name='SIMPSON, BART',
         )])
 
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-            'content': html.tostring(
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint=None,
+            content=html.tostring(
                 _DETAILS_PAGE_LIFE_SENTENCE_HTML, encoding='unicode'),
-        }
+        )
 
         self.validate_and_return_populate_data(
-            _DETAILS_PAGE_LIFE_SENTENCE_HTML, params, expected, IngestInfo())
+            _DETAILS_PAGE_LIFE_SENTENCE_HTML, expected, task)
 
     def test_parse_no_release_date(self):
         expected_sentence = _Sentence(
@@ -436,12 +447,12 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             full_name='SIMPSON, BART',
         )])
 
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-            'content': html.tostring(
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint=None,
+            content=html.tostring(
                 _DETAILS_PAGE_NO_RELEASE_HTML, encoding='unicode'),
-        }
+        )
 
         self.validate_and_return_populate_data(
-            _DETAILS_PAGE_NO_RELEASE_HTML, params, expected, IngestInfo())
+            _DETAILS_PAGE_NO_RELEASE_HTML, expected, task)

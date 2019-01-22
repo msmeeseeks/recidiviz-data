@@ -21,6 +21,7 @@ from lxml import html
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.us_ar_van_buren.us_ar_van_buren_scraper import \
     UsArVanBurenScraper
 from recidiviz.tests.ingest import fixtures
@@ -39,24 +40,21 @@ class TestUsArVanBurenScraper(BaseScraperTest, unittest.TestCase):
 
     def test_get_more_tasks(self):
         content = _ROSTER_HTML
-        params = {
-            'endpoint': None,
-            'task_type': constants.GET_MORE_TASKS,
-        }
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=None,
+        )
         expected_result = [
-            {'endpoint': '{}?grp=40'.format(self.scraper.region.base_url),
-             'task_type': constants.GET_MORE_TASKS}
+            Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint='{}?grp=40'.format(self.scraper.region.base_url),
+            ),
         ]
 
-        self.validate_and_return_get_more_tasks(content, params,
-                                                expected_result)
+        self.validate_and_return_get_more_tasks(content, task, expected_result)
 
     def test_populate_data(self):
         content = _DETAILS_HTML
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-        }
         expected_result = IngestInfo()
         p = expected_result.create_person(full_name='FULL NAME', gender='M',
                                           age='100', race='W')
@@ -69,4 +67,4 @@ class TestUsArVanBurenScraper(BaseScraperTest, unittest.TestCase):
         b.create_charge(name='Charge 3')
         b.create_charge(name='Charge 4')
 
-        self.validate_and_return_populate_data(content, params, expected_result)
+        self.validate_and_return_populate_data(content, expected_result)

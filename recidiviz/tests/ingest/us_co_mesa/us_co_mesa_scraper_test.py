@@ -134,8 +134,7 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
             ]
         ), ])
 
-        self.validate_and_return_populate_data(
-            _DETAILS_TYPICAL_HTML, {}, expected, IngestInfo())
+        self.validate_and_return_populate_data(_DETAILS_TYPICAL_HTML, expected)
 
     def test_parse_edge(self):
         expected = IngestInfo(people=[_Person(
@@ -243,5 +242,4 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
             ]
         ), ])
 
-        self.validate_and_return_populate_data(
-            _DETAILS_EDGE_HTML, {}, expected, IngestInfo())
+        self.validate_and_return_populate_data(_DETAILS_EDGE_HTML, expected)

@@ -21,6 +21,7 @@ from lxml import html
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.us_fl_osceola.us_fl_osceola_scraper \
     import UsFlOsceolaScraper
 from recidiviz.tests.ingest import fixtures
@@ -42,51 +43,47 @@ class TestUsFlOsceolaCountyScraper(BaseScraperTest, unittest.TestCase):
         self.yaml = None
 
     def test_initial_task(self):
-        params = {
-            'endpoint': None,
-            'task_type': constants.INITIAL_TASK,
-        }
+        task = Task(
+            task_type=constants.TaskType.INITIAL,
+            endpoint=None,
+        )
         expected_result = [
-            {
-                'endpoint': self.scraper.get_region().base_url +
-                            '/Apps/CorrectionsReports/Report/Search',
-                'task_type': constants.GET_MORE_TASKS
-            }
+            Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=self.scraper.get_region().base_url +
+                '/Apps/CorrectionsReports/Report/Search',
+            )
         ]
 
-        self.validate_and_return_get_more_tasks("", params, expected_result)
+        self.validate_and_return_get_more_tasks("", task, expected_result)
 
     def test_get_more_tasks(self):
-        params = {
-            'endpoint': None,
-            'task_type': constants.GET_MORE_TASKS,
-        }
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=None,
+        )
         expected_result = [
-            {
-                'endpoint': self.scraper.get_region().base_url +
+            Task(
+                endpoint=self.scraper.get_region().base_url +
                             '/Apps/CorrectionsReports/Report/Details/1',
-                'task_type': constants.SCRAPE_DATA
-            },
-            {
-                'endpoint': self.scraper.get_region().base_url +
+                task_type=constants.TaskType.SCRAPE_DATA
+            ),
+            Task(
+                endpoint=self.scraper.get_region().base_url +
                             '/Apps/CorrectionsReports/Report/Details/2',
-                'task_type': constants.SCRAPE_DATA
-            },
-            {
-                'endpoint': self.scraper.get_region().base_url +
+                task_type=constants.TaskType.SCRAPE_DATA
+            ),
+            Task(
+                endpoint=self.scraper.get_region().base_url +
                             '/Apps/CorrectionsReports/Report/Details/3',
-                'task_type': constants.SCRAPE_DATA
-            }
+                task_type=constants.TaskType.SCRAPE_DATA
+            )
         ]
 
         self.validate_and_return_get_more_tasks(_SEARCH_PAGE_HTML,
-                                                params, expected_result)
+                                                task, expected_result)
 
     def test_populate_data(self):
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-        }
         expected_result = IngestInfo()
         booking = expected_result.create_person(
             gender="M",
@@ -123,4 +120,4 @@ class TestUsFlOsceolaCountyScraper(BaseScraperTest, unittest.TestCase):
         ).create_bond(amount="$0")
 
         self.validate_and_return_populate_data(_DETAIL_PAGE_HTML,
-                                               params, expected_result)
+                                               expected_result)
