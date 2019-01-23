@@ -158,17 +158,6 @@ class JailTrackerScraper(BaseScraper):
         )
 
     def get_more_tasks(self, content, task: Task) -> List[Task]:
-        """Gets more tasks based on the content and params passed in.
-
-        Args:
-            content: An lxml html tree on the first request, and a JSON
-                object for all following requests.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A list of param dicts, one for each task we want to run.
-        """
-
         if self.is_initial_task(task.task_type):
             roster_request_params = \
                 self._process_landing_page_and_get_next_task(content)
@@ -199,14 +188,6 @@ class JailTrackerScraper(BaseScraper):
 
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[IngestInfo]:
-        """
-        Populates the ingest info object from the content and params given
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-            ingest_info: The IngestInfo object to populate
-        """
         data_extractor = JsonDataExtractor(self.yaml)
         facility, parole_agency = self.extract_agencies(
             task.custom[self._PERSON]['data'])

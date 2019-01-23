@@ -209,18 +209,6 @@ class ArchonixScraper(BaseScraper):
         return task_list
 
     def get_more_tasks(self, content, task: Task) -> List[Task]:
-        """
-        Gets more tasks based on the content and params passed in.  This
-        function should determine which task params, if any, should be
-        added to the queue
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A list of params containing endpoint and task_type at minimum.
-        """
         task_list = []
         page_size = scraper_utils.get_value_from_html_tree(
             content, self._page_size_id)
@@ -241,14 +229,6 @@ class ArchonixScraper(BaseScraper):
 
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[IngestInfo]:
-        """
-        Populates the ingest info object from the content and params given
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-            ingest_info: The IngestInfo object to populate
-        """
         data_extractor = HtmlDataExtractor(self.yaml_file)
         return data_extractor.extract_and_populate_data(content, ingest_info)
 

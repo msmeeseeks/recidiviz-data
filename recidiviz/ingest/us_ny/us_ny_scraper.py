@@ -271,15 +271,6 @@ class UsNyScraper(BaseScraper):
 
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[IngestInfo]:
-        """Extracts data from the content passed into an ingest_info object.
-        Args:
-            content: (html tree) a webpage with the person details.
-            params: (dict) parameters sent to the last task.
-            ingest_info: (ingest_info object) and ingested info about this
-                person from prior tasks
-        Returns:
-            A completely filled in ingest_info object.
-        """
         booking_extractor = HtmlDataExtractor(self.booking_mapping_filepath)
         ingest_info = booking_extractor.extract_and_populate_data(content,
                                                                   ingest_info)
