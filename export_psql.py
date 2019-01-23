@@ -64,6 +64,16 @@ TABLE_EXPORT_SCHEMA = {
     for table in TABLES_TO_EXPORT
 }
 
+PSQL_EXPORT_COMMAND = (
+    'psql --no-password --host=$DB_HOST --username=$DB_USER --dbname=$DB_NAME '
+    '--file={sql_file}'
+)
+
+BQ_LOAD_COMMAND = (
+    'bq load --replace --source_format=NEWLINE_DELIMITED_JSON '
+    '{dataset}.{table} {data_source} {schema_source}'
+)
+
 
 if __name__ == '__main__':
     import json
