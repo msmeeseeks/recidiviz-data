@@ -25,7 +25,7 @@ from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class UsFlHendryScraper(BaseScraper):
@@ -40,7 +40,7 @@ class UsFlHendryScraper(BaseScraper):
         super(UsFlHendryScraper, self).__init__('us_fl_hendry')
 
     def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
 
         # Modify duplicate fields so dataextractor can differentiate
         headers = content.xpath("//th/div[text()=\"Release Date:\"]")
@@ -76,7 +76,7 @@ class UsFlHendryScraper(BaseScraper):
                         self._add_charge(charge_td, booking)
                     i += 1
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
     def _add_charge(self, charge_td, booking):
         charge_search = re.search(

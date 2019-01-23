@@ -51,7 +51,7 @@ from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class JailTrackerScraper(BaseScraper):
@@ -187,7 +187,7 @@ class JailTrackerScraper(BaseScraper):
                          body_script).group(1)
 
     def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         data_extractor = JsonDataExtractor(self.yaml)
         facility, parole_agency = self.extract_agencies(
             task.custom[self._PERSON]['data'])
@@ -204,8 +204,11 @@ class JailTrackerScraper(BaseScraper):
             'booking': booking_data,
             'charges': content['data'],
         }
-        data_extractor.extract_and_populate_data(data, ingest_info)
-        return ingest_info
+        return ScrapedData(
+            ingest_info=data_extractor.extract_and_populate_data(
+                data, ingest_info),
+            persist=True,
+        )
 
     def get_enum_overrides(self):
         return {

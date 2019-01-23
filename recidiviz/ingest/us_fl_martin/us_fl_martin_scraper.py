@@ -24,7 +24,7 @@ from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest import constants
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 class UsFlMartinScraper(BaseScraper):
     """Scraper implementation for us_fl_martin."""
@@ -38,11 +38,11 @@ class UsFlMartinScraper(BaseScraper):
         super(UsFlMartinScraper, self).__init__('us_fl_martin')
 
     def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         data_extractor = HtmlDataExtractor(self.mapping_filepath)
         ingest_info = data_extractor.extract_and_populate_data(content, \
             ingest_info)
-        return ingest_info
+        return ScrapedData(ingest_info, persist=True)
 
     def get_more_tasks(self, content, task: Task) -> List[Task]:
         return [Task(

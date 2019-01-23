@@ -44,7 +44,7 @@ from recidiviz.common.constants.hold import HoldStatus
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.models.ingest_info import IngestInfo, _Bond
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class UsCoMesaScraper(BaseScraper):
@@ -86,7 +86,7 @@ class UsCoMesaScraper(BaseScraper):
         return task_list
 
     def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         person = ingest_info.create_person()
         booking = person.create_booking()
 
@@ -175,7 +175,7 @@ class UsCoMesaScraper(BaseScraper):
         # TODO(617): For people 'with open charges', the site doesn't show their
         # charges. Not sure what we should do here, just leave it blank?
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
     def get_enum_overrides(self):
         return {

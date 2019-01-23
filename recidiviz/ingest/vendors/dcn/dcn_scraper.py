@@ -40,7 +40,7 @@ from recidiviz.ingest import scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class DcnScraper(BaseScraper):
@@ -123,15 +123,7 @@ class DcnScraper(BaseScraper):
         return task_list
 
     def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
-        """
-        Populates the ingest info object from the content and params given
-
-        Args:
-            content: An lxml html tree.
-            task: Task object that this function was called with.
-            ingest_info: The IngestInfo object to populate
-        """
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         data_extractor = HtmlDataExtractor(self.yaml)
         ingest_info = data_extractor.extract_and_populate_data(content)
         # The charges table has a row at the bottom which is always bad data.
@@ -147,21 +139,9 @@ class DcnScraper(BaseScraper):
                 except (AttributeError, EnumParsingError):
                     pass
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
     def get_more_tasks(self, content, task: Task):
-        """
-        Gets more tasks based on the content and params passed in.  This
-        function should determine which task params, if any, should be
-        added to the queue
-
-        Args:
-            content: An lxml html tree.
-            task: Task object this function was called with.
-
-        Returns:
-            A list of params containing endpoint and task_type at minimum.
-        """
         task_list = []
         task_type = task.task_type
         if self.is_initial_task(task_type):

@@ -80,9 +80,9 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
 
     def test_populate_data(self):
         content = _DETAILS_HTML
-        expected = IngestInfo()
+        expected_info = IngestInfo()
 
-        person = expected.create_person(
+        person = expected_info.create_person(
             full_name="AARDVARK, ARTHUR",
             person_id="10000",
             gender="Male",
@@ -158,4 +158,4 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
             amount="$3,002.00"
         )
 
-        self.validate_and_return_populate_data(content, expected)
+        self.validate_and_return_populate_data(content, expected_info)

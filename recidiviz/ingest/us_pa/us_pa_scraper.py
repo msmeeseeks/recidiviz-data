@@ -30,7 +30,7 @@ from typing import List
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 _SEARCH_RESULTS_PAGE = 'https://captorapi.cor.pa.gov/InmLocAPI/' + \
     'api/v1/InmateLocator/SearchResults'
@@ -44,7 +44,7 @@ class UsPaScraper(BaseScraper):
 
 
     def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         # 'inmatedetails' may contain multiple entries if this person has
         #  multiple aliases; the fields are otherwise identical.
         person = content['inmatedetails'][0]
@@ -61,7 +61,7 @@ class UsPaScraper(BaseScraper):
         ingest_sentence = ingest_booking.create_charge().create_sentence()
         ingest_sentence.sentencing_region = person['cnty_name']
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
 
     def get_more_tasks(self, content, task: Task) -> List[Task]:

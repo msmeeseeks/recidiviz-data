@@ -54,7 +54,7 @@ from recidiviz.ingest import constants, scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class ArchonixScraper(BaseScraper):
@@ -228,9 +228,13 @@ class ArchonixScraper(BaseScraper):
         return task_list
 
     def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         data_extractor = HtmlDataExtractor(self.yaml_file)
-        return data_extractor.extract_and_populate_data(content, ingest_info)
+        return ScrapedData(
+            ingest_info=data_extractor.extract_and_populate_data(
+                content, ingest_info),
+            persist=True,
+        )
 
 
     def transform_post_data(self, data):

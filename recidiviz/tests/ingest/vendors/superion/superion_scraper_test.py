@@ -87,7 +87,7 @@ class SuperionScraperTest(BaseScraperTest, unittest.TestCase):
                                                 expected_result)
 
     def test_populate_data(self):
-        expected_result = IngestInfo(people=[
+        expected_info = IngestInfo(people=[
             _Person(
                 full_name='NAME, NOPE',
                 gender='MALE',
@@ -152,4 +152,4 @@ class SuperionScraperTest(BaseScraperTest, unittest.TestCase):
                                                     bond_type='NONE SET '))])])
         ])
 
-        self.validate_and_return_populate_data(_PERSON_HTML, expected_result)
+        self.validate_and_return_populate_data(_PERSON_HTML, expected_info)

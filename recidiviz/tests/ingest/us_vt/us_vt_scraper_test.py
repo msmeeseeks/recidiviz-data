@@ -170,7 +170,7 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
         bond.bond_type = 'CASH'
 
         self.validate_and_return_populate_data(
-            _CHARGES_JSON, expected_info, task, IngestInfo())
+            _CHARGES_JSON, expected_info, task=task)
 
     def test_populate_data_facility(self):
         task = Task(
@@ -223,4 +223,4 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
         bond.bond_type = 'CASH'
 
         self.validate_and_return_populate_data(
-            _CHARGES_JSON, expected_info, task)
+            _CHARGES_JSON, expected_info, task=task)

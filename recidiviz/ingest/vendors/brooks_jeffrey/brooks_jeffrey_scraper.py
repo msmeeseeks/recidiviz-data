@@ -26,7 +26,7 @@ from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class BrooksJeffreyScraper(BaseScraper):
@@ -74,7 +74,7 @@ class BrooksJeffreyScraper(BaseScraper):
         return task_list
 
     def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         data_extractor = HtmlDataExtractor(self.mapping_filepath)
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
@@ -92,4 +92,4 @@ class BrooksJeffreyScraper(BaseScraper):
                     for charge_name in charge_names:
                         person.bookings[0].create_charge(name=charge_name)
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)

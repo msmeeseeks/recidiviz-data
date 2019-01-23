@@ -23,7 +23,7 @@ from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class UsFlOsceolaScraper(BaseScraper):
@@ -38,7 +38,7 @@ class UsFlOsceolaScraper(BaseScraper):
         super(UsFlOsceolaScraper, self).__init__('us_fl_osceola')
 
     def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
 
         # Modify table column title
         headers = content.xpath("//th[text()=\"Booking\"]")
@@ -62,7 +62,7 @@ class UsFlOsceolaScraper(BaseScraper):
                         charge.statute = s[0]
                         charge.name = s[1]
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
     def get_more_tasks(self, content, task: Task) -> List[Task]:
         if self.is_initial_task(task.task_type):

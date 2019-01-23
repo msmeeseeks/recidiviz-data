@@ -215,7 +215,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
         expected_sentence = _Sentence(
             min_length='0008 Years, 04 Months,\n                00 Days',
             max_length='0025 Years, 00 Months,\n                00 Days')
-        expected = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[_Person(
             birthdate='04/22/1972',
             bookings=[
                 _Booking(
@@ -257,13 +257,13 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
         )
 
         self.validate_and_return_populate_data(
-            _DETAILS_PAGE_HTML, expected, task)
+            _DETAILS_PAGE_HTML, expected_info, task=task)
 
     def test_parse_white_hispanic(self):
         expected_sentence = _Sentence(
             min_length='0008 Years, 04 Months,\n                00 Days',
             max_length='0025 Years, 00 Months,\n                00 Days')
-        expected = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[_Person(
             birthdate='04/22/1972',
             bookings=[
                 _Booking(
@@ -307,13 +307,13 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
         )
 
         self.validate_and_return_populate_data(
-            _DETAILS_PAGE_WHITE_HISPANIC_HTML, expected, task)
+            _DETAILS_PAGE_WHITE_HISPANIC_HTML, expected_info, task=task)
 
     def test_parse_black_hispanic(self):
         expected_sentence = _Sentence(
             min_length='0008 Years, 04 Months,\n                00 Days',
             max_length='0025 Years, 00 Months,\n                00 Days')
-        expected = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[_Person(
             birthdate='04/22/1972',
             bookings=[
                 _Booking(
@@ -357,13 +357,13 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
         )
 
         self.validate_and_return_populate_data(
-            _DETAILS_PAGE_BLACK_HISPANIC_HTML, expected, task)
+            _DETAILS_PAGE_BLACK_HISPANIC_HTML, expected_info, task=task)
 
     def test_parse_life_sentence(self):
         expected_sentence = _Sentence(
             min_length='0008 Years, 04 Months,\n                00 Days',
             is_life='True')
-        expected = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[_Person(
             birthdate='04/22/1972',
             bookings=[
                 _Booking(
@@ -407,13 +407,13 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
         )
 
         self.validate_and_return_populate_data(
-            _DETAILS_PAGE_LIFE_SENTENCE_HTML, expected, task)
+            _DETAILS_PAGE_LIFE_SENTENCE_HTML, expected_info, task=task)
 
     def test_parse_no_release_date(self):
         expected_sentence = _Sentence(
             min_length='0008 Years, 04 Months,\n                00 Days',
             max_length='0025 Years, 00 Months,\n                00 Days')
-        expected = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[_Person(
             birthdate='04/22/1972',
             bookings=[
                 _Booking(
@@ -455,4 +455,4 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
         )
 
         self.validate_and_return_populate_data(
-            _DETAILS_PAGE_NO_RELEASE_HTML, expected, task)
+            _DETAILS_PAGE_NO_RELEASE_HTML, expected_info, task=task)

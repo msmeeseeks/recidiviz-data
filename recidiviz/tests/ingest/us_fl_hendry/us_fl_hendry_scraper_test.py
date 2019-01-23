@@ -114,9 +114,9 @@ class TestUsFlHendryScraper(BaseScraperTest, unittest.TestCase):
     def test_populate_data(self):
         content = _DETAIL_HTML
 
-        expected_result = IngestInfo()
+        expected_info = IngestInfo()
 
-        person = expected_result.create_person(
+        person = expected_info.create_person(
             full_name="NAME NAME",
             gender="F",
             race="WHITE",
@@ -183,4 +183,4 @@ class TestUsFlHendryScraper(BaseScraperTest, unittest.TestCase):
             amount="$500"
         )
 
-        self.validate_and_return_populate_data(content, expected_result)
+        self.validate_and_return_populate_data(content, expected_info)

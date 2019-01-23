@@ -41,7 +41,7 @@ class UsPaGreeneScraperTest(BaseScraperTest, unittest.TestCase):
         self.yaml = None
 
     def test_populate_data(self):
-        expected_result = IngestInfo(people=[
+        expected_info = IngestInfo(people=[
             _Person(person_id='18-00000', full_name='LAST, FIRST',
                     birthdate='01/01/2001', gender='Male', age='1111',
                     race='White/Eurp/ N.Afr/Mid Eas',
@@ -62,11 +62,11 @@ class UsPaGreeneScraperTest(BaseScraperTest, unittest.TestCase):
                                                  amount='$2,000.00'))])])])
 
         self.validate_and_return_populate_data(
-            _DETAILS_HTML, expected_result)
+            _DETAILS_HTML, expected_info)
 
     def test_populate_data_no_charges(self):
-        expected_result = IngestInfo(people=[_Person(full_name='LAST, FIRST')])
+        expected_info = IngestInfo(people=[_Person(full_name='LAST, FIRST')])
 
         with pytest.warns(UserWarning):
             self.validate_and_return_populate_data(_NO_CHARGES_HTML,
-                                                   expected_result)
+                                                   expected_info)

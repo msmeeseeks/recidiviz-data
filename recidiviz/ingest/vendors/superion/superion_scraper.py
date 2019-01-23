@@ -41,7 +41,7 @@ from recidiviz.ingest import constants, scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class SuperionScraper(BaseScraper):
@@ -150,7 +150,7 @@ class SuperionScraper(BaseScraper):
         return params_list
 
     def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[IngestInfo]:
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         data_extractor = HtmlDataExtractor(self.yaml_file)
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
@@ -158,7 +158,7 @@ class SuperionScraper(BaseScraper):
         if len(ingest_info.people) != 1:
             logging.error("Data extractor didn't find exactly one person as "
                           "it should have")
-            return ingest_info
+            return ScrapedData(ingest_info=ingest_info, persist=True)
 
         person = ingest_info.people[0]
 
@@ -192,7 +192,7 @@ class SuperionScraper(BaseScraper):
                     ' '.join(booking.release_date.split()[:-1])
                 booking.release_date = None
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
     def _get_scraped_value(self, content, scrape_id):
         """Convenience function to get a scraped value from a row.

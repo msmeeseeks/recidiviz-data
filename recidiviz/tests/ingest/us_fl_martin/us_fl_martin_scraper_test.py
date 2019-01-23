@@ -66,9 +66,9 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
         # the page containing person data, and |expected_result| with the
         # IngestInfo objects that should be scraped from the page.
         content = _REPORT_PAGE_HTML
-        expected_result = IngestInfo()
+        expected_info = IngestInfo()
 
-        expected_result.create_person(
+        expected_info.create_person(
             person_id="111111",
             surname="AARDVARK",
             given_names="ARTHUR",
@@ -77,24 +77,24 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
             birthdate="01/01/1994",
             race="B")
 
-        expected_result.people[0].create_booking().create_arrest(
+        expected_info.people[0].create_booking().create_arrest(
             agency="AAA",
             date="01/01/2018")
         # date="01/01/2018 10:00:00")
 
-        expected_result.people[0].bookings[0].create_charge(
+        expected_info.people[0].bookings[0].create_charge(
             statute="FS*893.13(6b)",
             name="CHARGE 1",
             charge_class="Misdemeanor",
         ).create_bond(amount="$0.00")
 
-        expected_result.people[0].bookings[0].create_charge(
+        expected_info.people[0].bookings[0].create_charge(
             statute="FS*893.13(6A)",
             name="CHARGE 2",
             charge_class="Unknown"
         ).create_bond(amount="$0.00")
 
-        expected_result.create_person(
+        expected_info.create_person(
             person_id="2222",
             surname="AARDVARK",
             given_names="BART",
@@ -103,15 +103,15 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
             birthdate="01/01/1975",
             race="W")
 
-        expected_result.people[1].create_booking().create_arrest(
+        expected_info.people[1].create_booking().create_arrest(
             agency="CCC",
             date="01/01/2018")
         # date="01/01/2018 08:00:00")
 
-        expected_result.people[1].bookings[0].create_charge(
+        expected_info.people[1].bookings[0].create_charge(
             statute="FS*893.147",
             name="CHARGE 1",
             charge_class="Felony",
         ).create_bond(amount="$500.00")
 
-        self.validate_and_return_populate_data(content, expected_result)
+        self.validate_and_return_populate_data(content, expected_info)

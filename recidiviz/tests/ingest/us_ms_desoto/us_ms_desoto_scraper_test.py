@@ -66,9 +66,9 @@ class TestUsMsDesotoScraper(BaseScraperTest, unittest.TestCase):
             endpoint = self.scraper.get_base_endpoint_details(),
             task_type=constants.TaskType.SCRAPE_DATA,
         )
-        expected_result = IngestInfo()
+        expected_info = IngestInfo()
 
-        person = expected_result.create_person()
+        person = expected_info.create_person()
         person.person_id = '1'
         person.birthdate = '03-05-1985'
         person.age = '33'
@@ -103,4 +103,4 @@ class TestUsMsDesotoScraper(BaseScraperTest, unittest.TestCase):
         bond.bond_type = 'Cash or Surety Bond'
 
         self.validate_and_return_populate_data(
-            _PERSON_PAGE, expected_result, task)
+            _PERSON_PAGE, expected_info, task=task)

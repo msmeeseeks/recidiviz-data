@@ -55,8 +55,8 @@ class TestUsArVanBurenScraper(BaseScraperTest, unittest.TestCase):
 
     def test_populate_data(self):
         content = _DETAILS_HTML
-        expected_result = IngestInfo()
-        p = expected_result.create_person(full_name='FULL NAME', gender='M',
+        expected_info = IngestInfo()
+        p = expected_info.create_person(full_name='FULL NAME', gender='M',
                                           age='100', race='W')
         b = p.create_booking(booking_id='123456789',
                              admission_date='11-11-1111 11:11 am',
@@ -67,4 +67,4 @@ class TestUsArVanBurenScraper(BaseScraperTest, unittest.TestCase):
         b.create_charge(name='Charge 3')
         b.create_charge(name='Charge 4')
 
-        self.validate_and_return_populate_data(content, expected_result)
+        self.validate_and_return_populate_data(content, expected_info)

@@ -84,8 +84,8 @@ class TestUsFlOsceolaCountyScraper(BaseScraperTest, unittest.TestCase):
                                                 task, expected_result)
 
     def test_populate_data(self):
-        expected_result = IngestInfo()
-        booking = expected_result.create_person(
+        expected_info = IngestInfo()
+        booking = expected_info.create_person(
             gender="M",
             race="B",
             birthdate="01/01/1967",
@@ -120,4 +120,4 @@ class TestUsFlOsceolaCountyScraper(BaseScraperTest, unittest.TestCase):
         ).create_bond(amount="$0")
 
         self.validate_and_return_populate_data(_DETAIL_PAGE_HTML,
-                                               expected_result)
+                                               expected_info)
