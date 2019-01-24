@@ -1,5 +1,5 @@
 # Recidiviz - a platform for tracking granular recidivism metrics in real time
-# Copyright (C) 2018 Recidiviz, Inc.
+# Copyright (C) 2019 Recidiviz, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,19 +15,41 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
+"""Scraper implementation for us_pa_greene."""
+from recidiviz.common.constants.bond import BondType
+from recidiviz.common.constants.charge import ChargeClass
+from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.ingest.vendors.jailtracker.jailtracker_scraper import\
+    JailTrackerScraper
 
-"""Scraper implementation for PA Greene County (Archonix)
-"""
-
-import os
-from recidiviz.ingest.vendors.archonix.archonix_scraper import ArchonixScraper
-
-
-class UsPaGreeneScraper(ArchonixScraper):
+class UsPaGreeneScraper(JailTrackerScraper):
     """Scraper for people in Greene County (PA) facilities."""
-
     def __init__(self):
-        key_mapping_file = os.path.join(
-            os.path.dirname(__file__), 'us_pa_greene.yaml')
-        super(UsPaGreeneScraper, self).__init__('us_pa_greene',
-                                                key_mapping_file)
+        super(UsPaGreeneScraper, self).__init__('us_pa_greene')
+
+
+    def get_jailtracker_index(self):
+        """Returns the index used in the JailTracker URL to request a specific
+        region's landing page.
+
+        A JailTracker landing page URL ends with: "/jailtracker/index/<INDEX>".
+        This value can either be text or a number. In either case, this method
+        should return the value as a string.
+        """
+        return 'Greene_County_PA'
+
+    def get_enum_overrides(self):
+        return {
+            # Charge Classes
+            'TO BE DETERMINED': None,
+            'SUMMARY': ChargeClass.INFRACTION,
+
+            # Charge Statuses
+            'SENTENCED BY COMMONWEALTH': ChargeStatus.SENTENCED,
+
+            # Bond Types
+            'CASH/SURETY': BondType.UNSECURED,
+            'STRAIGHT': BondType.CASH,
+            'NO BOND PERMITTED (UNBONDABLE CHARGE)': BondType.NO_BOND,
+            'PERCENTAGE': BondType.CASH,
+        }
