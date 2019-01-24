@@ -189,7 +189,7 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
 
         expected = [Task(
             task_type=constants.TaskType.SCRAPE_DATA,
-            endpoint=None,
+            endpoint='',
             content=html.tostring(_DETAILS_PAGE_HTML, encoding='unicode'),
         )]
 

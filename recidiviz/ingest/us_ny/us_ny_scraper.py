@@ -264,7 +264,8 @@ class UsNyScraper(BaseScraper):
             A dict containing the params necessary to store the person info.
         """
         return Task(
-            endpoint=None,
+            # TODO(680): Remove empty string assignment.
+            endpoint='',
             content=html.tostring(content, encoding='unicode'),
             task_type=constants.TaskType.SCRAPE_DATA,
         )
