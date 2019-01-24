@@ -1,0 +1,17 @@
+key_mappings:
+  Name: person.full_name
+  DOB: person.birthdate
+  Race: person.race
+  Commitment Date: booking.admission_date
+  Release Date: booking.release_date
+  Current Location: booking.facility
+
+multi_key_mapping:
+  Offense Date: charge.offense_date
+  Description: charge.name
+  Code: charge.statute
+  Status: charge.status
+  Posted By: charge.judge_name
+  "Case #": charge.case_number
+  Grade: charge.level
+  Degree: charge.degree

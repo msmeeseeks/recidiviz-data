@@ -1,0 +1,5 @@
+key_mappings:
+  "Case #": charge.case_number
+  Amount: bond.amount
+  Status: bond.bond_type
+  Posted By: charge.judge_name
