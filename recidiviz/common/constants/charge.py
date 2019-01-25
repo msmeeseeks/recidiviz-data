@@ -124,6 +124,7 @@ _CHARGE_STATUS_MAP = {
     'SENTENCED': ChargeStatus.SENTENCED,
     'TIME SERVED': ChargeStatus.COMPLETED_SENTENCE,
     'UNKNOWN': ChargeStatus.EXTERNAL_UNKNOWN,
+    'UNSENTENCED': ChargeStatus.PRETRIAL,
 }
 
 
