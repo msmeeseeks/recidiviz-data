@@ -18,13 +18,12 @@
 from copy import deepcopy
 from typing import List
 
-from recidiviz.common.constants.bond import BondStatus
 from recidiviz.common.constants.charge import ChargeStatus
 from recidiviz.persistence import entities
 from recidiviz.persistence.converter import arrest, sentence, \
-    charge, bond, booking, person
+    charge, bond, booking, person, hold
 from recidiviz.persistence.converter.converter_utils import fn, \
-    parse_bond_amount_and_infer_type, parse_int
+    parse_bond_amount_and_check_for_type_and_status_info, parse_int
 
 
 def convert(ingest_info, metadata):
@@ -46,6 +45,7 @@ class _Converter:
         self.bookings = {b.booking_id: b for b in ingest_info.bookings}
         self.arrests = {a.arrest_id: a for a in ingest_info.arrests}
         self.charges = {c.charge_id: c for c in ingest_info.charges}
+        self.holds = {h.hold_id: h for h in ingest_info.holds}
         self.bonds = {b.bond_id: b for b in ingest_info.bonds}
         self.sentences = {s.sentence_id: s for s in ingest_info.sentences}
 
@@ -77,18 +77,23 @@ class _Converter:
             fn(lambda i: arrest.convert(self.arrests[i]),
                'arrest_id', ingest_booking)
 
-        # TODO: Populate hold when the proto is updated to contain a hold table
+        booking_builder.holds = [hold.convert(self.holds[hold_id],
+                                              self.metadata)
+                                 for hold_id in ingest_booking.hold_ids]
 
         ingest_charges = [self.charges[c] for c in ingest_booking.charge_ids]
         charges = self._convert_charges(ingest_charges)
         booking_builder.charges = charges
 
-        bond_amount_and_type = fn(parse_bond_amount_and_infer_type,
-                                  'total_bond_amount', ingest_booking)
-        if bond_amount_and_type is not None:
-            bond_amount, bond_type = bond_amount_and_type
+        bond_info_tuple = fn(
+            parse_bond_amount_and_check_for_type_and_status_info,
+            'total_bond_amount',
+            ingest_booking)
+        if bond_info_tuple is not None:
+            bond_amount, bond_type, bond_status = bond_info_tuple
             booking_builder.charges = \
-                _charges_pointing_to_total_bond(bond_amount, bond_type, charges)
+                _charges_pointing_to_total_bond(
+                    bond_amount, bond_type, bond_status, charges)
 
         return booking_builder.build()
 
@@ -119,13 +124,14 @@ class _Converter:
                'bond_id',
                ingest_charge)
         charge_builder.sentence = \
-            fn(lambda i: sentence.convert(self.sentences[i]),
+            fn(lambda i: sentence.convert(self.sentences[i], self.metadata),
                'sentence_id', ingest_charge)
 
         return charge_builder.build()
 
 
-def _charges_pointing_to_total_bond(bond_amount, bond_type, charges):
+def _charges_pointing_to_total_bond(bond_amount, bond_type, bond_status,
+                                    charges):
     """Infers a bond from the total_bond field and creates a copy of all charges
     updated to point to the inferred bond. If no charges exist, then also infer
     a charge."""
@@ -134,14 +140,14 @@ def _charges_pointing_to_total_bond(bond_amount, bond_type, charges):
         amount_dollars=bond_amount,
         bond_type=bond_type,
         bond_type_raw_text=None,
-        status=BondStatus.ACTIVE,
+        status=bond_status,
         status_raw_text=None,
     )
 
     if not charges:
         inferred_charge = entities.Charge.new_with_defaults(
             bond=inferred_bond,
-            status=ChargeStatus.PENDING
+            status=ChargeStatus.UNKNOWN_FOUND_IN_SOURCE
         )
         return [inferred_charge]
 

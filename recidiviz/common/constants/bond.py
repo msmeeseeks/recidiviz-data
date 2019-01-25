@@ -22,36 +22,44 @@ from recidiviz.common.constants.mappable_enum import MappableEnum
 
 
 class BondType(MappableEnum):
-    BOND_DENIED = enum_strings.bond_type_denied
     CASH = enum_strings.bond_type_cash
     EXTERNAL_UNKNOWN = enum_strings.external_unknown
     NO_BOND = enum_strings.bond_type_no_bond
     SECURED = enum_strings.bond_type_secured
+    UNKNOWN_REMOVED_FROM_SOURCE = enum_strings.unknown_removed_from_source
     UNSECURED = enum_strings.bond_type_unsecured
 
     @staticmethod
     def _get_default_map():
-        return _BOND_TYPE_MAP
+        return BOND_TYPE_MAP
 
 
 class BondStatus(MappableEnum):
-    ACTIVE = enum_strings.bond_status_active
+    DENIED = enum_strings.bond_status_denied
+    INFERRED_SET = enum_strings.bond_status_inferred_set
+    NOT_REQUIRED = enum_strings.bond_status_not_required
     POSTED = enum_strings.bond_status_posted
+    SET = enum_strings.bond_status_set
+    UNKNOWN_FOUND_IN_SOURCE = enum_strings.unknown_found_in_source
+    UNKNOWN_REMOVED_FROM_SOURCE = enum_strings.unknown_removed_from_source
 
     @staticmethod
     def _get_default_map():
-        return _BOND_STATUS_MAP
+        return BOND_STATUS_MAP
 
 
-_BOND_TYPE_MAP = {
-    'BOND DENIED': BondType.BOND_DENIED,
-    'HOLD WITHOUT BAIL': BondType.BOND_DENIED,
+# Not marked as private so it can be used in
+# persistence/converter/converter_utils
+BOND_TYPE_MAP = {
+    'BOND DENIED': BondType.NO_BOND,
+    'HOLD WITHOUT BAIL': BondType.NO_BOND,
     'CASH': BondType.CASH,
     'CASH BOND': BondType.CASH,
     'N/A': BondType.NO_BOND,
     'NO BOND': BondType.NO_BOND,
     'NO BOND ALLOWED': BondType.NO_BOND,
     'NONE SET': BondType.NO_BOND,
+    'RELEASED ON OWN RECOGNIZANCE': BondType.NO_BOND,
     'ROR': BondType.NO_BOND,
     'SECURED': BondType.SECURED,
     'SECURED BOND': BondType.SECURED,
@@ -61,7 +69,16 @@ _BOND_TYPE_MAP = {
     'UNSECURED': BondType.UNSECURED,
 }
 
-_BOND_STATUS_MAP = {
-    'ACTIVE': BondStatus.ACTIVE,
+# Not marked as private so it can be used in
+# persistence/converter/converter_utils
+BOND_STATUS_MAP = {
+    'ACTIVE': BondStatus.SET,
+    'BOND DENIED': BondStatus.DENIED,
+    'DENIED': BondStatus.DENIED,
+    'HOLD WITHOUT BAIL': BondStatus.DENIED,
+    'NO BOND ALLOWED': BondStatus.DENIED,
+    'NONE SET': BondStatus.NOT_REQUIRED,
+    'NOT REQUIRED': BondStatus.NOT_REQUIRED,
     'POSTED': BondStatus.POSTED,
+    'SET': BondStatus.SET,
 }

@@ -47,9 +47,16 @@ regions:
     agency_type: jail
     queue: us-nc-guilford-scraper
     base_url: http://p2c.guilfordcountysheriff.com
-    names_file: us_ny_names.csv
-    entity_kinds:
     scraper_package: us_nc_guilford
+    timezone: America/New_York
+  us_nj_bergen:
+    region_name: UsNjBergen
+    agency_name: Bergen County
+    region_code: us_nj_bergen
+    agency_type: jail
+    queue: us-nj-bergen-scraper
+    base_url: http://168.229.183.33:8084/IML
+    scraper_package: us_nj_bergen
     timezone: America/New_York
   us_pa_greene:
     agency_name: Greene County Detention Center
@@ -140,17 +147,12 @@ regions:
     base_url: $url
     scraper_package: us_vt
     timezone: America/New_York
-
   us_fl_hendry:
     agency_name: Hendry County
     region_code: us_fl_hendry
     agency_type: jail
     queue: us-fl-hendry-scraper
     base_url: http://hcso.online
-    names_file: us_ny_names.csv
-    entity_kinds:
-      person: Person
-      record: Record
     scraper_package: us_fl_hendry
     timezone: America/New_York
   us_fl_alachua:
@@ -161,14 +163,6 @@ regions:
     base_url: http://oldweb.circuit8.org/inmatelist.php
     scraper_package: us_fl_alachua
     timezone: America/Florida
-  us_ky_bullitt_county:
-    agency_name: $agency
-    region_code: us_ky_bullitt_county
-    agency_type: $agency_type
-    queue: us-ky-bullitt-county-scraper
-    base_url: $url
-    scraper_package: us_ky_bullitt_county
-    timezone: America/New_York
   us_ky_bullitt:
     agency_name: $agency
     region_code: us_ky_bullitt
@@ -177,3 +171,11 @@ regions:
     base_url: $url
     scraper_package: us_ky_bullitt
     timezone: America/New_York
+  us_ms_desoto:
+    agency_name: Desoto county
+    region_code: us_ms_desoto
+    agency_type: jail
+    queue: us-ms-desoto-scraper
+    base_url: https://jail.desotosheriff.org/DCN/inmates
+    scraper_package: us_ms_desoto
+    timezone: America/Chicago

@@ -15,10 +15,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 """Contains logic for communicating with a SQL Database."""
+
+import logging
+from datetime import datetime
 from typing import List
 
+import pandas as pd
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import Session
 
+import recidiviz
+import recidiviz.persistence.database.update_historical_snapshots as \
+    update_snapshots
 from recidiviz.common.constants.mappable_enum import MappableEnum
 from recidiviz.persistence import entities
 from recidiviz.persistence.database import database_utils
@@ -99,10 +108,10 @@ def read_people_with_open_bookings(session, region, ingested_people):
     return [database_utils.convert_person(person) for person, _ in query.all()]
 
 
-def read_open_bookings_scraped_before_time(session, region, time):
+def read_people_with_open_bookings_scraped_before_time(session, region, time):
     """
-    Reads all open bookings in the given region that have a last_scraped_time
-    set to a time earlier than the provided datetime.
+    Reads all people with open bookings in the given region that have a
+    last_scraped_time set to a time earlier than the provided datetime.
 
     Args:
         session: The transaction to read from
@@ -110,12 +119,11 @@ def read_open_bookings_scraped_before_time(session, region, time):
         time: The datetime exclusive upper bound on last_scrape_time to match
             against
     Returns:
-        List of bookings matching the provided args
+        List of people matching the provided args
     """
     query = _query_people_and_open_bookings(session, region) \
         .filter(Booking.last_seen_time < time)
-    return [database_utils.convert_booking(booking)
-            for _, booking in query.all()]
+    return [database_utils.convert_booking(person) for person, _ in query.all()]
 
 
 def _query_people_and_open_bookings(session, region):
@@ -146,35 +154,129 @@ def write_people(session, people):
 
 
 def write_person(session, person):
-    """
-    Converts the given |person| into a schema.Person object and adds it into
-    the given |session|.
+    """Converts the given |person| into a schema.Person object and persists the
+    record tree rooted at that |person|.
 
     Args:
         session: (Session)
         person:  entities.Person
+
+    Returns:
+        persisted Person schema object
     """
-    session.merge(database_utils.convert_person(person))
+    return _save_record_tree(session, database_utils.convert_person(person))
 
 
-def update_booking(session, booking_id, **kwargs):
-    """
-    Finds the booking in our db from the provided |booking_id| and updates all
-    fields on the booking that are provided in |**kwargs|.
+def _save_record_tree(session, person):
+    """Persists the record tree rooted at |person|.
 
     Args:
         session: (Session)
-        booking_id: (int)
+        person: Person schema object
+
+    Returns:
+        persisted Person schema object
     """
-    session.query(Booking) \
-        .filter(Booking.booking_id == booking_id) \
-        .update(_convert_enums_to_strings(kwargs))
+
+    logging.info('Starting merge and flush for record tree')
+
+    # Merge includes all related entities, so this persists the master record
+    # tree
+    person = session.merge(person)
+
+    logging.info('Merge complete')
+
+    # Flush ensures all master entities, including newly created ones, have
+    # primary keys set before creating historical snapshots
+    session.flush()
+
+    logging.info('Flush complete for person: %s', person.person_id)
+
+    # All historical snapshot changes should be given the same timestamp
+    snapshot_time = datetime.now()
+
+    # Traverse all relationships on the record tree and save historical
+    # snapshots where needed
+    #
+    # Some entities in the record tree can be reached by more than one
+    # relationship path, so we need to track which ones have already been
+    # processed
+    #
+    # As the number of entities in a given record tree is expected to be small,
+    # we use lists here for ease of readability
+    logging.info(
+        'Starting record tree traversal for person: %s',
+        person.person_id)
+
+    unprocessed = [person]
+    processed = []
+    while unprocessed:
+        entity = unprocessed.pop()
+
+        update_snapshots.update_historical_snapshots(
+            session, entity, snapshot_time)
+        processed.append(entity)
+
+        unprocessed.extend(
+            _get_unexplored_related_entities(entity, processed, unprocessed))
+
+    logging.info(
+        'Record tree traversal finished for person: %s',
+        person.person_id)
+
+    return person
+
+
+def _get_unexplored_related_entities(entity, processed, unprocessed):
+    unexplored = []
+
+    for relationship_name in entity.get_relationship_property_names():
+        related = getattr(entity, relationship_name)
+
+        # Relationship can return either a list or a single item
+        if isinstance(related, list):
+            unexplored.extend(related)
+        elif related is not None:
+            unexplored.append(related)
+
+    return [entity for entity in unexplored
+            if entity not in processed
+            and entity not in unprocessed]
+
+
+def write_df(table: DeclarativeMeta, df: pd.DataFrame) -> None:
+    """
+    Writes the |df| to the |table|.
+
+    The column headers on |df| must match the column names in |table|. All rows
+    in |df| will be appended to |table|. If a row in |df| already exists in
+    |table|, then that row will be skipped.
+    """
+    try:
+        df.to_sql(table.__tablename__, recidiviz.db_engine, if_exists='append',
+                  index=False)
+    except IntegrityError:
+        _write_df_only_successful_rows(table, df)
+
+
+def _write_df_only_successful_rows(
+        table: DeclarativeMeta, df: pd.DataFrame) -> None:
+    """If the dataframe can't be written all at once (eg. some rows already
+    exist in the database) then we write only the rows that we can."""
+    for i in range(len(df)):
+        row = df.iloc[i:i + 1]
+        try:
+            row.to_sql(table.__tablename__, recidiviz.db_engine,
+                       if_exists='append', index=False)
+        except IntegrityError:
+            # Skip rows that can't be written
+            logging.info("Skipping write_df to %s table: %s.", table, row)
 
 
 def _convert_enums_to_strings(dictionary):
     result = {}
     for k, v in dictionary.items():
-        if issubclass(v.__class__, MappableEnum):
+        if issubclass(type(v), MappableEnum):
             result[k] = v.value
         else:
             result[k] = v

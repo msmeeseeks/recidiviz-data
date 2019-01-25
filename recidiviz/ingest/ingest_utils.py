@@ -18,6 +18,7 @@
 """Utils file for ingest module"""
 
 import logging
+from typing import List
 
 from recidiviz.common import common_utils
 from recidiviz.ingest import constants
@@ -40,7 +41,7 @@ def validate_regions(region_list):
     """
     regions_list_output = region_list
 
-    supported_regions = regions.get_supported_regions()
+    supported_regions = regions.get_supported_region_codes()
     for region in region_list:
         if region == "all":
             regions_list_output = supported_regions
@@ -51,7 +52,8 @@ def validate_regions(region_list):
     return regions_list_output
 
 
-def validate_scrape_types(scrape_type_list):
+def validate_scrape_types(
+        scrape_type_list: List[str]) -> List[constants.ScrapeType]:
     """Validates the scrape type arguments.
 
     If any scrape type in |scrape_type_list| is "all", then all supported scrape
@@ -65,18 +67,21 @@ def validate_scrape_types(scrape_type_list):
         List of scrape types if successful
     """
     if not scrape_type_list:
-        return [constants.BACKGROUND_SCRAPE]
+        return [constants.ScrapeType.BACKGROUND]
 
-    scrape_types_list_output = scrape_type_list
-
+    scrape_types_output = []
+    all_types = False
     for scrape_type in scrape_type_list:
-        if scrape_type == "all":
-            scrape_types_list_output = constants.SCRAPE_TYPES
-        elif scrape_type not in constants.SCRAPE_TYPES:
-            logging.error("Scrape type '%s' not recognized.", scrape_type)
-            return False
+        if scrape_type == 'all':
+            all_types = True
+        else:
+            try:
+                scrape_types_output.append(constants.ScrapeType(scrape_type))
+            except ValueError:
+                logging.error("Scrape type '%s' not recognized.", scrape_type)
+                return []
 
-    return scrape_types_list_output
+    return list(constants.ScrapeType) if all_types else scrape_types_output
 
 
 def convert_ingest_info_to_proto(ingest_info):
@@ -92,6 +97,7 @@ def convert_ingest_info_to_proto(ingest_info):
     person_map = {}
     booking_map = {}
     charge_map = {}
+    hold_map = {}
     arrest_map = {}
     bond_map = {}
     sentence_map = {}
@@ -150,6 +156,10 @@ def convert_ingest_info_to_proto(ingest_info):
                 proto_arrest = _populate_proto(
                     'arrests', booking.arrest, 'arrest_id', arrest_map)
                 proto_booking.arrest_id = proto_arrest.arrest_id
+
+            for hold in booking.holds:
+                proto_hold = _populate_proto('holds', hold, 'hold_id', hold_map)
+                proto_booking.hold_ids.append(proto_hold.hold_id)
 
             for charge in booking.charges:
                 proto_charge = _populate_proto(

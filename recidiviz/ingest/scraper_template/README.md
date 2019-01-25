@@ -1,7 +1,11 @@
 Creating a Scraper
 ==================
 Before doing anything, setup your environment by running `pipenv install` in the top level directory.
-Enter your environment with `pipenv shell `.  Next you'll be ready to create the scraper.
+Enter your environment with `pipenv shell `. Finally, test that your system is all setup for scraper
+development by running an existing scraper using, say
+`python -m recidiviz.ingest.run_scraper --region us_pa_greene`.
+
+Next you'll be ready to create the scraper.
 
 From the top level `recidiviz-data` directory, run the `create_scraper.py`
 script to create the relevant files for a new scraper.
@@ -9,9 +13,9 @@ script to create the relevant files for a new scraper.
 ### Usage
 `python create_scraper.py <county> <state> <county_type>`
 
-County type describes the type of data the website has, and can be one of the following: 
+County type describes the type of data the website has, and can be one of the following:
 1. `jail` (majority of scrapers will be for jails)
-1. `prison` 
+1. `prison`
 1. `unified` - contains both jail and prison data
 
 For example:
@@ -56,8 +60,8 @@ You will write most of the scraping logic in `<region_code>_scraper.py`. The
 scraper should inherit from [BaseScraper](../base_scraper.py) or a
 [vendor scraper](../vendors) and must implement the following functions:
  - `__init__(self, region_name, mapping_filepath=None)`
- - `get_more_tasks(self, content, params)`
- - `populate_data(self, content, params, ingest_info)`
+ - `get_more_tasks(self, content, task: Task) -> List[Task]`
+ - `populate_data(self, content, task: Task, ingest_info: IngestInfo) -> Optional[IngestInfo]`
 
 Navigation, if necessary, is implemented in `get_more_tasks`, while
 scraping information about people is handled in `populate_data`.
@@ -68,20 +72,23 @@ Navigation
 
 Navigation is handled in `get_more_tasks`. The basic question to answer is, given a webpage,
 how do I navigate to the next set of pages?  This information is encapsulated
-in the params that are returned:
+in the `Tasks` that are returned. A `Task` requires the following fields:
 
-* endpoint: The url endpoint of the next page to hit
-* task_type: Defines the type of action we will take on the next page
-* post_data: The post data to send with the next request
+* `endpoint`: The url endpoint of the next page to hit
+* `task_type`: Defines the type of action we will take on the next page
 
-`endpoint` and `task_type` are required fields, but post_data is not a required field.  Furthermore, the user can send any other key/values that are useful to them in the params, they will be passed along to the next tasks.
+By default this will cause a GET request against the given endpoint. Other fields, such as `post_data`, can be set in the `Task` to modify the requst that is sent. The user can set custom key/values that are useful to them in the `custom` field which will be passed along to the next tasks. See [`Task`](../task_params.py) for information about all of the fields.
 
 The different types of tasks are found in the [Constants](../constants.py) file and they are:
-* <strong>INITIAL_TASK</strong> - This is the first request that is made and this ensures that `set_initial_vars` is called.  This function lets you fill in the params with any extra info you might need for the next set of tasks.  Examples include session keys and information that need to be sent as post data.
+* <strong>INITIAL</strong> - This is the first request that is made.
 * <strong>GET_MORE_TASKS</strong> - This indicates that the page has more navigation that needs to be done.  In this case, the function `get_more_tasks` is called and it is the job of the method to return a list of params that was extracted from that page.
-* <strong>SCRAPE_DATA</strong> - This indicates that the page has information on it that we care about and need to scrape.  In this case `populate_data` is called and it is the users job to walk the page and populate the `ingest_info` object
+* <strong>SCRAPE_DATA</strong> - This indicates that the page has information on it that we care about and need to scrape.  In this case `populate_data` is called and it is the users job to walk the page and populate the `ingest_info` object.
+
+By default, the first task is of `INITIAL_AND_MORE` type so that `get_more_tasks` is called for the `INITIAL` task as well. It also navigates to the `base_url` defined in [region_manifest.yaml](/region_manifest.yaml) by default. A different endpoint or other request parameters for the initial task can be provided by overriding `get_initial_task`.
 
 For convenience, there also exists `SCRAPE_DATA_AND_MORE` which calls both `get_more_tasks` as well as `populate_data`.  This can be used when a persons information is spread across multiple pages.  For example their booking data is on one page, and the user must click a link to reach the pages there the charges information is displayed.
+
+_TODO(697): Implement support for serializing and deserializing IngestInfo, such that we can actually handle booking data spread across multiple pages._
 
 #### What is the structure of pages on the website?
 Most website rosters follow a couple of familiar formats. For examples, refer to
@@ -143,7 +150,7 @@ If you suspect the new string->Enum mapping should be shared across all scrapers
 ex. [#522](https://github.com/Recidiviz/recidiviz-data/pull/522/)
 
 ### 2. Adding a region-specific override
-If you suspect the new string->Enum mapping is region-specific and should NOT be shared across all scrapers, you should add an override mapping to your specific scraper by implementing `scraper.get_enum_overrides()`. This method returns a `Dict[str, Enum]`, which contains all mappings specific to the region, regardless of the Enum type. Default maps and Enum values can both be found in [recidiviz/common/constants/](https://github.com/Recidiviz/recidiviz-data/tree/master/recidiviz/common/constants). 
+If you suspect the new string->Enum mapping is region-specific and should NOT be shared across all scrapers, you should add an override mapping to your specific scraper by implementing `scraper.get_enum_overrides()`. This method returns a `Dict[str, Enum]`, which contains all mappings specific to the region, regardless of the Enum type. Default maps and Enum values can both be found in [recidiviz/common/constants/](https://github.com/Recidiviz/recidiviz-data/tree/master/recidiviz/common/constants).
 
 
 If a string should NOT be mapped to any Enum value, you can map it to None.
@@ -159,27 +166,14 @@ Lets walk through a website and create an example scraper.
 This is the homepage of a website. `get_more_tasks` is called with this page and by experimentation we see that to get a list of all the people we need to click the search button.  We inspect the network traffic to see what post data needs to be sent and our `get_more_tasks` so far looks like this:
 
 ```python
-    def get_more_tasks(self, content, params):
-        """
-        Gets more tasks based on the content and params passed in.  This
-        function should determine which task params, if any, should be
-        added to the queue
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A list of params containing endpoint and task_type at minimum.
-        """
-        task_type = params.get('task_type', self.get_initial_task_type())
-        params_list = []
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
+        task_list = []
         # If it is our first task, we know the next task must be a query to
         # return all people
-        if self.is_initial_task(task_type):
-            params_list.append({'endpoint': url_people_search,
-                                'task_type': constants.GET_MORE_TASKS,
-                                'post_data': post_data_if_necessary})
+        if self.is_initial_task(task.task_type):
+            task_list.append(Task(endpoint=url_people_search,
+                                  task_type=constants.TaskType.GET_MORE_TASKS,
+                                  post_data=post_data_if_necessary))
 ```
 
 We know that by clicking the search button, it takes us to a page where we are not yet ready to scrape any data, hence our task type is GET_MORE_TASKS. The url and post_data need to actually be scraped from the page (they are shown here for simplicity).  Once this is done, `get_more_tasks` will be called again on the following webpage:
@@ -189,41 +183,28 @@ We know that by clicking the search button, it takes us to a page where we are n
 Now that we are on this page, we must expand our `get_more_tasks` function to handle this:
 
 ```python
-    def get_more_tasks(self, content, params):
-        """
-        Gets more tasks based on the content and params passed in.  This
-        function should determine which task params, if any, should be
-        added to the queue
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A list of params containing endpoint and task_type at minimum.
-        """
-        task_type = params.get('task_type', self.get_initial_task_type())
-        params_list = []
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
+        task_list = []
         # If it is our first task, we know the next task must be a query to
         # return all people
-        if self.is_initial_task(task_type):
-            params_list.append({'endpoint': url_people_search,
-                                'task_type': constants.GET_MORE_TASKS,
-                                'post_data': post_data_if_necessary})
-    if self._is_person_list(content):
-      # Loop through each url that clicks through to the persons page and
-      # append to the task params
-      for url, post_data_if_necessary in self._get_all_urls_and_post(content):
-          params_list.append({'endpoint': url,
-                              'task_type': constants.SCRAPE_DATA,
-                              'post_data': post_data_if_necessary})
-      # Also click on next page
-      params_list.append({'endpoint': url_next_page,
-                          'task_type': constants.GET_MORE_TASKS,
-                          'post_data': post_data_if_necessary})
+        if self.is_initial_task(task.task_type):
+            task_list.append(Task(endpoint=url_people_search,
+                                  task_type=constants.TaskType.GET_MORE_TASKS,
+                                  post_data=post_data_if_necessary))
+        if self._is_person_list(content):
+            # Loop through each url that clicks through to the persons page and
+            # append to the task params
+            for url, post_data_if_necessary in self._get_all_urls_and_post(content):
+                task_list.append(Task(endpoint=url,
+                                      task_type=constants.TaskType.SCRAPE_DATA,
+                                      post_data=post_data_if_necessary))
+            # Also click on next page
+            task_list.append(Task(endpoint=url_next_page,
+                                  task_type=constants.ResponseType.GET_MORE_TASKS,
+                                  post_data=post_data_if_necessary))
 ```
 
-We detect that we are on a page with a list of people on it, and our params list should contain the URLs for all 10 people on the page.  Our scrape type for those will be SCRAPE_DATA which will call `populate_data` on the content of that page because we are ready to scrape information.  Additionally we also make sure to click next page to ensure we get everyone on the roster list, the scrape type will be GET_MORE_TASKS.  Note that `is_person_list` and `get_all_urls_and_post` are just examples, you will need to implement ways to extracts this information particular to your scraper.  Finally, the person page looks like this:
+We detect that we are on a page with a list of people on it, and our task list should contain the URLs for all 10 people on the page.  Our scrape type for those will be SCRAPE_DATA which will call `populate_data` on the content of that page because we are ready to scrape information.  Additionally we also make sure to click next page to ensure we get everyone on the roster list, the scrape type will be GET_MORE_TASKS.  Note that `is_person_list` and `get_all_urls_and_post` are just examples, you will need to implement ways to extracts this information particular to your scraper.  Finally, the person page looks like this:
 
 <div align="center"><img src="../../img/full_person_page.png" border=0></div>
 
@@ -259,19 +240,12 @@ multi_key_mapping:
 Our `populate_data` function looks like:
 
 ```python
-def populate_data(self, content, params, ingest_info):
-        """
-        Populates the ingest info object from the content and params given
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-            ingest_info: The IngestInfo object to populate
-        """
+def populate_data(self, content, task: Task,
+                  ingest_info: IngestInfo) -> Optional[ScrapedData]:
         yaml_file = os.path.join(os.path.dirname(__file__), 'my_yaml.yaml')
         data_extractor = DataExtractor(yaml_file)
         data_extractor.extract_and_populate_data(content, ingest_info)
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 ```
 
 The process for this is explained in the data extractor [documentation](https://github.com/Recidiviz/recidiviz-data/tree/master/recidiviz/ingest/extractor/README.md) with examples.  In most cases the data extractor should suffice but if it does not, your `populate_data` function will manually have to walk the html and extract out the relevant fields into the `ingest_info` object.

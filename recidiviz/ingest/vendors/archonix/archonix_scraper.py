@@ -48,11 +48,13 @@ Background scraping procedure:
 """
 
 import re
+from typing import List, Optional
 
-from recidiviz.ingest import constants
-from recidiviz.ingest import scraper_utils
+from recidiviz.ingest import constants, scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class ArchonixScraper(BaseScraper):
@@ -108,7 +110,7 @@ class ArchonixScraper(BaseScraper):
             data['__VIEWSTATE'], level=9)
         return data
 
-    def _get_all_people_params(self, content):
+    def _get_all_people_task(self, content) -> Task:
         """Returns the params needed to search for all people.
 
         Args:
@@ -117,18 +119,18 @@ class ArchonixScraper(BaseScraper):
         Returns:
             dictionary of data needed for the next scrape session.
         """
-        params = {
-            # Gets the session vars needed for this request.
-            'post_data': self._retrieve_session_vars(content),
-            # The endpoint which is to be hit next scrape.
-            'endpoint': self._initial_endpoint,
-            'task_type': constants.GET_MORE_TASKS,
-        }
+        # Gets the session vars needed for this request.
+        post_data = self._retrieve_session_vars(content)
         # Set the age_from search to 0.  This returns all people.
-        params['post_data'].update(self._all_people_search)
-        return params
+        post_data.update(self._all_people_search)
+        return Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            # The endpoint which is to be hit next scrape.
+            endpoint=self._initial_endpoint,
+            post_data=post_data,
+        )
 
-    def _get_page_size_50_params(self, content):
+    def _get_page_size_50_task(self, content) -> Task:
         """Returns the params needed to expand the search to 50 people per page
         instead of 10.  The site requires a correct viewstate for this to
         work hence why we don't just send this in one initial scrape session.
@@ -139,16 +141,16 @@ class ArchonixScraper(BaseScraper):
         Returns:
             dictionary of data needed for the next scrape session.
         """
-        params = {
-            'post_data': self._retrieve_session_vars(content),
-            'endpoint': self._initial_endpoint,
-            'task_type': constants.GET_MORE_TASKS,
-        }
+        post_data = self._retrieve_session_vars(content)
         # Update with the data needed to search for 50 people at once.
-        params['post_data'].update(self._people_50_search)
-        return params
+        post_data.update(self._people_50_search)
+        return Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self._initial_endpoint,
+            post_data=post_data,
+        )
 
-    def _get_person_params(self, content):
+    def _get_person_tasks(self, content) -> List[Task]:
         """Returns the params needed to open the page of a specific people.
 
         Args:
@@ -157,7 +159,7 @@ class ArchonixScraper(BaseScraper):
         Returns:
             a list of dictionary data needed for the next scrape session.
         """
-        params_list = []
+        task_list = []
         grid_results = content.cssselect(
             '[id=ctl00_ContentPlaceHolder1_gridResults_ctl00]')[0]
         table_body = grid_results.find('tbody')
@@ -168,16 +170,17 @@ class ArchonixScraper(BaseScraper):
             ref_id_start = href.index('ReferenceID=') + len('ReferenceID=')
             ref_id_end = href.index('&', ref_id_start)
             inmate_id_start = href.index('InmateID=') + len('InmateID=')
-            params = {
-                'endpoint': endpoint,
-                'task_type': constants.SCRAPE_DATA,
-                'inmate_id': href[inmate_id_start:],
-                'reference_id': href[ref_id_start:ref_id_end],
-            }
-            params_list.append(params)
-        return params_list
+            task_list.append(Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint=endpoint,
+                custom={
+                    'inmate_id': href[inmate_id_start:],
+                    'reference_id': href[ref_id_start:ref_id_end],
+                },
+            ))
+        return task_list
 
-    def _get_next_page_if_exists(self, content):
+    def _get_next_page_if_exists_task(self, content) -> List[Task]:
         """Returns the params needed to scrape the next page of results.
 
         Args:
@@ -186,68 +189,52 @@ class ArchonixScraper(BaseScraper):
         Returns:
             dictionary of data needed for the next scrape session.
         """
-        params_list = []
+        task_list = []
         current_page = content.cssselect(
             '[class=rgCurrentPage]')[0].text_content()
         total_pages = re.findall(
             self._total_pages_regex, content.text_content())[0]
         # There is a next page.  Lets scrape it.
         if current_page != total_pages:
-            params = {
-                'post_data': self._retrieve_session_vars(content),
-                'endpoint': self._initial_endpoint,
-                'task_type': constants.GET_MORE_TASKS
-            }
+            post_data = self._retrieve_session_vars(content)
             # Effectively this extracts out the next page button to send to
             # the post.
-            params['post_data']['__EVENTTARGET'] = content.cssselect(
+            post_data['__EVENTTARGET'] = content.cssselect(
                 'div.rgArrPart2')[0].find('input').get('name')
-            params_list.append(params)
-        return params_list
+            task_list.append(Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=self._initial_endpoint,
+                post_data=post_data,
+            ))
+        return task_list
 
-    def get_more_tasks(self, content, params):
-        """
-        Gets more tasks based on the content and params passed in.  This
-        function should determine which task params, if any, should be
-        added to the queue
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A list of params containing endpoint and task_type at minimum.
-        """
-        task_type = params.get('task_type', self.get_initial_task_type())
-        params_list = []
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
+        task_list = []
         page_size = scraper_utils.get_value_from_html_tree(
             content, self._page_size_id)
         # If it is our first task, we know the next task must be a query to
         # return all people
-        if self.is_initial_task(task_type):
-            params_list.append(self._get_all_people_params(content))
+        if self.is_initial_task(task.task_type):
+            task_list.append(self._get_all_people_task(content))
         # In this case, we need to return more people so scraping can go faster.
-        elif self.should_get_more_tasks(task_type) and page_size == '10':
-            params_list.append(self._get_page_size_50_params(content))
+        elif page_size == '10':
+            task_list.append(self._get_page_size_50_task(content))
         # We can start sending people to be scraped.
-        elif self.should_get_more_tasks(task_type) and page_size == '50':
+        elif page_size == '50':
             # First find all people we need to scrape on this page.
-            params_list.extend(self._get_person_params(content))
+            task_list.extend(self._get_person_tasks(content))
             # Next check to see if there is another page we can scrape.
-            params_list.extend(self._get_next_page_if_exists(content))
-        return params_list
+            task_list.extend(self._get_next_page_if_exists_task(content))
+        return task_list
 
-    def populate_data(self, content, params, ingest_info):
-        """
-        Populates the ingest info object from the content and params given
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-            ingest_info: The IngestInfo object to populate
-        """
+    def populate_data(self, content, task: Task,
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         data_extractor = HtmlDataExtractor(self.yaml_file)
-        return data_extractor.extract_and_populate_data(content, ingest_info)
+        return ScrapedData(
+            ingest_info=data_extractor.extract_and_populate_data(
+                content, ingest_info),
+            persist=True,
+        )
 
 
     def transform_post_data(self, data):
@@ -280,21 +267,11 @@ class ArchonixScraper(BaseScraper):
 
     # pylint:disable=unused-argument
 
-    def get_initial_endpoint(self):
-        """Returns the initial endpoint to hit on the first call
-        Returns:
-            A string representing the initial endpoint to hit
-        """
-        return self._initial_endpoint
-
-    def set_initial_vars(self, content, params):
-        """
-        Sets initial vars in the params that it will pass on to future scrapes
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-        """
+    def get_initial_task(self) -> Task:
+        return Task(
+            task_type=constants.TaskType.INITIAL_AND_MORE,
+            endpoint=self._initial_endpoint,
+        )
 
     def person_id_is_fuzzy(self):
         """Returns whether or not this scraper generates person ids

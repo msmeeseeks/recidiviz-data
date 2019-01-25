@@ -20,7 +20,7 @@
 from flask import Flask
 from mock import call, patch
 
-from recidiviz.ingest import scraper_control
+from recidiviz.ingest import constants, scraper_control
 from recidiviz.ingest.models.scrape_key import ScrapeKey
 
 APP_ID = "recidiviz-worker-test"
@@ -37,7 +37,7 @@ class TestScraperStart:
     def setup_method(self, _test_method):
         self.client = app.test_client()
 
-    @patch("recidiviz.utils.regions.get_supported_regions")
+    @patch("recidiviz.utils.regions.get_supported_region_codes")
     @patch("recidiviz.utils.regions.Region")
     @patch("recidiviz.ingest.sessions.create_session")
     @patch("recidiviz.ingest.tracker.purge_docket_and_session")
@@ -53,9 +53,10 @@ class TestScraperStart:
         mock_supported.return_value = ['us_ut', 'us_wy']
 
         region = 'us_ut'
-        scrape_type = 'background'
+        scrape_type = constants.ScrapeType.BACKGROUND
         scrape_key = ScrapeKey(region, scrape_type)
-        request_args = {'region': region, 'scrape_type': scrape_type}
+        request_args = {'region': region, 'scrape_type': scrape_type.value}
+        print(request_args)
         headers = {'X-Appengine-Cron': "test-cron"}
         response = self.client.get('/start',
                                    query_string=request_args,
@@ -68,7 +69,7 @@ class TestScraperStart:
         mock_region.assert_called_with('us_ut')
         mock_supported.assert_called_with()
 
-    @patch("recidiviz.utils.regions.get_supported_regions")
+    @patch("recidiviz.utils.regions.get_supported_region_codes")
     def test_start_unsupported_region(self, mock_supported):
         mock_supported.return_value = ['us_ny', 'us_pa']
 
@@ -91,7 +92,7 @@ class TestScraperStop:
     def setup_method(self, _test_method):
         self.client = app.test_client()
 
-    @patch("recidiviz.utils.regions.get_supported_regions")
+    @patch("recidiviz.utils.regions.get_supported_region_codes")
     @patch("recidiviz.utils.regions.Region")
     @patch("recidiviz.ingest.sessions.end_session")
     def test_stop(self, mock_sessions, mock_region, mock_supported):
@@ -106,14 +107,15 @@ class TestScraperStop:
                                    headers=headers)
         assert response.status_code == 200
 
-        mock_sessions.assert_has_calls([call(ScrapeKey('us_ca', 'background')),
-                                        call(ScrapeKey('us_ca', 'snapshot')),
-                                        call(ScrapeKey('us_ut', 'background')),
-                                        call(ScrapeKey('us_ut', 'snapshot'))])
+        mock_sessions.assert_has_calls([
+            call(ScrapeKey('us_ca', constants.ScrapeType.BACKGROUND)),
+            call(ScrapeKey('us_ca', constants.ScrapeType.SNAPSHOT)),
+            call(ScrapeKey('us_ut', constants.ScrapeType.BACKGROUND)),
+            call(ScrapeKey('us_ut', constants.ScrapeType.SNAPSHOT))])
         mock_region.assert_has_calls([call('us_ca'), call('us_ut')])
         mock_supported.assert_called_with()
 
-    @patch("recidiviz.utils.regions.get_supported_regions")
+    @patch("recidiviz.utils.regions.get_supported_region_codes")
     def test_stop_unsupported_region(self, mock_supported):
         mock_supported.return_value = ['us_ny', 'us_pa']
 
@@ -136,7 +138,7 @@ class TestScraperResume:
     def setup_method(self, _test_method):
         self.client = app.test_client()
 
-    @patch("recidiviz.utils.regions.get_supported_regions")
+    @patch("recidiviz.utils.regions.get_supported_region_codes")
     @patch("recidiviz.utils.regions.Region")
     @patch("recidiviz.ingest.sessions.create_session")
     def test_resume(self, mock_sessions, mock_region, mock_supported):
@@ -152,12 +154,13 @@ class TestScraperResume:
                                    headers=headers)
         assert response.status_code == 200
 
-        mock_sessions.assert_has_calls([call(ScrapeKey(region, 'background')),
-                                        call(ScrapeKey(region, 'snapshot'))])
+        mock_sessions.assert_has_calls(
+            [call(ScrapeKey(region, constants.ScrapeType.BACKGROUND)),
+             call(ScrapeKey(region, constants.ScrapeType.SNAPSHOT))])
         mock_region.assert_called_with(region)
         mock_supported.assert_called_with()
 
-    @patch("recidiviz.utils.regions.get_supported_regions")
+    @patch("recidiviz.utils.regions.get_supported_region_codes")
     def test_resume_unsupported_region(self, mock_supported):
         mock_supported.return_value = ['us_ny', 'us_pa']
 

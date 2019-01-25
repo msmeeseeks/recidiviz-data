@@ -21,6 +21,7 @@ from lxml import html
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 from recidiviz.tests.ingest import fixtures
 from recidiviz.ingest.us_fl_martin.us_fl_martin_scraper \
@@ -44,34 +45,30 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
         # after navigation. Chain multiple calls to
         # |validate_and_return_get_more_tasks| together if necessary.
         content = ""
-        params = {
-            'endpoint': None,
-            'task_type': constants.INITIAL_TASK,
-        }
+        task = Task(
+            task_type=constants.TaskType.INITIAL,
+            endpoint=None,
+        )
 
         endpoint = self.scraper.get_region().base_url + '?RunReport=Run+Report'
         expected_result = [
-            {
-                'endpoint': endpoint,
-                'task_type': constants.SCRAPE_DATA
-            }
+            Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint=endpoint,
+            )
         ]
 
         self.validate_and_return_get_more_tasks(
-            content, params, expected_result)
+            content, task, expected_result)
 
     def test_populate_data(self):
         # Tests scraping data. Fill in |content| and |params| with the state of
         # the page containing person data, and |expected_result| with the
         # IngestInfo objects that should be scraped from the page.
         content = _REPORT_PAGE_HTML
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-        }
-        expected_result = IngestInfo()
+        expected_info = IngestInfo()
 
-        expected_result.create_person(
+        expected_info.create_person(
             person_id="111111",
             surname="AARDVARK",
             given_names="ARTHUR",
@@ -80,24 +77,24 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
             birthdate="01/01/1994",
             race="B")
 
-        expected_result.people[0].create_booking().create_arrest(
+        expected_info.people[0].create_booking().create_arrest(
             agency="AAA",
             date="01/01/2018")
         # date="01/01/2018 10:00:00")
 
-        expected_result.people[0].bookings[0].create_charge(
+        expected_info.people[0].bookings[0].create_charge(
             statute="FS*893.13(6b)",
             name="CHARGE 1",
             charge_class="Misdemeanor",
         ).create_bond(amount="$0.00")
 
-        expected_result.people[0].bookings[0].create_charge(
+        expected_info.people[0].bookings[0].create_charge(
             statute="FS*893.13(6A)",
             name="CHARGE 2",
             charge_class="Unknown"
         ).create_bond(amount="$0.00")
 
-        expected_result.create_person(
+        expected_info.create_person(
             person_id="2222",
             surname="AARDVARK",
             given_names="BART",
@@ -106,16 +103,15 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
             birthdate="01/01/1975",
             race="W")
 
-        expected_result.people[1].create_booking().create_arrest(
+        expected_info.people[1].create_booking().create_arrest(
             agency="CCC",
             date="01/01/2018")
         # date="01/01/2018 08:00:00")
 
-        expected_result.people[1].bookings[0].create_charge(
+        expected_info.people[1].bookings[0].create_charge(
             statute="FS*893.147",
             name="CHARGE 1",
             charge_class="Felony",
         ).create_bond(amount="$500.00")
 
-        self.validate_and_return_populate_data(
-            content, params, expected_result)
+        self.validate_and_return_populate_data(content, expected_info)

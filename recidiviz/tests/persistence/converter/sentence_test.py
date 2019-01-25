@@ -17,6 +17,8 @@
 """Tests for converting sentences."""
 import unittest
 
+from recidiviz.common.constants.sentences import SentenceStatus
+from recidiviz.common.ingest_metadata import IngestMetadata
 from recidiviz.ingest.models import ingest_info_pb2
 from recidiviz.persistence import entities
 from recidiviz.persistence.converter import sentence
@@ -34,13 +36,15 @@ class SentenceConverterTest(unittest.TestCase):
         )
 
         # Act
-        result = sentence.convert(ingest_sentence)
+        result = sentence.convert(ingest_sentence,
+                                  IngestMetadata.new_with_defaults())
 
         # Assert
         expected_result = entities.Sentence.new_with_defaults(
             external_id='SENTENCE_ID',
             min_length_days=1,
-            post_release_supervision_length_days=0
+            post_release_supervision_length_days=0,
+            status=SentenceStatus.UNKNOWN_FOUND_IN_SOURCE
         )
 
         self.assertEqual(result, expected_result)

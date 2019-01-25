@@ -15,37 +15,52 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 """Contains logic for communicating with the persistence layer."""
+import datetime
 import logging
 import os
 from distutils.util import strtobool  # pylint: disable=no-name-in-module
+from typing import List
 
 from opencensus.stats import aggregation
 from opencensus.stats import measure
 from opencensus.stats import view
 
 from recidiviz import Session
-from recidiviz.common.constants.booking import ReleaseReason
+from recidiviz.common.constants.bond import BondStatus
+from recidiviz.common.constants.booking import CustodyStatus
+from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.constants.hold import HoldStatus
+from recidiviz.common.constants.sentences import SentenceStatus
 from recidiviz.ingest.constants import MAX_PEOPLE_TO_LOG
-from recidiviz.persistence import entity_matching
+from recidiviz.persistence import entity_matching, entities
 from recidiviz.persistence.converter import converter
 from recidiviz.persistence.database import database
 from recidiviz.utils import environment, monitoring
 
 m_people = measure.MeasureInt("persistence/num_people",
                               "The number of people persisted", "1")
+m_errors = measure.MeasureInt("persistence/num_errors",
+                              "The number of errors", "1")
 people_persisted_view = view.View("recidiviz/persistence/num_people",
                                   "The sum of people persisted",
                                   [monitoring.TagKey.REGION,
                                    monitoring.TagKey.PERSISTED],
                                   m_people,
                                   aggregation.SumAggregation())
-monitoring.register_views([people_persisted_view])
+errors_persisted_view = view.View("recidiviz/persistence/num_errors",
+                                  "The sum of errors in the persistence layer",
+                                  [monitoring.TagKey.REGION,
+                                   monitoring.TagKey.ERROR],
+                                  m_errors,
+                                  aggregation.SumAggregation())
+monitoring.register_views([people_persisted_view, errors_persisted_view])
+
 
 class PersistenceError(Exception):
     """Raised when an error with the persistence layer is encountered."""
 
 
-def infer_release_on_open_bookings(region, last_ingest_time):
+def infer_release_on_open_bookings(region, last_ingest_time, custody_status):
     """
    Look up all open bookings whose last_seen_time is earlier than the
    provided last_ingest_time in the provided region, update those
@@ -57,18 +72,23 @@ def infer_release_on_open_bookings(region, last_ingest_time):
        last_ingest_time: The last time complete data was ingested for this
            region. In the normal ingest pipeline, this is the last start time
            of a background scrape for the region.
+       custody_status: The custody status to be marked on the found open
+           bookings. Defaults to INFERRED_RELEASE
    """
 
     session = Session()
     try:
         logging.info('Reading all bookings that happened before %s',
                      last_ingest_time)
-        bookings = database.read_open_bookings_scraped_before_time(
+        people = database.read_people_with_open_bookings_scraped_before_time(
             session, region, last_ingest_time)
-        logging.info('Found %s bookings that will be inferred released',
-                     len(bookings))
-        _infer_release_date_for_bookings(session, bookings,
-                                         last_ingest_time.date())
+        logging.info(
+            'Found %s people with bookings that will be inferred released',
+            len(people))
+        for person in people:
+            _infer_release_date_for_bookings(person.bookings, last_ingest_time,
+                                             custody_status)
+        database.write_people(session, people)
         session.commit()
     except Exception:
         session.rollback()
@@ -77,29 +97,44 @@ def infer_release_on_open_bookings(region, last_ingest_time):
         session.close()
 
 
-def _infer_release_date_for_bookings(session, bookings, date):
+def _infer_release_date_for_bookings(
+        bookings: List[entities.Booking],
+        last_ingest_time: datetime.datetime, custody_status: CustodyStatus):
     """Marks the provided bookings with an inferred release date equal to the
-    provided date. Also resolves any charges associated with the provided
-    bookings as 'RESOLVED_UNKNOWN_REASON'"""
-
-    # TODO: set charge status as RESOLVED_UNKNOWN_REASON once DB enum is
-    # appropriately updated
+    provided date. Updates the custody_status to the provided custody
+    status. Also updates all children of the updated booking to have status
+    'UNKNOWN_REMOVED_FROM_SOURCE"""
 
     for booking in bookings:
-        if booking.release_date:
-            raise PersistenceError('Attempting to mark booking {0} as '
-                                   'resolved, however booking already has '
-                                   'release date.'.format(booking.booking_id))
+        if not booking.release_date:
+            logging.info('Marking booking %s as inferred release')
+            booking.release_date = last_ingest_time.date()
+            booking.release_date_inferred = True
+            booking.custody_status = custody_status
+            booking.custody_status_raw_text = None
+            _mark_children_removed_from_source(booking)
 
-        logging.info('Marking booking with ID %s as inferred released',
-                     booking.booking_id)
-        database.update_booking(session, booking.booking_id, release_date=date,
-                                release_reason=ReleaseReason.INFERRED_RELEASE)
+
+def _mark_children_removed_from_source(booking: entities.Booking):
+    """Marks all children of a booking with the status 'REMOVED_FROM_SOURCE'"""
+    for hold in booking.holds:
+        hold.status = HoldStatus.UNKNOWN_REMOVED_FROM_SOURCE
+        hold.status_raw_text = None
+
+    for charge in booking.charges:
+        charge.status = ChargeStatus.UNKNOWN_REMOVED_FROM_SOURCE
+        charge.status_raw_text = None
+        if charge.sentence:
+            charge.sentence.status = SentenceStatus.UNKNOWN_REMOVED_FROM_SOURCE
+            charge.sentence.status_raw_text = None
+        if charge.bond:
+            charge.bond.status = BondStatus.UNKNOWN_REMOVED_FROM_SOURCE
+            charge.bond.status_raw_text = None
 
 
 def _should_persist():
     return bool(environment.in_prod() or \
-        strtobool((os.environ.get('PERSIST_LOCALLY', 'false'))))
+                strtobool((os.environ.get('PERSIST_LOCALLY', 'false'))))
 
 
 def write(ingest_info, metadata):
@@ -133,7 +168,10 @@ def write(ingest_info, metadata):
             logging.info('Successfully wrote to the database')
             session.commit()
             persisted = True
-        except Exception:
+        except Exception as e:
+            # Record the error type that happened and increment the counter
+            mtags[monitoring.TagKey.ERROR] = type(e).__name__
+            measurements.measure_int_put(m_errors, 1)
             session.rollback()
             raise
         finally:

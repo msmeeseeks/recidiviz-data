@@ -36,12 +36,15 @@ Background scraping procedure:
     3. A details page for a person's current booking
 """
 import enum
+from typing import List, Optional
 
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeClass
+from recidiviz.common.constants.hold import HoldStatus
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
-from recidiviz.ingest.models.ingest_info import _Bond
+from recidiviz.ingest.models.ingest_info import IngestInfo, _Bond
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class UsCoMesaScraper(BaseScraper):
@@ -50,45 +53,40 @@ class UsCoMesaScraper(BaseScraper):
     def __init__(self):
         super(UsCoMesaScraper, self).__init__('us_co_mesa')
 
-    def set_initial_vars(self, content, params):
-        pass
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
+        if self.is_initial_task(task.task_type):
+            return [self._get_all_people_task()]
 
-    def get_more_tasks(self, content, params):
-        task_type = params.get('task_type', self.get_initial_task_type())
+        return self._get_person_tasks(content)
 
-        if self.is_initial_task(task_type):
-            return [self._get_all_people_params()]
-
-        return self._get_person_params(content)
-
-    def _get_all_people_params(self):
-        params = {
-            'endpoint': self.get_region().base_url,
-            'task_type': constants.GET_MORE_TASKS,
-            'post_data': {
+    def _get_all_people_task(self):
+        return Task(
+            endpoint=self.get_region().base_url,
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            post_data={
                 'SearchField': 'LName',
                 'SearchVal': '',
             },
-        }
-        return params
+        )
 
-    def _get_person_params(self, content):
-        params_list = []
+    def _get_person_tasks(self, content):
+        task_list = []
 
         form_inputs = content.cssselect('[name=SearchVal]')
         for form_input in form_inputs:
-            params_list.append({
-                'endpoint': self.get_region().base_url,
-                'task_type': constants.SCRAPE_DATA,
-                'post_data': {
+            task_list.append(Task(
+                endpoint=self.get_region().base_url,
+                task_type=constants.TaskType.SCRAPE_DATA,
+                post_data={
                     'SearchField': 'BookingNo',
                     'SearchVal': form_input.get('value')
                 },
-            })
+            ))
 
-        return params_list
+        return task_list
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, task: Task,
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         person = ingest_info.create_person()
         booking = person.create_booking()
 
@@ -97,7 +95,7 @@ class UsCoMesaScraper(BaseScraper):
         # Get person status
         person_status = get_person_status(table[0].text_content())
         if person_status is _PersonStatus.HOLD:
-            booking.hold = 'True'
+            booking.create_hold(status=HoldStatus.ACTIVE.value)
 
         # Parse rest of data from table
         for row in table[1:]:
@@ -177,7 +175,7 @@ class UsCoMesaScraper(BaseScraper):
         # TODO(617): For people 'with open charges', the site doesn't show their
         # charges. Not sure what we should do here, just leave it blank?
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
     def get_enum_overrides(self):
         return {

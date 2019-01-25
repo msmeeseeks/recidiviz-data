@@ -1,5 +1,5 @@
 # Recidiviz - a platform for tracking granular recidivism metrics in real time
-# Copyright (C) 2018 Recidiviz, Inc.
+# Copyright (C) 2019 Recidiviz, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,58 +14,213 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
+
 """Scraper tests for us_pa_greene."""
-
 import unittest
-
-import pytest
 from lxml import html
 
-from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, \
-    _Booking, _Charge, _Bond
+from recidiviz.ingest import constants
+from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.us_pa_greene.us_pa_greene_scraper import UsPaGreeneScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
-_DETAILS_HTML = html.fromstring(
-    fixtures.as_string('us_pa_greene', 'details.html'))
-_NO_CHARGES_HTML = html.fromstring(
-    fixtures.as_string('us_pa_greene', 'no_charges.html'))
+_LANDING_HTML = html.fromstring(
+    fixtures.as_string('us_pa_greene', 'landing_page.html'))
+_ROSTER_JSON = fixtures.as_dict('us_pa_greene', 'roster.json')
+_PERSON_PROBATION_JSON = fixtures.as_dict('us_pa_greene', 'person.json')
+_PERSON_AGENCIES_JSON = fixtures.as_dict('us_pa_greene', 'person_agencies.json')
+_CHARGES_JSON = fixtures.as_dict('us_pa_greene', 'charges.json')
 
 
-class UsPaGreeneScraperTest(BaseScraperTest, unittest.TestCase):
-    """Scraper tests for us_pa_greene."""
+class TestUsPaGreeneScraper(BaseScraperTest, unittest.TestCase):
+
+    SESSION_TOKEN = 'y1n3ohdxid0gx02sgu3o1vsx'
 
     def _init_scraper_and_yaml(self):
+        # The scraper to be tested. Required.
         self.scraper = UsPaGreeneScraper()
+        # The path to the yaml mapping. Optional.
         self.yaml = None
 
-    def test_populate_data(self):
-        expected_result = IngestInfo(people=[
-            _Person(person_id='18-00000', full_name='LAST, FIRST',
-                    birthdate='01/01/2001', gender='Male', age='1111',
-                    race='White/Eurp/ N.Afr/Mid Eas',
-                    bookings=[
-                        _Booking(booking_id='18-00000',
-                                 admission_date='01/01/2001 00:00',
-                                 hold='District Court 11-1-11',
-                                 charges=[
-                                     _Charge(statute='0000(a)(1)',
-                                             name='charge 1',
-                                             case_number='MJ-10000-CR0000-2000',
-                                             bond=_Bond(amount='$50,000.00')),
-                                     _Charge(statute='000000(A)(16)',
-                                             name='charge 2',
-                                             case_number='CR-100-2000',
-                                             bond=_Bond(
-                                                 amount='$2,000.00'))])])])
+        # Set up some things
+        suffix_landing = self.scraper._ROSTER_REQUEST_SUFFIX_TEMPLATE.format(
+            session=self.SESSION_TOKEN,
+            start=0,
+            limit=self.scraper._ROSTER_PAGE_SIZE)
+        self.roster_endpoint = "/".join(
+            [self.scraper._URL_BASE, suffix_landing])
+
+        suffix_cases = self.scraper._CASES_REQUEST_SUFFIX_TEMPLATE.format(
+            session=self.SESSION_TOKEN,
+            arrest=1)
+        self.cases_endpoint = "/".join(
+            [self.scraper._URL_BASE, suffix_cases])
+
+    def test_get_more_tasks_landing(self):
+        expected_result = [Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.roster_endpoint,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._REQUEST_TARGET: self.scraper._ROSTER_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+            },
+        )]
+
+        self.validate_and_return_get_more_tasks(
+            _LANDING_HTML, self.scraper.get_initial_task(), expected_result)
+
+    def test_get_more_tasks_roster(self):
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.roster_endpoint,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._REQUEST_TARGET: self.scraper._ROSTER_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+            },
+        )
+
+        person_suffix = self.scraper._PERSON_REQUEST_SUFFIX_TEMPLATE.format(
+            session=self.SESSION_TOKEN,
+            arrest=1)
+        person_endpoint1 = "/".join(
+            [self.scraper._URL_BASE, person_suffix])
+
+        person_suffix = self.scraper._PERSON_REQUEST_SUFFIX_TEMPLATE.format(
+            session=self.SESSION_TOKEN,
+            arrest=2)
+        person_endpoint2 = "/".join(
+            [self.scraper._URL_BASE, person_suffix])
+
+        expected_result = [Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=person_endpoint1,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 1,
+                self.scraper._REQUEST_TARGET: self.scraper._PERSON_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+            },
+        ), Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=person_endpoint2,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 2,
+                self.scraper._REQUEST_TARGET: self.scraper._PERSON_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+            },
+        )]
+
+        self.validate_and_return_get_more_tasks(
+            _ROSTER_JSON, task, expected_result)
+
+    def test_populate_data_probation(self):
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint='test',
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 1,
+                self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+                self.scraper._PERSON: _PERSON_PROBATION_JSON,
+                self.scraper._CASES: {},
+            }
+        )
+
+        expected_info = IngestInfo()
+
+        person = expected_info.create_person()
+        person.surname = 'Bart'
+        person.given_names = 'Simpson'
+        person.gender = 'M'
+        person.age = '20'
+        person.race = 'White'
+
+        booking = person.create_booking()
+        booking.booking_id = '1'
+        booking.admission_date = '12/5/2018 10:21:00 AM'
+        booking.release_reason = 'PROBATION'
+        booking.custody_status = 'RELEASED'
+
+        charge = booking.create_charge()
+        charge.charge_id = '1'
+        charge.offense_date = '2017-03-10'
+        charge.status = 'Probation'
+        charge.number_of_counts = '2'
+        charge.charge_class = 'M'
+        charge.case_number = '11'
+        bond = charge.create_bond()
+        bond.amount = '500'
+        bond.bond_type = 'CASH'
+
+        charge = booking.create_charge()
+        charge.charge_id = '2'
+        charge.offense_date = '2017-03-16'
+        charge.status = 'Probation'
+        charge.charge_class = 'M'
+        charge.number_of_counts = '1'
+        charge.case_number = '12'
+        bond = charge.create_bond()
+        bond.amount = '500'
+        bond.bond_type = 'CASH'
 
         self.validate_and_return_populate_data(
-            _DETAILS_HTML, {}, expected_result)
+            _CHARGES_JSON, expected_info, task=task)
 
-    def test_populate_data_no_charges(self):
-        expected_result = IngestInfo(people=[_Person(full_name='LAST, FIRST')])
+    def test_populate_data_facility(self):
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint='test',
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 1,
+                self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+                self.scraper._PERSON: _PERSON_AGENCIES_JSON,
+                self.scraper._CASES: {},
+            },
+        )
 
-        with pytest.warns(UserWarning):
-            self.validate_and_return_populate_data(_NO_CHARGES_HTML, {},
-                                                   expected_result)
+        expected_info = IngestInfo()
+
+        person = expected_info.create_person()
+        person.surname = 'Bart'
+        person.given_names = 'Simpson'
+        person.gender = 'M'
+        person.age = '20'
+        person.race = 'White'
+
+        booking = person.create_booking()
+        booking.booking_id = '1'
+        booking.admission_date = '12/5/2018 10:21:00 AM'
+        booking.facility = 'TEST FACILITY'
+
+        charge = booking.create_charge()
+        charge.charge_id = '1'
+        charge.offense_date = '2017-03-10'
+        charge.status = 'Probation'
+        charge.number_of_counts = '2'
+        charge.charge_class = 'M'
+        charge.case_number = '11'
+        bond = charge.create_bond()
+        bond.amount = '500'
+        bond.bond_type = 'CASH'
+
+        charge = booking.create_charge()
+        charge.charge_id = '2'
+        charge.offense_date = '2017-03-16'
+        charge.status = 'Probation'
+        charge.charge_class = 'M'
+        charge.number_of_counts = '1'
+        charge.case_number = '12'
+        bond = charge.create_bond()
+        bond.amount = '500'
+        bond.bond_type = 'CASH'
+
+        self.validate_and_return_populate_data(
+            _CHARGES_JSON, expected_info, task=task)

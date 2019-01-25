@@ -19,9 +19,13 @@
 """Scraper implementation for us_fl_hendry."""
 import os
 import re
-from recidiviz.ingest.base_scraper import BaseScraper
+from typing import List, Optional, Set
+
 from recidiviz.ingest import constants
+from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class UsFlHendryScraper(BaseScraper):
@@ -35,7 +39,8 @@ class UsFlHendryScraper(BaseScraper):
 
         super(UsFlHendryScraper, self).__init__('us_fl_hendry')
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, task: Task,
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
 
         # Modify duplicate fields so dataextractor can differentiate
         headers = content.xpath("//th/div[text()=\"Release Date:\"]")
@@ -48,7 +53,7 @@ class UsFlHendryScraper(BaseScraper):
 
         if len(ingest_info.people) != 1:
             raise Exception("Expected only 1 person on page, but found %i" %
-                            len(ingest_info.person))
+                            len(ingest_info.people))
 
         person = ingest_info.people[0]
 
@@ -62,59 +67,59 @@ class UsFlHendryScraper(BaseScraper):
                     if len(person.bookings) <= i:
                         raise Exception("DataExtractor did not create enough "
                                         "bookings. %i expected, %i found" %
-                                        (len(table[1:]), len(person.booking)))
+                                        (len(table[1:]), len(person.bookings)))
 
                     booking = person.bookings[i]
 
                     charge_table = tr.cssselect('table')
                     for charge_td in charge_table[0]:
-                        charge_search = re.search(
-                            "Charge:\\W(\\S+\\W*/\\W*.+)\\n" +
-                            "\\W+(.+)\\W+Counts:\\W*" +
-                            "Bond\\WAmount:\\W*(\\d*)\\W*(\\$\\d*)",
-                            charge_td.text_content(), re.I)
-
-                        charge = booking.create_charge()
-                        charge.statute = charge_search.group(1)
-
-                        charge.name = charge_search.group(2)\
-                            .replace('\n', '')\
-                            .replace('\t', '')\
-                            .replace(u'\xa0', u'')\
-                            .strip()
-
-                        if charge.name == '':
-                            charge.name = None
-
-                        if charge_search.group(3):
-                            charge.number_of_counts = charge_search.group(3)
-
-                        charge.create_bond(amount=charge_search.group(4))
+                        self._add_charge(charge_td, booking)
                     i += 1
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
-    def get_more_tasks(self, content, params):
-        task_type = params.get('task_type', self.get_initial_task_type())
-        endpoint = params.get('endpoint', self.get_initial_task_type())
+    def _add_charge(self, charge_td, booking):
+        charge_search = re.search(
+            "Charge:\\W(\\S+\\W*/\\W*.+)\\n" +
+            "\\W+(.+)\\W+Counts:\\W*" +
+            "Bond\\WAmount:\\W*(\\d*)\\W*(\\$\\d*)",
+            charge_td.text_content(), re.I)
 
-        if self.is_initial_task(task_type):
+        if charge_search:
+            charge = booking.create_charge()
+            charge.statute = charge_search.group(1)
+
+            charge.name = charge_search.group(2)\
+                .replace('\n', '')\
+                .replace('\t', '')\
+                .replace(u'\xa0', u'')\
+                .strip()
+
+            if charge.name == '':
+                charge.name = None
+
+            if charge_search.group(3):
+                charge.number_of_counts = charge_search.group(3)
+
+            charge.create_bond(amount=charge_search.group(4))
+
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
+        if self.is_initial_task(task.task_type):
             return [self._get_search_page()]
 
         tasks = []
-        tasks.extend(self._get_next_page(content, endpoint))
+        tasks.extend(self._get_next_page(content, task.endpoint))
         tasks.extend(self._get_profiles(content))
         return tasks
 
-    def _get_search_page(self):
-        return {
-            'endpoint': self.get_region().base_url +
-                        "/inmate_search/INMATE_Results.php",
+    def _get_search_page(self) -> Task:
+        return Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.get_region().base_url +
+            "/inmate_search/INMATE_Results.php",
+        )
 
-            'task_type': constants.GET_MORE_TASKS
-        }
-
-    def _get_next_page(self, content, endpoint):
+    def _get_next_page(self, content, endpoint) -> List[Task]:
         next_button = content.cssselect('[title="Next"]')
         if next_button:
             next_endpoint = self.get_region().base_url + \
@@ -124,25 +129,25 @@ class UsFlHendryScraper(BaseScraper):
                 # the last page
                 return []
 
-            return [{
-                'endpoint': next_endpoint,
-                'task_type': constants.GET_MORE_TASKS
-            }]
+            return [Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=next_endpoint,
+            )]
 
         return []
 
-    def _get_profiles(self, content):
+    def _get_profiles(self, content) -> List[Task]:
         link_elms = content.cssselect('td.WADAResultsTableCell > a')
 
         tasks = []
-        links = []
+        links: Set[str] = set()
         for elm in link_elms:
             if elm.get('href') not in links:
-                links.append(elm.get('href'))
-                tasks.append({
-                    'endpoint': self.get_region().base_url +
-                                '/inmate_search/' + elm.get('href'),
-                    'task_type': constants.SCRAPE_DATA
-                })
+                links.add(elm.get('href'))
+                tasks.append(Task(
+                    task_type=constants.TaskType.SCRAPE_DATA,
+                    endpoint=self.get_region().base_url +
+                    '/inmate_search/' + elm.get('href'),
+                ))
 
         return tasks

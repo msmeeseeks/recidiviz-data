@@ -37,6 +37,14 @@ requiring the database to be updated when an enum value is created or removed.
 # default value for enums that are not provided (which should be represented
 # with None/NULL).
 external_unknown = 'EXTERNAL_UNKNOWN'
+# This value should not be used by scrapers directly. It is used by status
+# enums to denote that no status for an entity was provided by the source, but
+# the entity itself was found in the source.
+unknown_found_in_source = 'UNKNOWN_FOUND_IN_SOURCE'
+# This value should not be used by scrapers directly. It is only used in the
+# situation that an entity is removed from the website, and we cannot infer
+# anything about what removal means (i.e. 'INFER_DROPPED')
+unknown_removed_from_source = 'UNKNOWN_REMOVED_FROM_SOURCE'
 
 # Person
 
@@ -58,13 +66,18 @@ ethnicity_not_hispanic = 'NOT_HISPANIC'
 
 # Booking
 
+admission_reason_escape = 'ESCAPE'
+admission_reason_new_commitment = 'NEW_COMMITMENT'
+admission_reason_parole_violation = 'PAROLE_VIOLATION'
+admission_reason_probation_violation = 'PROBATION_VIOLATION'
+admission_reason_transfer = 'TRANSFER'
+
 release_reason_acquittal = 'ACQUITTAL'
 release_reason_bond = 'BOND'
 release_reason_case_dismissed = 'CASE_DISMISSED'
 release_reason_death = 'DEATH'
 release_reason_escape = 'ESCAPE'
 release_reason_expiration = 'EXPIRATION_OF_SENTENCE'
-release_reason_inferred = 'INFERRED_RELEASE'
 release_reason_recognizance = 'OWN_RECOGNIZANCE'
 release_reason_parole = 'PAROLE'
 release_reason_probation = 'PROBATION'
@@ -73,6 +86,7 @@ release_reason_transfer = 'TRANSFER'
 custody_status_escaped = 'ESCAPED'
 custody_status_elsewhere = 'HELD_ELSEWHERE'
 custody_status_in_custody = 'IN_CUSTODY'
+custody_status_inferred_release = 'INFERRED_RELEASE'
 custody_status_released = 'RELEASED'
 
 classification_high = 'HIGH'
@@ -86,17 +100,26 @@ classification_work_release = 'WORK_RELEASE'
 
 hold_status_active = 'ACTIVE'
 hold_status_inactive = 'INACTIVE'
+hold_status_inferred_dropped = 'INFERRED_DROPPED'
 
 # Bond
 
-bond_type_denied = 'BOND_DENIED'
 bond_type_cash = 'CASH'
 bond_type_no_bond = 'NO_BOND'
 bond_type_secured = 'SECURED'
 bond_type_unsecured = 'UNSECURED'
 
-bond_status_active = 'ACTIVE'
+bond_status_denied = 'DENIED'
+bond_status_inferred_set = 'INFERRED_SET'
+bond_status_not_required = 'NOT_REQUIRED'
 bond_status_posted = 'POSTED'
+bond_status_set = 'SET'
+
+# Sentence
+
+sentence_status_commuted = 'COMMUTED'
+sentence_status_completed = 'COMPLETED'
+sentence_status_serving = 'SERVING'
 
 # SentenceRelationship
 
@@ -108,11 +131,13 @@ sentence_relationship_type_consecutive = 'CONSECUTIVE'
 degree_first = 'FIRST'
 degree_second = 'SECOND'
 degree_third = 'THIRD'
+degree_fourth = 'FOURTH'
 
 charge_class_civil = 'CIVIL'
 charge_class_felony = 'FELONY'
 charge_class_infraction = 'INFRACTION'
 charge_class_misdemeanor = 'MISDEMEANOR'
+charge_class_other = 'OTHER'
 charge_class_parole_violation = 'PAROLE_VIOLATION'
 charge_class_probation_violation = 'PROBATION_VIOLATION'
 
@@ -120,6 +145,7 @@ charge_status_acquitted = 'ACQUITTED'
 charge_status_completed = 'COMPLETED_SENTENCE'
 charge_status_convicted = 'CONVICTED'
 charge_status_dropped = 'DROPPED'
+charge_status_inferred_dropped = 'INFERRED_DROPPED'
 charge_status_pending = 'PENDING'
 charge_status_pretrial = 'PRETRIAL'
 charge_status_sentenced = 'SENTENCED'
@@ -128,3 +154,9 @@ court_type_circuit = 'CIRCUIT'
 court_type_district = 'DISTRICT'
 court_type_other = 'OTHER'
 court_type_superior = 'SUPERIOR'
+
+# Aggregates
+
+daily_granularity = 'DAILY'
+weekly_granularity = 'WEEKLY'
+monthly_granularity = 'MONTHLY'

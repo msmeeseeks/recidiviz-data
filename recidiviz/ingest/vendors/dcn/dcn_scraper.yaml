@@ -1,0 +1,15 @@
+key_mappings:
+  Local ID: person.person_id
+  Race: person.race
+  Age: person.age
+  Date of Birth: person.birthdate
+  Sex: person.gender
+  Admit Date: booking.admission_date
+
+multi_key_mapping:
+  Charge: charge.name
+  Offense Date: charge.offense_date
+  #Court Type: charge.court_type, how does felony 12th circuit map?
+  Court Date: charge.next_court_date
+  Bond: bond.amount
+  Bond Type: bond.bond_type

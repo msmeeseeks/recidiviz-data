@@ -26,6 +26,7 @@ class ChargeDegree(MappableEnum):
     FIRST = enum_strings.degree_first
     SECOND = enum_strings.degree_second
     THIRD = enum_strings.degree_third
+    FOURTH = enum_strings.degree_fourth
 
     @staticmethod
     def _get_default_map():
@@ -38,6 +39,7 @@ class ChargeClass(MappableEnum):
     FELONY = enum_strings.charge_class_felony
     INFRACTION = enum_strings.charge_class_infraction
     MISDEMEANOR = enum_strings.charge_class_misdemeanor
+    OTHER = enum_strings.charge_class_other
     PAROLE_VIOLATION = enum_strings.charge_class_parole_violation
     PROBATION_VIOLATION = enum_strings.charge_class_probation_violation
 
@@ -52,9 +54,12 @@ class ChargeStatus(MappableEnum):
     CONVICTED = enum_strings.charge_status_convicted
     DROPPED = enum_strings.charge_status_dropped
     EXTERNAL_UNKNOWN = enum_strings.external_unknown
+    INFERRED_DROPPED = enum_strings.charge_status_inferred_dropped
     PENDING = enum_strings.charge_status_pending
     PRETRIAL = enum_strings.charge_status_pretrial
     SENTENCED = enum_strings.charge_status_sentenced
+    UNKNOWN_FOUND_IN_SOURCE = enum_strings.unknown_found_in_source
+    UNKNOWN_REMOVED_FROM_SOURCE = enum_strings.unknown_removed_from_source
 
     @staticmethod
     def _get_default_map():
@@ -77,9 +82,15 @@ _CHARGE_DEGREE_MAP = {
     '1ST': ChargeDegree.FIRST,
     '2ND': ChargeDegree.SECOND,
     '3RD': ChargeDegree.THIRD,
+    '4TH': ChargeDegree.FOURTH,
     'FIRST': ChargeDegree.FIRST,
     'SECOND': ChargeDegree.SECOND,
     'THIRD': ChargeDegree.THIRD,
+    'FOURTH': ChargeDegree.FOURTH,
+    '1': ChargeDegree.FIRST,
+    '2': ChargeDegree.SECOND,
+    '3': ChargeDegree.THIRD,
+    '4': ChargeDegree.FOURTH,
     'UNKNOWN': ChargeDegree.EXTERNAL_UNKNOWN,
 }
 
@@ -101,9 +112,11 @@ _CHARGE_STATUS_MAP = {
     'ACQUITTED': ChargeStatus.ACQUITTED,
     'COMPLETED SENTENCE': ChargeStatus.COMPLETED_SENTENCE,
     'CONVICTED': ChargeStatus.CONVICTED,
+    'DISMISSED': ChargeStatus.DROPPED,
     'DISMISSED BY DISTRICT ATTORNEY': ChargeStatus.DROPPED,
     'DROPPED': ChargeStatus.DROPPED,
     'NOT GUILTY': ChargeStatus.ACQUITTED,
+    'OPEN': ChargeStatus.PENDING,
     'PENDING': ChargeStatus.PENDING,
     'PRE-TRIAL': ChargeStatus.PRETRIAL,
     'PRETRIAL': ChargeStatus.PRETRIAL,

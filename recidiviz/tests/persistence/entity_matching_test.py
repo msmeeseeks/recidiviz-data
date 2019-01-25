@@ -24,6 +24,7 @@ from recidiviz import Session
 from recidiviz.common.constants.bond import BondStatus
 from recidiviz.common.constants.booking import CustodyStatus
 from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.constants.hold import HoldStatus
 from recidiviz.persistence.database import schema, database_utils
 from recidiviz.persistence import entities, entity_matching
 from recidiviz.persistence.entity_matching import EntityMatchingError
@@ -231,7 +232,7 @@ class TestEntityMatching(TestCase):
         db_sentence = entities.Sentence.new_with_defaults(
             sentence_id=_ID, external_id=_EXTERNAL_ID, sentencing_region=_NAME)
         db_bond = entities.Bond.new_with_defaults(
-            bond_id=_ID, external_id=_EXTERNAL_ID, status=BondStatus.ACTIVE)
+            bond_id=_ID, external_id=_EXTERNAL_ID, status=BondStatus.SET)
         db_charge = entities.Charge.new_with_defaults(
             charge_id=_ID, external_id=_EXTERNAL_ID, name=_NAME,
             sentence=db_sentence, bond=db_bond)
@@ -307,7 +308,8 @@ class TestEntityMatching(TestCase):
         expected_matched_hold = attr.evolve(
             ingested_hold, hold_id=db_hold.hold_id)
         expected_new_hold = attr.evolve(ingested_hold_new)
-        expected_dropped_hold = attr.evolve(db_hold_to_drop)
+        expected_dropped_hold = attr.evolve(
+            db_hold_to_drop, status=HoldStatus.INFERRED_DROPPED)
 
         entity_matching.match_holds(
             db_booking=db_booking, ingested_booking=ingested_booking)
@@ -344,7 +346,7 @@ class TestEntityMatching(TestCase):
             ingested_charge, charge_id=db_charge.charge_id)
         expected_new_charge = attr.evolve(ingested_charge_new)
         expected_dropped_charge = attr.evolve(
-            db_identical_charge, status=ChargeStatus.DROPPED)
+            db_identical_charge, status=ChargeStatus.INFERRED_DROPPED)
 
         db_booking = entities.Booking.new_with_defaults(
             charges=[db_charge, db_identical_charge])

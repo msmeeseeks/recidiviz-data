@@ -16,14 +16,12 @@
 # =============================================================================
 
 """Represents data scraped for a single individual."""
+from abc import abstractmethod
 from typing import List, Optional
 
 
-class IngestInfo:
-    """Class for information about multiple people."""
-
-    def __init__(self, people=None):
-        self.people: List[_Person] = people or []
+class IngestObject:
+    """Abstract base class for all the objects contained by IngestInfo"""
 
     def __eq__(self, other):
         if other is None:
@@ -38,6 +36,17 @@ class IngestInfo:
 
     def __repr__(self):
         return to_repr(self)
+
+    @abstractmethod
+    def __setattr__(self, key, value):
+        """Implement using restricted_setattr"""
+
+
+class IngestInfo(IngestObject):
+    """Class for information about multiple people."""
+
+    def __init__(self, people=None):
+        self.people: List[_Person] = people or []
 
     def __setattr__(self, name, value):
         restricted_setattr(self, 'people', name, value)
@@ -57,41 +66,30 @@ class IngestInfo:
         return self
 
 
-class _Person:
+class _Person(IngestObject):
     """Class for information about a person.
     Referenced from IngestInfo.
     """
 
-    def __init__(self, person_id=None, full_name=None, surname=None,
-                 given_names=None, birthdate=None, gender=None, age=None,
-                 race=None, ethnicity=None, place_of_residence=None,
-                 bookings=None):
-        self.person_id: str = person_id
-        self.surname: str = surname
-        self.given_names: str = given_names
-        self.full_name: str = full_name
-        self.birthdate: str = birthdate
-        self.gender: str = gender
-        self.age: str = age
-        self.race: str = race
-        self.ethnicity: str = ethnicity
-        self.place_of_residence: str = place_of_residence
+    def __init__(
+            self, person_id=None, full_name=None, surname=None,
+            given_names=None, middle_names=None, birthdate=None,
+            gender=None, age=None, race=None, ethnicity=None,
+            place_of_residence=None,
+            bookings=None):
+        self.person_id: Optional[str] = person_id
+        self.surname: Optional[str] = surname
+        self.given_names: Optional[str] = given_names
+        self.middle_names: Optional[str] = middle_names
+        self.full_name: Optional[str] = full_name
+        self.birthdate: Optional[str] = birthdate
+        self.gender: Optional[str] = gender
+        self.age: Optional[str] = age
+        self.race: Optional[str] = race
+        self.ethnicity: Optional[str] = ethnicity
+        self.place_of_residence: Optional[str] = place_of_residence
 
         self.bookings: List[_Booking] = bookings or []
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.__dict__ == other.__dict__
-
-    def __bool__(self):
-        return to_bool(self)
-
-    def __str__(self):
-        return to_string(self)
-
-    def __repr__(self):
-        return to_repr(self)
 
     def __setattr__(self, name, value):
         restricted_setattr(self, 'bookings', name, value)
@@ -112,49 +110,34 @@ class _Person:
         return self
 
 
-class _Booking:
+class _Booking(IngestObject):
     """Class for information about a booking.
     Referenced from Person.
     """
 
-    def __init__(self, booking_id=None, admission_date=None,
-                 projected_release_date=None, release_date=None,
-                 release_reason=None,
-                 custody_status=None,
-                 hold=None,
-                 facility=None, classification=None,
-                 total_bond_amount=None,
-                 arrest=None, charges=None):
-        self.booking_id: str = booking_id
-        self.admission_date: str = admission_date
-        self.projected_release_date: str = projected_release_date
-        self.release_date: str = release_date
-        self.release_reason: str = release_reason
-        self.custody_status: str = custody_status
-        self.hold: str = hold
-        self.facility: str = facility
-        self.classification: str = classification
-        self.total_bond_amount: str = total_bond_amount
+    def __init__(
+            self, booking_id=None, admission_date=None,
+            admission_reason=None, projected_release_date=None,
+            release_date=None, release_reason=None, custody_status=None,
+            facility=None, classification=None, total_bond_amount=None,
+            arrest=None, charges=None, holds=None):
+        self.booking_id: Optional[str] = booking_id
+        self.admission_date: Optional[str] = admission_date
+        self.admission_reason: Optional[str] = admission_reason
+        self.projected_release_date: Optional[str] = projected_release_date
+        self.release_date: Optional[str] = release_date
+        self.release_reason: Optional[str] = release_reason
+        self.custody_status: Optional[str] = custody_status
+        self.facility: Optional[str] = facility
+        self.classification: Optional[str] = classification
+        self.total_bond_amount: Optional[str] = total_bond_amount
 
         self.arrest: Optional[_Arrest] = arrest
         self.charges: List[_Charge] = charges or []
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.__dict__ == other.__dict__
-
-    def __bool__(self):
-        return to_bool(self)
-
-    def __str__(self):
-        return to_string(self)
-
-    def __repr__(self):
-        return to_repr(self)
+        self.holds: List[_Hold] = holds or []
 
     def __setattr__(self, name, value):
-        restricted_setattr(self, 'charges', name, value)
+        restricted_setattr(self, 'holds', name, value)
 
     def create_arrest(self, **kwargs) -> '_Arrest':
         self.arrest = _Arrest(**kwargs)
@@ -165,9 +148,19 @@ class _Booking:
         self.charges.append(charge)
         return charge
 
+    def create_hold(self, **kwargs) -> '_Hold':
+        hold = _Hold(**kwargs)
+        self.holds.append(hold)
+        return hold
+
     def get_recent_charge(self) -> Optional['_Charge']:
         if self.charges:
             return self.charges[-1]
+        return None
+
+    def get_recent_hold(self) -> Optional['_Hold']:
+        if self.holds:
+            return self.holds[-1]
         return None
 
     def get_recent_arrest(self) -> Optional['_Arrest']:
@@ -175,88 +168,63 @@ class _Booking:
 
     def prune(self) -> '_Booking':
         self.charges = [charge.prune() for charge in self.charges if charge]
+        self.holds = [hold for hold in self.holds if hold]
         if not self.arrest:
             self.arrest = None
         return self
 
 
-class _Arrest:
+class _Arrest(IngestObject):
     """Class for information about an arrest.
     Referenced from Booking.
     """
 
-    def __init__(self, arrest_id=None, date=None, location=None,
-                 officer_name=None, officer_id=None, agency=None):
-        self.arrest_id: str = arrest_id
-        self.date: str = date
-        self.location: str = location
-        self.officer_name: str = officer_name
-        self.officer_id: str = officer_id
-        self.agency: str = agency
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.__dict__ == other.__dict__
-
-    def __bool__(self):
-        return to_bool(self)
-
-    def __str__(self):
-        return to_string(self)
-
-    def __repr__(self):
-        return to_repr(self)
+    def __init__(
+            self, arrest_id=None, date=None, location=None,
+            officer_name=None, officer_id=None, agency=None):
+        self.arrest_id: Optional[str] = arrest_id
+        self.date: Optional[str] = date
+        self.location: Optional[str] = location
+        self.officer_name: Optional[str] = officer_name
+        self.officer_id: Optional[str] = officer_id
+        self.agency: Optional[str] = agency
 
     def __setattr__(self, name, value):
         restricted_setattr(self, 'agency', name, value)
 
 
-class _Charge:
+class _Charge(IngestObject):
     """Class for information about a charge.
     Referenced from Booking.
     """
 
-    def __init__(self, charge_id=None, offense_date=None, statute=None,
-                 name=None, attempted=None, degree=None,
-                 charge_class=None, level=None, fee_dollars=None,
-                 charging_entity=None, status=None,
-                 number_of_counts=None, court_type=None,
-                 case_number=None, next_court_date=None, judge_name=None,
-                 bond=None, sentence=None):
-        self.charge_id: str = charge_id
-        self.offense_date: str = offense_date
-        self.statute: str = statute
-        self.name: str = name
-        self.attempted: str = attempted
-        self.degree: str = degree
-        self.charge_class: str = charge_class
-        self.level: str = level
-        self.fee_dollars: str = fee_dollars
-        self.charging_entity: str = charging_entity
-        self.status: str = status
-        self.number_of_counts: str = number_of_counts
-        self.court_type: str = court_type
-        self.case_number: str = case_number
-        self.next_court_date: str = next_court_date
-        self.judge_name: str = judge_name
+    def __init__(
+            self, charge_id=None, offense_date=None, statute=None,
+            name=None, attempted=None, degree=None,
+            charge_class=None, level=None, fee_dollars=None,
+            charging_entity=None, status=None,
+            number_of_counts=None, court_type=None,
+            case_number=None, next_court_date=None, judge_name=None,
+            bond=None, sentence=None):
+        self.charge_id: Optional[str] = charge_id
+        self.offense_date: Optional[str] = offense_date
+        self.statute: Optional[str] = statute
+        self.name: Optional[str] = name
+        self.attempted: Optional[str] = attempted
+        self.degree: Optional[str] = degree
+        self.charge_class: Optional[str] = charge_class
+        self.level: Optional[str] = level
+        self.fee_dollars: Optional[str] = fee_dollars
+        self.charging_entity: Optional[str] = charging_entity
+        self.status: Optional[str] = status
+        self.number_of_counts: Optional[str] = number_of_counts
+        self.court_type: Optional[str] = court_type
+        self.case_number: Optional[str] = case_number
+        self.next_court_date: Optional[str] = next_court_date
+        self.judge_name: Optional[str] = judge_name
 
         self.bond: Optional[_Bond] = bond
         self.sentence: Optional[_Sentence] = sentence
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.__dict__ == other.__dict__
-
-    def __bool__(self):
-        return to_bool(self)
-
-    def __str__(self):
-        return to_string(self)
-
-    def __repr__(self):
-        return to_repr(self)
 
     def __setattr__(self, name, value):
         restricted_setattr(self, 'sentence', name, value)
@@ -283,72 +251,59 @@ class _Charge:
         return self
 
 
-class _Bond:
-    """Class for information about a bond.
-    Referenced from Charge.
+class _Hold(IngestObject):
+    """Class for information about a hold.
+    Referenced from Booking.
     """
 
-    def __init__(self, bond_id=None, amount=None, bond_type=None, status=None):
-        self.bond_id: str = bond_id
-        self.amount: str = amount
-        self.bond_type: str = bond_type
-        self.status: str = status
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.__dict__ == other.__dict__
-
-    def __bool__(self):
-        return to_bool(self)
-
-    def __str__(self):
-        return to_string(self)
-
-    def __repr__(self):
-        return to_repr(self)
+    def __init__(self, hold_id=None, jurisdiction_name=None, status=None):
+        self.hold_id: Optional[str] = hold_id
+        self.jurisdiction_name: Optional[str] = jurisdiction_name
+        self.status: Optional[str] = status
 
     def __setattr__(self, name, value):
         restricted_setattr(self, 'status', name, value)
 
 
-class _Sentence:
+class _Bond(IngestObject):
+    """Class for information about a bond.
+    Referenced from Charge.
+    """
+
+    def __init__(self, bond_id=None, amount=None, bond_type=None, status=None):
+        self.bond_id: Optional[str] = bond_id
+        self.amount: Optional[str] = amount
+        self.bond_type: Optional[str] = bond_type
+        self.status: Optional[str] = status
+
+    def __setattr__(self, name, value):
+        restricted_setattr(self, 'status', name, value)
+
+
+class _Sentence(IngestObject):
     """Class for information about a sentence.
     Referenced from Charge.
     """
 
-    def __init__(self, sentence_id=None, date_imposed=None,
-                 sentencing_region=None, min_length=None, max_length=None,
-                 is_life=None, is_probation=None, is_suspended=None,
-                 fine_dollars=None, parole_possible=None,
-                 post_release_supervision_length=None):
-        self.sentence_id: str = sentence_id
-        self.date_imposed: str = date_imposed
-        self.sentencing_region: str = sentencing_region
-        self.min_length: str = min_length
-        self.max_length: str = max_length
-        self.is_life: str = is_life
-        self.is_probation: str = is_probation
-        self.is_suspended: str = is_suspended
-        self.fine_dollars: str = fine_dollars
-        self.parole_possible: str = parole_possible
+    def __init__(
+            self, sentence_id=None, status=None,
+            sentencing_region=None, min_length=None, max_length=None,
+            is_life=None, is_probation=None, is_suspended=None,
+            fine_dollars=None, parole_possible=None,
+            post_release_supervision_length=None):
+        self.sentence_id: Optional[str] = sentence_id
+        self.status: Optional[str] = status
+        self.sentencing_region: Optional[str] = sentencing_region
+        self.min_length: Optional[str] = min_length
+        self.max_length: Optional[str] = max_length
+        self.is_life: Optional[str] = is_life
+        self.is_probation: Optional[str] = is_probation
+        self.is_suspended: Optional[str] = is_suspended
+        self.fine_dollars: Optional[str] = fine_dollars
+        self.parole_possible: Optional[str] = parole_possible
 
-        self.post_release_supervision_length: str = \
+        self.post_release_supervision_length: Optional[str] = \
             post_release_supervision_length
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.__dict__ == other.__dict__
-
-    def __bool__(self):
-        return to_bool(self)
-
-    def __str__(self):
-        return to_string(self)
-
-    def __repr__(self):
-        return to_repr(self)
 
     def __setattr__(self, name, value):
         restricted_setattr(self, 'post_release_supervision_length', name, value)

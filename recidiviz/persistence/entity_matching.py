@@ -22,7 +22,10 @@ from typing import List, Dict, Tuple, Set, Sequence, Callable
 
 from recidiviz import Session
 from recidiviz.common import common_utils
+from recidiviz.common.constants.bond import BondStatus
 from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.constants.hold import HoldStatus
+from recidiviz.common.constants.sentences import SentenceStatus
 from recidiviz.persistence.database import database
 from recidiviz.persistence import entity_matching_utils as utils, entities
 from recidiviz.persistence.entities import Entity
@@ -61,8 +64,12 @@ def match_entities(
             # If the match was previously matched to a different database
             # person, raise an error.
             if ingested_person.person_id:
-                raise EntityMatchingError('matched ingested person to more '
-                                          'than one database entity')
+                raise EntityMatchingError(
+                    'matched ingested person {} to both of the following '
+                    'database entities: '
+                    '[{}, {}]'.format(ingested_person,
+                                      ingested_person.person_id,
+                                      db_person.person_id))
             ingested_person.person_id = db_person.person_id
             match_bookings(db_person=db_person,
                            ingested_person=ingested_person)
@@ -94,8 +101,12 @@ def match_bookings(
             # If the match was previously matched to a different database
             # booking, raise an error.
             if ingested_booking.booking_id:
-                raise EntityMatchingError('matched ingested booking to more '
-                                          'than one database entity')
+                raise EntityMatchingError(
+                    'matched ingested booking {} to both of the following '
+                    'database entities: '
+                    '[{}, {}]'.format(ingested_booking,
+                                      ingested_booking.booking_id,
+                                      db_booking.booking_id))
             ingested_booking.booking_id = db_booking.booking_id
 
             if (db_booking.admission_date_inferred and
@@ -187,12 +198,23 @@ def _match_from_charges(*, db_booking: entities.Booking,
         else:
             logging.info('Did not match %s to any ingested %s, dropping',
                          db_obj, name)
-            # TODO: figure out how to drop sentences/bonds
-            # _drop_bond(db_bond) / _drop_sentence(db_sentence)
+            drop_fn = globals()['_drop_' + name]
+            drop_fn(db_obj)
             dropped_objs.append(db_obj)
 
     # TODO: keep bonds/sentences around on booking after being dropped
-    # ingested_booking.bonds.extend(ingested_bonds)
+
+
+def _drop_sentence(sentence: entities.Sentence):
+    if sentence.status != SentenceStatus.UNKNOWN_REMOVED_FROM_SOURCE:
+        logging.info('Removing sentence with id %s', sentence.sentence_id)
+        sentence.status = SentenceStatus.UNKNOWN_REMOVED_FROM_SOURCE
+
+
+def _drop_bond(bond: entities.Bond):
+    if bond.status != BondStatus.UNKNOWN_REMOVED_FROM_SOURCE:
+        logging.info('Removing bond with id %s', bond.bond_id)
+        bond.status = BondStatus.UNKNOWN_REMOVED_FROM_SOURCE
 
 
 def match_arrest(
@@ -203,6 +225,16 @@ def match_arrest(
 
 def match_holds(
         *, db_booking: entities.Booking, ingested_booking: entities.Booking):
+    """
+    Attempts to match all holds on the |ingested_booking| with holds on
+    the |db_booking|. For any ingested hold, if a matching hold exists on
+    |db_booking|, the primary key is updated on the ingested hold. All
+    db holds that are not matched to an ingested hold are marked dropped and
+    added to the |ingested_booking|.
+    Args:
+        ingested_booking: (entities.Booking)
+        db_booking: (entities.Booking)
+    """
     dropped_holds = []
 
     for db_hold in db_booking.holds:
@@ -215,8 +247,12 @@ def match_holds(
             # If the match was previously matched to a different database
             # charge, raise an error.
             if ingested_hold.hold_id:
-                raise EntityMatchingError('matched ingested hold to more '
-                                          'than one database entity')
+                raise EntityMatchingError(
+                    'matched ingested hold {} to both of the following '
+                    'database entities: '
+                    '[{}, {}]'.format(ingested_hold,
+                                      ingested_hold.hold_id,
+                                      db_hold.hold_id))
             ingested_hold.hold_id = db_hold.hold_id
         else:
             _drop_hold(db_hold)
@@ -225,9 +261,10 @@ def match_holds(
     ingested_booking.holds.extend(dropped_holds)
 
 
-def _drop_hold(_):
-    # TODO(585): Drop necessary fields for hold
-    pass
+def _drop_hold(hold: entities.Hold):
+    if hold.status != HoldStatus.INFERRED_DROPPED:
+        logging.info('Dropping hold with id %s', hold.hold_id)
+        hold.status = HoldStatus.INFERRED_DROPPED
 
 
 # TODO(573): what do we do with orphaned bonds/sentences?
@@ -259,11 +296,10 @@ def match_charges(
     ingested_booking.charges.extend(dropped_charges)
 
 
-# TODO(585): set boolean inferred_drop to true
 def _drop_charge(charge: entities.Charge):
-    if charge.status != ChargeStatus.DROPPED:
+    if charge.status != ChargeStatus.INFERRED_DROPPED:
         logging.info('Dropping charge with id %s', charge.charge_id)
-        charge.status = ChargeStatus.DROPPED
+        charge.status = ChargeStatus.INFERRED_DROPPED
 
 
 def _get_next_available_match(db_entity: entities.Entity,
@@ -297,9 +333,9 @@ def _get_only_match(db_entity: entities.Entity,
     """
     matches = _get_all_matches(db_entity, ingested_entities, matcher)
     if len(matches) > 1:
-        raise EntityMatchingError(
-            'matched database entity {} to more than one ingested '
-            'entity'.format(db_entity))
+        raise EntityMatchingError('matched database entity {} to all of the '
+                                  'following ingested entities: '
+                                  '{}'.format(db_entity, matches))
     return matches[0] if matches else None
 
 

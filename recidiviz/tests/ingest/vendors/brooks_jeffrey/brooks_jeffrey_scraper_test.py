@@ -22,6 +22,7 @@ import unittest
 from lxml import html
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.vendors.brooks_jeffrey.brooks_jeffrey_scraper import \
     BrooksJeffreyScraper
 from recidiviz.tests.ingest import fixtures
@@ -44,28 +45,27 @@ class TestBrooksJeffreyScraper(BaseScraperTest, unittest.TestCase):
 
     def test_home_page_navigation(self):
         expected_result = [
-            {
-                'endpoint': 'https://www.vbcso.com/roster_view'
-                            '.php?booking_num=123',
-                'task_type': constants.SCRAPE_DATA
-            },
-            {
-                'endpoint': 'https://www.vbcso.com/roster_view'
-                            '.php?booking_num=456',
-                'task_type': constants.SCRAPE_DATA
-            },
-            {
-                'endpoint': 'https://www.vbcso.com/roster_view'
-                            '.php?booking_num=789',
-                'task_type': constants.SCRAPE_DATA
-            },
-            {
-                'endpoint': 'https://www.vbcso.com/roster.php?grp=40',
-                'task_type': constants.GET_MORE_TASKS
-            }
+            Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint='https://www.vbcso.com/roster_view.php?booking_num=123'
+            ),
+            Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint='https://www.vbcso.com/roster_view.php?booking_num=456'
+            ),
+            Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint='https://www.vbcso.com/roster_view.php?booking_num=789'
+            ),
+            Task(
+                endpoint='https://www.vbcso.com/roster.php?grp=40',
+                task_type=constants.TaskType.GET_MORE_TASKS
+            ),
         ]
-        self.validate_and_return_get_more_tasks(_FRONT_PAGE_HTML, {
-            'task_type': constants.INITIAL_TASK}, expected_result)
+        self.validate_and_return_get_more_tasks(
+            _FRONT_PAGE_HTML,
+            Task(task_type=constants.TaskType.INITIAL, endpoint=''),
+            expected_result)
 
     def test_populate_data(self):
         expected_info = IngestInfo()
@@ -88,5 +88,4 @@ class TestBrooksJeffreyScraper(BaseScraperTest, unittest.TestCase):
         arrest = booking.create_arrest()
         arrest.agency = "Agency"
 
-        self.validate_and_return_populate_data(
-            _PERSON_PAGE_HTML, {}, expected_info)
+        self.validate_and_return_populate_data(_PERSON_PAGE_HTML, expected_info)

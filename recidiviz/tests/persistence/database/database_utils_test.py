@@ -18,14 +18,21 @@
 from datetime import date, datetime
 from unittest import TestCase
 
+from more_itertools import one
+
+from recidiviz import Session
 from recidiviz.common.constants.bond import BondType, BondStatus
 from recidiviz.common.constants.booking import CustodyStatus, ReleaseReason, \
-    Classification
+    Classification, AdmissionReason
 from recidiviz.common.constants.charge import ChargeDegree, ChargeClass, \
     ChargeStatus, CourtType
+from recidiviz.common.constants.hold import HoldStatus
 from recidiviz.common.constants.person import Gender, Race, Ethnicity
+from recidiviz.common.constants.sentences import SentenceStatus
 from recidiviz.persistence import entities
+from recidiviz.persistence.database import schema
 from recidiviz.persistence.database.database_utils import convert_person
+from recidiviz.tests.utils import fakes
 
 _PERSON = entities.Person(
     external_id="external_id",
@@ -45,12 +52,14 @@ _PERSON = entities.Person(
         booking_id=2345,
         external_id="external_id",
         admission_date=date(year=2000, month=1, day=3),
+        admission_reason=AdmissionReason.TRANSFER,
+        admission_reason_raw_text='transfer!',
         admission_date_inferred=True,
         release_date=date(year=2000, month=1, day=4),
         release_date_inferred=True,
         projected_release_date=date(year=2000, month=1, day=5),
-        release_reason=ReleaseReason.INFERRED_RELEASE,
-        release_reason_raw_text='RELEASED',
+        release_reason=ReleaseReason.TRANSFER,
+        release_reason_raw_text='TRANSFER',
         custody_status=CustodyStatus.IN_CUSTODY,
         custody_status_raw_text='IN CUSTODY',
         facility="facility",
@@ -61,7 +70,8 @@ _PERSON = entities.Person(
             hold_id=3456,
             external_id="external_id",
             jurisdiction_name="jurisdiction_name",
-            hold_status="hold_status",
+            status=HoldStatus.ACTIVE,
+            status_raw_text='active'
         )],
         arrest=entities.Arrest(
             arrest_id=4567,
@@ -98,16 +108,17 @@ _PERSON = entities.Person(
                 bond_id=6789,
                 external_id="external_id",
                 amount_dollars=2,
-                bond_type=BondType.BOND_DENIED,
-                bond_type_raw_text='BOND DENIED',
-                status=BondStatus.ACTIVE,
-                status_raw_text='ACTIVE'
+                bond_type=BondType.CASH,
+                bond_type_raw_text='CASH',
+                status=BondStatus.SET,
+                status_raw_text='SET'
             ),
             sentence=entities.Sentence(
                 sentence_id=7890,
                 external_id="external_id",
-                date_imposed=date(year=2000, month=1, day=8),
                 sentencing_region='sentencing_region',
+                status=SentenceStatus.SERVING,
+                status_raw_text='SERVING',
                 min_length_days=3,
                 max_length_days=4,
                 is_life=False,
@@ -125,6 +136,15 @@ _PERSON = entities.Person(
 
 class TestDatabaseUtils(TestCase):
 
+    def setup_method(self, _test_method):
+        fakes.use_in_memory_sqlite_database()
+
     def test_convert_person(self):
-        result = convert_person(convert_person(_PERSON))
-        self.assertEqual(_PERSON, result)
+        schema_person = convert_person(_PERSON)
+        session = Session()
+        session.add(schema_person)
+        session.commit()
+
+        people = session.query(schema.Person).all()
+        self.assertEqual(len(people), 1)
+        self.assertEqual(convert_person(one(people)), _PERSON)

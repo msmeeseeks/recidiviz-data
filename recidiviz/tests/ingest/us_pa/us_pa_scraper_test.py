@@ -17,15 +17,13 @@
 """Scraper tests for us_pa."""
 
 import unittest
-from lxml import html
 from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, \
     _Charge, _Sentence
 from recidiviz.ingest.us_pa.us_pa_scraper import UsPaScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
-_DETAILS_PAGE_HTML = html.fromstring(
-    fixtures.as_string('us_pa', 'AA0000.json'))
+_DETAILS_PAGE_HTML = fixtures.as_dict('us_pa', 'AA0000.json')
 
 
 class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
@@ -36,10 +34,8 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
 
     def test_parse(self):
 
-        expected = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[_Person(
             person_id="AA0000",
-            given_names="FIRST",
-            surname="LAST",
             birthdate="01/01/1000",
             race="WHITE",
             gender="MALE",
@@ -53,5 +49,5 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
             ]
         ), ])
 
-        self.validate_and_return_populate_data(
-            _DETAILS_PAGE_HTML, {}, expected, IngestInfo())
+        self.validate_and_return_populate_data(_DETAILS_PAGE_HTML,
+                                               expected_info)

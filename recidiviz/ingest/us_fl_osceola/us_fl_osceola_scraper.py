@@ -17,9 +17,14 @@
 
 """Scraper implementation for us_fl_osceola."""
 import os
+from typing import List, Optional
+
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import ScrapedData, Task
+
 
 class UsFlOsceolaScraper(BaseScraper):
     """Scraper implementation for us_fl_osceola."""
@@ -32,7 +37,8 @@ class UsFlOsceolaScraper(BaseScraper):
 
         super(UsFlOsceolaScraper, self).__init__('us_fl_osceola')
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, task: Task,
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
 
         # Modify table column title
         headers = content.xpath("//th[text()=\"Booking\"]")
@@ -45,38 +51,37 @@ class UsFlOsceolaScraper(BaseScraper):
 
         if len(ingest_info.people) != 1:
             raise Exception("Expected exactly one person per page, "
-                            "but got %i" % len(ingest_info.person))
+                            "but got %i" % len(ingest_info.people))
 
         # Split statute and charge name
         for booking in ingest_info.people[0].bookings:
             for charge in booking.charges:
-                s = charge.statute.split(' - ')
-                if len(s) == 2:
-                    charge.statute = s[0]
-                    charge.name = s[1]
+                if charge.statute:
+                    s = charge.statute.split(' - ')
+                    if len(s) == 2:
+                        charge.statute = s[0]
+                        charge.name = s[1]
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
-    def get_more_tasks(self, content, params):
-        task_type = params.get('task_type', self.get_initial_task_type())
-
-        if self.is_initial_task(task_type):
-            return [{
-                'endpoint': self.get_region().base_url +
-                            '/Apps/CorrectionsReports/Report/Search',
-                'task_type': constants.GET_MORE_TASKS
-            }]
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
+        if self.is_initial_task(task.task_type):
+            return [Task(
+                endpoint=self.get_region().base_url +
+                '/Apps/CorrectionsReports/Report/Search',
+                task_type=constants.TaskType.GET_MORE_TASKS
+            )]
 
         return self._get_detail_tasks(content)
 
-    def _get_detail_tasks(self, content):
+    def _get_detail_tasks(self, content) -> List[Task]:
         tasks = []
         table = content.cssselect('table.tablesorter tbody')[0]
         for row in table:
             if len(row) > 1:
-                tasks.append({
-                    'endpoint': self.get_region().base_url +
-                                row[1].find('a').get('href'),
-                    'task_type': constants.SCRAPE_DATA
-                })
+                tasks.append(Task(
+                    endpoint=self.get_region().base_url +
+                    row[1].find('a').get('href'),
+                    task_type=constants.TaskType.SCRAPE_DATA
+                ))
         return tasks
