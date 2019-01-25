@@ -41,6 +41,8 @@ def test_validate_regions_one_all():
         "us_pa_dauphin",
         "us_pa_greene",
         "us_vt",
+        "us_fl_alachua",
+        "us_ky_bullitt",
     }
 
 
@@ -73,6 +75,8 @@ def test_validate_regions_multiple_all():
         "us_pa_dauphin",
         "us_pa_greene",
         "us_vt",
+        "us_fl_alachua",
+        "us_ky_bullitt",
     }
 
 

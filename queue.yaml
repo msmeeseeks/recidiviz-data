@@ -173,3 +173,39 @@ queue:
     max_backoff_seconds: 300
     task_age_limit: 3d
     task_retry_limit: 5
+
+# us-fl-alachua-scraper - Alachua County, Florida
+- name: us-fl-alachua-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_age_limit: 3d
+    task_retry_limit: 5
+
+# us-ky-bullitt-county-scraper - Bullitt County County, Kentucky
+- name: us-ky-bullitt-county-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_age_limit: 3d
+    task_retry_limit: 5
+
+# us-ky-bullitt-scraper - Bullitt County, Kentucky
+- name: us-ky-bullitt-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_age_limit: 3d
+    task_retry_limit: 5

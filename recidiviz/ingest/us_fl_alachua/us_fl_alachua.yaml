@@ -1,0 +1,32 @@
+key_mappings:
+  #"MNI #": person.person_id
+  Name: person.full_name
+  #Booking Date: booking.admission_date
+  # Hold should pull from other county or federal or hold and value should be federal, other county or yes for hold
+#  Hold: booking.hold
+  Total Bond: booking.total_bond_amount
+#  Charge: charge.charge_id
+#  Statute: charge.statute
+#  Description: charge.name
+#  Degree: charge.degree
+#  Level: charge.level
+  Agency: charge.charging_entity
+  Status: charge.status
+#  Bond Amount: bond.amount
+  # I think case number might cause issues since its all on one line?
+  # ex. Case # 012017CF000719A
+  "Case #": charge.case_number
+  Hold: booking.hold
+
+keys_to_ignore:
+  - Booking Date/Time
+  - Pod
+  - Federal
+  - Other County
+
+multi_key_mapping:
+  Charge: charge.charge_id
+  Statute: charge.statute
+  Description: charge.name
+  Degree: charge.degree
+  Level: charge.level
