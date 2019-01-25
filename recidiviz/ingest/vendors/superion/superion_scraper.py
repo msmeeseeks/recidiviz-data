@@ -37,6 +37,7 @@ import logging
 import os
 from typing import List, Optional
 
+from recidiviz.common.constants.bond import BondStatus
 from recidiviz.ingest import constants, scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
@@ -165,10 +166,6 @@ class SuperionScraper(BaseScraper):
         if person.age:
             person.age = person.age.strip().split()[0]
 
-        # Separate bond type and amount. Superion overloads the
-        # contents of the 'Bond Amount' field to contain both the bond
-        # type and bond amount. When there is no bond, there is no '$'
-        # character, and just the bond type.
         for booking in person.bookings:
             for charge in booking.charges:
                 if charge.bond:
@@ -183,6 +180,21 @@ class SuperionScraper(BaseScraper):
                         else:  # just a bond type, no amount
                             bond.bond_type = bond.amount
                             bond.amount = None
+
+                # Bond type is listed as 'PAID' when status is posted.
+                if bond.bond_type == 'PAID':
+                    bond.status = BondStatus.POSTED.value
+                    bond.bond_type = None
+
+                # Check for hold information in the charge.
+                hold_values = [
+                    'FEDERAL',
+                    'WRIT',
+                    'OTHER COUNTY HOUSING',
+                ]
+                if charge.status and (charge.status.upper() in hold_values):
+                    booking.create_hold(jurisdiction_name=charge.status)
+                    charge.status = None
 
         # Test if the release date is a projected one
         for booking in person.bookings:
