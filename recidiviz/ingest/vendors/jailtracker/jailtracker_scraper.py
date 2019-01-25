@@ -20,7 +20,6 @@
 
 All subclasses of JailtrackerScraper must implement:
 - get_jailtracker_index
-- process_record
 
 JailTracker exposes data via JSON endpoints, so the scraper only scrapes the
 page for the session token required to access those endpoints, and the data
