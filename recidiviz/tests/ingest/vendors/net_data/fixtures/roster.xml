@@ -1,0 +1,27 @@
+<?xml version="1.0" standalone="yes" ?><?xml-stylesheet type="text/xsl" href="CGIBOK108.xsl"?>
+<CGIBOK108>
+    <HEAD02>
+        <H02-DATE>01/24/2019</H02-DATE>
+        <H02-CLIENT-NAME>BROWN COUNTY S O</H02-CLIENT-NAME>
+        <H02-LIB>QS36F</H02-LIB>
+        <H02-PFX>LE</H02-PFX>
+        <H02-CNTY>county</H02-CNTY>
+        <H02-COCOD></H02-COCOD>
+    </HEAD02>
+    <LINE01>
+        <L01-KEY>1</L01-KEY>
+        <L01-INMATE-NAME>NAME_1</L01-INMATE-NAME>
+        <L01-ARREST-NO>111</L01-ARREST-NO>
+        <L01-BOOK-DATE>1/2/2011</L01-BOOK-DATE>
+        <L01-DORM></L01-DORM>
+        <L01-CHARGE>CHARGE_1</L01-CHARGE>
+    </LINE01>
+    <LINE01>
+        <L01-KEY>2</L01-KEY>
+        <L01-INMATE-NAME>NAME_2</L01-INMATE-NAME>
+        <L01-ARREST-NO>222</L01-ARREST-NO>
+        <L01-BOOK-DATE>01/02/2019</L01-BOOK-DATE>
+        <L01-DORM></L01-DORM>
+        <L01-CHARGE>CHARGE_2</L01-CHARGE>
+    </LINE01>
+</CGIBOK108>

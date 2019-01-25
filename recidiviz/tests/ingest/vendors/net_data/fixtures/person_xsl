@@ -1,0 +1,235 @@
+<!-- CGIBOK107 -->
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+<xsl:template match="/">
+<html>
+<title>Jail Report</title>
+<head>
+<LINK REL="SHORTCUT ICON" href="images/favicon.ico"/>
+<script type="text/javascript">
+<![CDATA[
+
+ function run100M(PID) {
+ document.S100MForm.I1.setAttribute("value", PID);
+ document.S100MForm.submit();
+ }
+ function displayImg(ImageLoc) {
+ // Internet Explorer 6-11
+ var isIE = /*@cc_on!@*/false || !!document.documentMode;
+ // Edge 20+
+ var isEdge = !isIE && !!window.StyleMedia;
+ var ua = navigator.userAgent;
+ var re = new RegExp("Trident/.*rv:([0-9]{1,}[\.0-9]{0,})");
+ if (navigator.appName == "Microsoft Internet Explorer" || re.exec(ua) != null || isEdge)
+ {
+ var obj = document.createElement("image");
+ obj.src = ImageLoc;
+ obj.id = "obj_results";
+ obj.style.width = "250px";
+ obj.style.height = "auto";
+ document.getElementById("Mugshot").appendChild(obj);
+ } else {
+ var obj = document.createElement("object");
+ obj.data = ImageLoc;
+ obj.id = "obj_results";
+ obj.style.width = "250px";
+ obj.style.height = "auto";
+ obj.type = "image/jpeg";
+ document.getElementById("Mugshot").appendChild(obj);
+ }
+ }
+]]>
+</script>
+</head>
+<xsl:if test="CGIBOK107/ERROR-MESSAGE">
+<h1 ALIGN="CENTER">
+<xsl:value-of select="CGIBOK107/ERROR-MESSAGE"/>
+</h1>
+</xsl:if>
+<h4 align="center">
+<img>
+<xsl:attribute name="src">
+images/
+<xsl:value-of select="/CGIBOK100/HEAD01/H01-CNTY"/>
+.jpg
+</xsl:attribute>
+</img>
+</h4>
+<body>
+<form target="_blank" style="margin-bottom: 0" name="S100MForm" id="S100MForm" method="post">
+<xsl:attribute name="action">
+http://
+<xsl:value-of select="CGIBOK100/HEAD01/H01-RVI-ADDRESS"/>
+/pgms/rvimain.pgm
+</xsl:attribute>
+<input type="hidden" name="RQSTYP" value="RVISUBF"/>
+<input type="hidden" name="I1" id="I1" maxlength="30"/>
+<input type="hidden" name="I7" id="I7" value="PICTURE"/>
+<input type="hidden" name="ISYS" maxlength="1" value="B"/>
+<input type="hidden" name="USR" id="USR" size="30">
+<xsl:attribute name="value">
+<xsl:value-of select="CGIBOK100/HEAD01/H01-RVI-USER"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="PASS" id="PASS" size="10">
+<xsl:attribute name="value">
+<xsl:value-of select="CGIBOK100/HEAD01/H01-PWD"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="deltyp" size="1" value="P"/>
+<input type="hidden" name="nobuts" size="1" value="Y"/>
+<input type="hidden" name="host">
+<xsl:attribute name="value">
+<xsl:value-of select="CGIBOK100/HEAD01/H01-RVI-ADDRESS"/>
+</xsl:attribute>
+</input>
+</form>
+ <!--
+
+				<xsl:if test="CGIBOK100/LINE40/L40-I1!=' '">
+					<input type="submit" value="Mugshot" >
+						<xsl:attribute name="onclick">
+							run100M('<xsl:value-of select="CGIBOK100/LINE40/L40-I1" />')
+						</xsl:attribute>
+					</input>
+				</xsl:if>
+-->
+ <!-- 			<hr/>   -->
+<table align="center" border="0" cellspacing="0" cellpadding="4">
+<tr>
+<td>
+<table align="center" border="0" cellspacing="0" cellpadding="4">
+<xsl:for-each select="CGIBOK100/LINE02">
+<tr>
+<td align="right">
+<xsl:value-of select="L02-DESC1"/>
+</td>
+<td>
+<xsl:value-of select="L02-ITEM1"/>
+</td>
+</tr>
+</xsl:for-each>
+</table>
+</td>
+<td name="Mugshot" ID="Mugshot">
+<script type="text/javascript">
+displayImg('
+<xsl:value-of select="CGIBOK100/HEAD01/H01-IMAGE-LOC"/>
+');
+</script>
+</td>
+</tr>
+</table>
+<hr/>
+<table align="center" border="0" cellspacing="0" cellpadding="4">
+<xsl:for-each select="CGIBOK100/LINE04">
+<tr>
+<td align="right">
+<xsl:value-of select="L04-DESC1"/>
+</td>
+<td>
+<xsl:value-of select="L04-ITEM1"/>
+</td>
+<td align="right">
+<xsl:value-of select="L04-DESC2"/>
+</td>
+<td>
+<xsl:value-of select="L04-ITEM2"/>
+</td>
+<td align="right">
+<xsl:value-of select="L04-DESC3"/>
+</td>
+<td>
+<xsl:value-of select="L04-ITEM3"/>
+</td>
+<td align="right">
+<xsl:value-of select="L04-DESC4"/>
+</td>
+<td>
+<xsl:value-of select="L04-ITEM4"/>
+</td>
+<td align="right">
+<xsl:value-of select="L04-DESC5"/>
+</td>
+<td>
+<xsl:value-of select="L04-ITEM5"/>
+</td>
+</tr>
+</xsl:for-each>
+</table>
+<hr/>
+<table align="center" border="0" cellspacing="0" cellpadding="4">
+<tr bgColor="dimgray">
+<th>
+<font color="white">Offense</font>
+</th>
+<th>
+<font color="white">Book Date</font>
+</th>
+<th>
+<font color="white">Release Date</font>
+</th>
+<th>
+<font color="white">Bond Amount</font>
+</th>
+<th>
+<font color="white">Bondsman</font>
+</th>
+</tr>
+<xsl:for-each select="CGIBOK100/LINE27">
+<xsl:if test="(position() mod 2 = 1)">
+<tr bgColor="lightgrey">
+<td>
+<xsl:value-of select="L27-CHARGE"/>
+</td>
+<td>
+<xsl:value-of select="L27-BOOKIN-DATE"/>
+</td>
+<td>
+<xsl:value-of select="L27-RELEASE-DATE"/>
+</td>
+<td align="right">
+<xsl:value-of select="L27-BOND-AMT"/>
+</td>
+<td>
+<xsl:value-of select="L27-NAME"/>
+</td>
+</tr>
+</xsl:if>
+<xsl:if test="(position() mod 2 = 0)">
+<tr bgColor="white">
+<td>
+<xsl:value-of select="L27-CHARGE"/>
+</td>
+<td>
+<xsl:value-of select="L27-BOOKIN-DATE"/>
+</td>
+<td>
+<xsl:value-of select="L27-RELEASE-DATE"/>
+</td>
+<td align="right">
+<xsl:value-of select="L27-BOND-AMT"/>
+</td>
+<td>
+<xsl:value-of select="L27-NAME"/>
+</td>
+</tr>
+</xsl:if>
+</xsl:for-each>
+</table>
+<BR/>
+<a href="http://www.netdatacorp.net">
+<img border="0" src="images/netdlogo.gif"/>
+</a>
+<BR/>
+© 2012 NET Data Corporation |
+<a href="mailto:webmaster@netdatacorp.net?subject=NET Data CGIBOK107 Site"> Contact Us </a>
+  |
+<a href="javascript:window.print()">
+<img src="images/btn_printPopup.gif" width="16" height="16" border="0" title="Print"/>
+</a>
+|
+<a href="javascript:window.history.back()"> [Back] </a>
+</body>
+</html>
+</xsl:template>
+</xsl:stylesheet>
