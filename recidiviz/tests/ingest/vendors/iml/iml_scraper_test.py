@@ -98,7 +98,6 @@ _SEARCH_RESULT_IDS = [
 
 [
 {'endpoint': 'http://168.229.183.33:8084/IML',
-     'headers': {'Cookie': 'yum!'},
      'post_data': {'currentStart': 31,
                    'flow_action': 'next'},
      'task_type': 4},
@@ -115,7 +114,6 @@ class ImlScraperTest(BaseScraperTest, unittest.TestCase):
     def test_get_session_vars_and_num_people(self):
         expected_result = [
             Task(endpoint='http://168.229.183.33:8084/IML',
-                 headers={'Cookie': None},
                  custom={'booking_id': 'NAME, NO',
                          'person_id': 'NAME, NO'},
                  post_data={'flow_action': 'edit',
@@ -126,7 +124,6 @@ class ImlScraperTest(BaseScraperTest, unittest.TestCase):
 
         expected_result.append(
             Task(endpoint='http://168.229.183.33:8084/IML',
-                 headers={'Cookie': None},
                  post_data={'flow_action': 'next',
                             'currentStart': 31},
                  task_type=constants.TaskType.GET_MORE_TASKS))
@@ -139,7 +136,6 @@ class ImlScraperTest(BaseScraperTest, unittest.TestCase):
     def test_get_next_search_page_and_people_tasks(self):
         expected_result = [
             Task(endpoint='http://168.229.183.33:8084/IML',
-                 headers={'Cookie': 'yum!'},
                  custom={'booking_id': 'NAME, NO',
                          'person_id': 'NAME, NO'},
                  post_data={'flow_action': 'edit',
@@ -150,7 +146,6 @@ class ImlScraperTest(BaseScraperTest, unittest.TestCase):
 
         expected_result.append(
             Task(endpoint='http://168.229.183.33:8084/IML',
-                 headers={'Cookie': 'yum!'},
                  post_data={'flow_action': 'next',
                             'currentStart': 31},
                  task_type=constants.TaskType.GET_MORE_TASKS))
@@ -158,7 +153,6 @@ class ImlScraperTest(BaseScraperTest, unittest.TestCase):
         task = Task(
             endpoint='no.way.url',
             task_type=constants.TaskType.GET_MORE_TASKS,
-            headers={'Cookie': 'yum!'},
         )
 
         self.validate_and_return_get_more_tasks(_ROSTER_HTML, task,
@@ -188,7 +182,6 @@ class ImlScraperTest(BaseScraperTest, unittest.TestCase):
         task = Task(
             endpoint='no.way.url',
             task_type=constants.TaskType.SCRAPE_DATA,
-            headers={'Cookie': 'yum!'},
             custom={'person_id': '12345',
                     'booking_id': '67890'}
         )
