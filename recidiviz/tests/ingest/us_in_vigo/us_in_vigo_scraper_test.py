@@ -15,32 +15,31 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper tests for us_pa_greene."""
+"""Scraper tests for us_in_vigo."""
 import unittest
 from lxml import html
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.task_params import Task
-from recidiviz.ingest.us_pa_greene.us_pa_greene_scraper import UsPaGreeneScraper
+from recidiviz.ingest.us_in_vigo.us_in_vigo_scraper import UsInVigoScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
 _LANDING_HTML = html.fromstring(
-    fixtures.as_string('us_pa_greene', 'landing_page.html'))
-_ROSTER_JSON = fixtures.as_dict('us_pa_greene', 'roster.json')
-_PERSON_PROBATION_JSON = fixtures.as_dict('us_pa_greene', 'person.json')
-_PERSON_AGENCIES_JSON = fixtures.as_dict('us_pa_greene', 'person_agencies.json')
-_CHARGES_JSON = fixtures.as_dict('us_pa_greene', 'charges.json')
+    fixtures.as_string('us_in_vigo', 'landing_page.html'))
+_ROSTER_JSON = fixtures.as_dict('us_in_vigo', 'roster.json')
+_PERSON_JSON = fixtures.as_dict('us_in_vigo', 'person.json')
+_CHARGES_JSON = fixtures.as_dict('us_in_vigo', 'charges.json')
 
 
-class TestUsPaGreeneScraper(BaseScraperTest, unittest.TestCase):
+class TestUsInVigoScraper(BaseScraperTest, unittest.TestCase):
 
-    SESSION_TOKEN = 'y1n3ohdxid0gx02sgu3o1vsx'
+    SESSION_TOKEN = 'pfmzr1n5f1fepin44puf5lok'
 
     def _init_scraper_and_yaml(self):
         # The scraper to be tested. Required.
-        self.scraper = UsPaGreeneScraper()
+        self.scraper = UsInVigoScraper()
         # The path to the yaml mapping. Optional.
         self.yaml = None
 
@@ -118,7 +117,7 @@ class TestUsPaGreeneScraper(BaseScraperTest, unittest.TestCase):
         self.validate_and_return_get_more_tasks(
             _ROSTER_JSON, task, expected_result)
 
-    def test_populate_data_probation(self):
+    def test_populate_data(self):
         task = Task(
             task_type=constants.TaskType.SCRAPE_DATA,
             endpoint='test',
@@ -127,63 +126,7 @@ class TestUsPaGreeneScraper(BaseScraperTest, unittest.TestCase):
                 self.scraper._ARREST_NUMBER: 1,
                 self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
                 self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
-                self.scraper._PERSON: _PERSON_PROBATION_JSON,
-                self.scraper._CASES: {},
-            }
-        )
-
-        expected_info = IngestInfo()
-
-        person = expected_info.create_person()
-        person.surname = 'Bart'
-        person.given_names = 'Simpson'
-        person.gender = 'M'
-        person.age = '20'
-        person.race = 'White'
-
-        booking = person.create_booking()
-        booking.booking_id = '1'
-        booking.admission_date = '12/5/2018 10:21:00 AM'
-        booking.release_reason = 'PROBATION'
-        booking.custody_status = 'RELEASED'
-
-        charge = booking.create_charge()
-        charge.charge_id = '1'
-        charge.name = 'DISORDERLY CONDUCT-NOISE'
-        charge.offense_date = '2017-03-10'
-        charge.status = 'Probation'
-        charge.number_of_counts = '2'
-        charge.charge_class = 'M'
-        charge.case_number = '11'
-        bond = charge.create_bond()
-        bond.amount = '500'
-        bond.bond_type = 'CASH'
-
-        charge = booking.create_charge()
-        charge.charge_id = '2'
-        charge.name = 'DEPRESSANT/STIMULANT/NARCOTIC-POSSESSION < 100X DOSE'
-        charge.offense_date = '2017-03-16'
-        charge.status = 'Probation'
-        charge.charge_class = 'M'
-        charge.number_of_counts = '1'
-        charge.case_number = '12'
-        bond = charge.create_bond()
-        bond.amount = '500'
-        bond.bond_type = 'CASH'
-
-        self.validate_and_return_populate_data(
-            _CHARGES_JSON, expected_info, task=task)
-
-    def test_populate_data_facility(self):
-        task = Task(
-            task_type=constants.TaskType.SCRAPE_DATA,
-            endpoint='test',
-            response_type=constants.ResponseType.JSON,
-            custom={
-                self.scraper._ARREST_NUMBER: 1,
-                self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
-                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
-                self.scraper._PERSON: _PERSON_AGENCIES_JSON,
+                self.scraper._PERSON: _PERSON_JSON,
                 self.scraper._CASES: {},
             },
         )
@@ -191,40 +134,86 @@ class TestUsPaGreeneScraper(BaseScraperTest, unittest.TestCase):
         expected_info = IngestInfo()
 
         person = expected_info.create_person()
-        person.surname = 'Bart'
-        person.given_names = 'Simpson'
-        person.gender = 'M'
-        person.age = '20'
-        person.race = 'White'
+        person.surname='Simpson'
+        person.given_names='Bart'
+        person.gender='M'
+        person.age='32'
+        person.race='U'
+        booking = person.create_booking(
+            booking_id='1',
+            admission_date='4/18/2018 2:02:56 PM')
 
-        booking = person.create_booking()
-        booking.booking_id = '1'
-        booking.admission_date = '12/5/2018 10:21:00 AM'
-        booking.facility = 'TEST FACILITY'
-
-        charge = booking.create_charge()
-        charge.charge_id = '1'
-        charge.name = 'DISORDERLY CONDUCT-NOISE'
-        charge.offense_date = '2017-03-10'
-        charge.status = 'Probation'
-        charge.number_of_counts = '2'
-        charge.charge_class = 'M'
-        charge.case_number = '11'
-        bond = charge.create_bond()
-        bond.amount = '500'
-        bond.bond_type = 'CASH'
-
-        charge = booking.create_charge()
-        charge.charge_id = '2'
-        charge.name = 'DEPRESSANT/STIMULANT/NARCOTIC-POSSESSION < 100X DOSE'
-        charge.offense_date = '2017-03-16'
-        charge.status = 'Probation'
-        charge.charge_class = 'M'
-        charge.number_of_counts = '1'
-        charge.case_number = '12'
-        bond = charge.create_bond()
-        bond.amount = '500'
-        bond.bond_type = 'CASH'
+        booking.create_charge(
+            charge_id='135247',
+            name=('Escape from lawful detention, violating a home detention '
+                  'order or removing electronic monitoring or GPS device'),
+            charge_class='F',
+            status='BOND SET',
+            number_of_counts='1',
+            court_type='SUPERIOR COURT',
+            case_number='84D06-1712-F6-004096').create_bond(
+                amount='25000.0',
+                bond_type='CASH ONLY -- NO 10% -- NO PROFESSIONAL BONDSMAN',)
+        booking.create_charge(
+            charge_id='135248',
+            name='Dealing in methamphetamine',
+            charge_class='F',
+            status='BOND SET',
+            number_of_counts='1',
+            court_type='COUNTY COURT',
+            case_number='84D06-1804-F4-001092').create_bond(
+                amount='25000.0',
+                bond_type='CASH ONLY -- NO 10% -- NO PROFESSIONAL BONDSMAN',)
+        booking.create_charge(
+            charge_id='135249',
+            name='Maintaining a common nuisance',
+            charge_class='F',
+            status='BOND SET',
+            number_of_counts='1',
+            court_type='COURT TYPE',
+            case_number='84D06-1804-F4-001092').create_bond(
+                amount='0.0',
+                bond_type='WITH 10% ALLOWED',)
+        booking.create_charge(
+            charge_id='135250',
+            name='Possession of meth',
+            charge_class='F',
+            status='BOND SET',
+            number_of_counts='1',
+            court_type='TERRE HAUTE CITY COURT',
+            case_number='84D06-1804-F4-001092').create_bond(
+                amount='0.0',
+                bond_type='BAIL CONSOLIDATED TO ONE CHARGE',)
+        booking.create_charge(
+            charge_id='135251',
+            name=('Dealing in methamphetamine/enhancing circumstances in '
+                  'IC 35-48-1-16.5 for prior'),
+            charge_class='F',
+            status='BOND SET',
+            number_of_counts='1',
+            court_type='OTHER (NOT CLASSIFIED)',
+            case_number='84D06-1804-F4-001092').create_bond(
+                amount='0.0',
+                bond_type='GENERAL',)
+        booking.create_charge(
+            charge_id='135252',
+            name='Habitual Offender -',
+            status='BOND SET',
+            number_of_counts='1',
+            court_type='PAROLE VIOLATION (STATE ONLY)',
+            case_number='84D06-1804-F4-001092').create_bond(
+                amount='0.0',
+                bond_type='BAIL CONSOLIDATED TO ONE CHARGE',)
+        booking.create_charge(
+            charge_id='140599',
+            name='Battery -',
+            charge_class='M',
+            status='RELEASED BY COURT',
+            number_of_counts='1',
+            court_type='TERRE HAUTE CITY COURT',
+            case_number='84H01-1803-CM-1888').create_bond(
+                amount='0.0',
+                bond_type='RELEASE ON RECOGNIZANCE',)
 
         self.validate_and_return_populate_data(
-            _CHARGES_JSON, expected_info, task=task)
+            _CHARGES_JSON, expected_info, expected_persist=True, task=task)

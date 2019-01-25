@@ -19,9 +19,7 @@ key_mappings:
   charges.OffenseDate: charge.offense_date
   charges.Counts: charge.number_of_counts
   charges.CrimeType: charge.charge_class
-  charges.Description: charge.name
+  charges.ChargeDescription: charge.name
 
   charges.BondAmount: bond.amount
   charges.BondType: bond.bond_type
-
-
