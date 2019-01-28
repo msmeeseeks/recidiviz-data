@@ -4,7 +4,7 @@ import sqlalchemy
 
 from recidiviz.persistence.database import schema
 
-BQ_DATASET = 'census'
+BQ_DATASET = 'recidiviz-123:census'
 
 BQ_TYPES = {
     sqlalchemy.Boolean: 'BOOL',
