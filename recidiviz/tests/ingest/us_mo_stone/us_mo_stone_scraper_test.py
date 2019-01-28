@@ -15,17 +15,17 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper tests for us_ar_van_buren."""
+"""Scraper tests for us_mo_stone_scraper ."""
 
 import unittest
-from recidiviz.ingest.us_ar_van_buren.us_ar_van_buren_scraper import \
-    UsArVanBurenScraper
-from recidiviz.tests.ingest.vendors.brooks_jeffrey\
+
+from recidiviz.ingest.us_mo_stone.us_mo_stone_scraper import UsMoStoneScraper
+from recidiviz.tests.ingest.vendors.brooks_jeffrey \
     .brooks_jeffrey_scraper_test import \
     BrooksJeffreyScraperTest
 
 
-class TestUsArVanBurenScraper(BrooksJeffreyScraperTest, unittest.TestCase):
+class TestUsMoStoneScraper(BrooksJeffreyScraperTest, unittest.TestCase):
 
     def _init_scraper_and_yaml(self):
-        self.scraper = UsArVanBurenScraper()
+        self.scraper = UsMoStoneScraper()

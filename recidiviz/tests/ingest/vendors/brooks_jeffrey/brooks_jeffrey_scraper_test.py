@@ -14,17 +14,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
+"""
+Scraper tests for regions that use unaltered brooks_jeffrey_scraper.
+Any region scraper test class that inherits from BrooksJeffreyScraperTest must
 
-"""Tests for Brooks Jeffrey scraper:
-ingest/vendors/brooks_jeffrey/brooks_jeffrey_scraper.py."""
+implement the following:
+     _init_scraper_and_yaml(self):
+       self.scraper = RegionScraperCls()
+"""
+from copy import copy
 
-import unittest
 from lxml import html
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.task_params import Task
-from recidiviz.ingest.vendors.brooks_jeffrey.brooks_jeffrey_scraper import \
-    BrooksJeffreyScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
@@ -35,35 +38,36 @@ _PERSON_PAGE_HTML = html.fromstring(
     fixtures.as_string('vendors/brooks_jeffrey', 'person_page.html'))
 
 
-class TestBrooksJeffreyScraper(BaseScraperTest, unittest.TestCase):
+class BrooksJeffreyScraperTest(BaseScraperTest):
     """Test class for TestBrooksJeffreyScraper."""
 
-    def _init_scraper_and_yaml(self):
-        self.scraper = BrooksJeffreyScraper('us_ar_van_buren')
-        self.yaml = self.scraper.mapping_filepath
-
+    def _get_base_url(self):
+        return self.scraper.region.base_url.rpartition('/')[0] + '/'
 
     def test_home_page_navigation(self):
         expected_result = [
             Task(
                 task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint='https://www.vbcso.com/roster_view.php?booking_num=123'
+                endpoint=
+                self._get_base_url() + 'roster_view.php?booking_num=123'
             ),
             Task(
                 task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint='https://www.vbcso.com/roster_view.php?booking_num=456'
+                endpoint=
+                self._get_base_url() + 'roster_view.php?booking_num=456'
             ),
             Task(
                 task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint='https://www.vbcso.com/roster_view.php?booking_num=789'
+                endpoint=
+                self._get_base_url() + 'roster_view.php?booking_num=789'
             ),
             Task(
-                endpoint='https://www.vbcso.com/roster.php?grp=40',
-                task_type=constants.TaskType.GET_MORE_TASKS
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=self._get_base_url() + 'roster.php?grp=40'
             ),
         ]
         self.validate_and_return_get_more_tasks(
-            _FRONT_PAGE_HTML,
+            _get_front_page(),
             Task(task_type=constants.TaskType.INITIAL, endpoint=''),
             expected_result)
 
@@ -88,4 +92,15 @@ class TestBrooksJeffreyScraper(BaseScraperTest, unittest.TestCase):
         arrest = booking.create_arrest()
         arrest.agency = "Agency"
 
-        self.validate_and_return_populate_data(_PERSON_PAGE_HTML, expected_info)
+        self.validate_and_return_populate_data(
+            _get_person_page(), expected_info)
+
+
+def _get_person_page():
+    # Make defensive copy since content is mutable
+    return copy(_PERSON_PAGE_HTML)
+
+
+def _get_front_page():
+    # Make defensive copy since content is mutable
+    return copy(_FRONT_PAGE_HTML)
