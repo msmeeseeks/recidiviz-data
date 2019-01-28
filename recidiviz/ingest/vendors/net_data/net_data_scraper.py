@@ -35,7 +35,6 @@ import os
 import re
 from copy import copy
 from typing import Optional, List
-from urllib.parse import urlparse
 
 import more_itertools
 from lxml import etree, html
@@ -48,20 +47,19 @@ from recidiviz.ingest.models.ingest_info import IngestInfo, _Booking
 from recidiviz.ingest.task_params import Task, ScrapedData
 
 _BOOKING_ID_KEY = 'ARREST NO'
-_FORM_KEY = 'S100KEY'
 _PAGE_TYPE_KEY = 'page_type'
 _PAGE_TYPE_ROSTER = 'roster'
 _PAGE_TYPE_ROSTER_XSL = 'roster_xsl'
 _PAGE_TYPE_PERSON = 'person'
 _PATH_PREFIX = 'bok/'
-_PERSON_KEY_SUBSTR = 'Javascript:run100'
+_PERSON_KEY_SUBSTR = 'Javascript:run'
 _PERSON_KEY_REGEX = r'Javascript:.*\'(.*?)\''
 _PERSON_PAGE_CONTENT_KEY = 'person_page_content'
-_PERSON_FORM_XPATH = '//form[@id="S100Form"]'
 _POST_DATA_XPATH = '//input[@type="hidden"]'
 _ROSTER_CONTENT_KEY = 'roster_content'
 _ROSTER_FORM_XPATH = '//form[@id="form1"]'
 _STYLESHEET_REGEX = r'href=\"(.*?)\"'
+_KEY_NUMBER_REGEX = r'S(10[0-9])KEY'
 
 
 class NetDataScraper(BaseScraper):
@@ -104,9 +102,9 @@ class NetDataScraper(BaseScraper):
 
 
 def _get_roster_task(content, task: Task) -> List[Task]:
-    path = _PATH_PREFIX + more_itertools.one(
-        content.xpath(_ROSTER_FORM_XPATH)).action
-    endpoint = urlparse(task.endpoint)._replace(path=path).geturl()
+    endpoint = _generate_url(
+        task.endpoint,
+        more_itertools.one(content.xpath(_ROSTER_FORM_XPATH)).action)
     post_data = {elem.name: elem.value for elem in
                  content.xpath(_POST_DATA_XPATH)}
     task = Task(endpoint=endpoint, post_data=post_data,
@@ -117,8 +115,7 @@ def _get_roster_task(content, task: Task) -> List[Task]:
 
 
 def _get_roster_stylesheet_task(content, task: Task) -> List[Task]:
-    path = _PATH_PREFIX + _get_stylesheet(content)
-    endpoint = urlparse(task.endpoint)._replace(path=path).geturl()
+    endpoint = _generate_url(task.endpoint, _get_stylesheet(content))
     task = Task(endpoint=endpoint,
                 task_type=constants.TaskType.GET_MORE_TASKS,
                 response_type=constants.ResponseType.RAW,
@@ -132,14 +129,14 @@ def _get_person_tasks(content, task: Task) -> List[Task]:
                                      content)
     post_data = {elem.name: elem.value for elem in
                  html_content.xpath(_POST_DATA_XPATH)}
-    path = _PATH_PREFIX + more_itertools.one(
-        html_content.xpath(_PERSON_FORM_XPATH)).action
-    new_url = urlparse(task.endpoint)._replace(path=path).geturl()
+    person_xpath = _get_person_form_xpath(html_content)
+    new_url = _generate_url(task.endpoint, more_itertools.one(
+        html_content.xpath(person_xpath)).action)
 
     task_list = []
     for key in _get_person_keys(html_content):
         post_data_for_key = copy(post_data)
-        post_data_for_key[_FORM_KEY] = key
+        post_data_for_key[_get_form_key(html_content)] = key
         task_list.append(
             Task(endpoint=new_url,
                  post_data=post_data_for_key,
@@ -147,6 +144,21 @@ def _get_person_tasks(content, task: Task) -> List[Task]:
                  response_type=constants.ResponseType.TEXT,
                  custom={_PAGE_TYPE_KEY: _PAGE_TYPE_PERSON}))
     return task_list
+
+
+def _generate_url(endpoint: str, action: str) -> str:
+    # URLs for NetData always assume the form 'http://...../bok/xxx.xx'. Here we
+    # remove everything after the 'bok/' to create a new base for our url.
+    base = endpoint.rsplit('/', 1)[0]
+
+    # Actions can come in the form 'action', 'bok/action', or '/bok/action'. In
+    # all cases, we want normalized_action = 'action'.
+    if '/' in action:
+        normalized_action = action.rsplit('/', 1)[1]
+    else:
+        normalized_action = action
+
+    return base + '/' + normalized_action
 
 
 def _get_stylesheet(raw_content) -> str:
@@ -157,8 +169,7 @@ def _get_stylesheet(raw_content) -> str:
 
 
 def _get_person_stylesheet_task(content, task: Task) -> List[Task]:
-    path = _PATH_PREFIX + _get_stylesheet(content)
-    endpoint = urlparse(task.endpoint)._replace(path=path).geturl()
+    endpoint = _generate_url(task.endpoint, _get_stylesheet(content))
     task = Task(endpoint=endpoint, task_type=constants.TaskType.SCRAPE_DATA,
                 response_type=constants.ResponseType.RAW,
                 custom={_PERSON_PAGE_CONTENT_KEY: content})
@@ -178,6 +189,23 @@ def _get_html_content(xml_content, stylesheet_content):
     xslt_tree = etree.XML(stylesheet_content)
     xml_elems = etree.XML(xml_content).getroottree()
     return html.fromstring(str(xml_elems.xslt(xslt_tree)))
+
+
+def _get_key_num(content) -> str:
+    content_str = str(html.tostring(content))
+    regex_match = re.search(_KEY_NUMBER_REGEX, content_str)
+    if not regex_match:
+        raise ScraperError(
+            'No matches for regex %s in content' % _KEY_NUMBER_REGEX)
+    return regex_match.group(1)
+
+
+def _get_form_key(content) -> str:
+    return 'S' + _get_key_num(content) + 'KEY'
+
+
+def _get_person_form_xpath(content) -> str:
+    return '//form[@id="S' + _get_key_num(content) + 'Form"]'
 
 
 def _merge_bookings(ingest_info: IngestInfo) -> None:
