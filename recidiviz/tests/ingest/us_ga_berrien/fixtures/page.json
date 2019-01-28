@@ -1,0 +1,56 @@
+{
+  "Inmates": [
+    {
+      "InmateID": "30",
+      "FirstName": "BART",
+      "LastName": "SIMPSON",
+      "Dob": "1981",
+      "Age": "37",
+      "ArrestDate": "1/1/1111",
+      "ArrestTime": "1658",
+      "ArrestingOfficer": null,
+      "ArrestingAgency": null,
+      "Sex": "M",
+      "BookedStatus": "CURRENTLY BOOKED",
+      "DaysInJail": "100",
+      "Charges": [
+        "Id:CHARGEID,code:STATUTE,off1:PROBATION ,off2:VIOLATION,type:Misdemeanor,sent:BLAH,court:MAGISTRATE,counts:1"
+      ],
+      "ReleaseDate": "",
+      "ReleaseTime": "",
+      "Bond": "0",
+      "Address": "SPRINGFIELD",
+      "Location": "Cell:, Hall:, Bed:",
+      "Visitation": [],
+      "History": [
+        "book:1/1/1111,release:1/1/2222",
+        "book:1/9/1111,release:1/1/2222"
+      ]
+    },
+    {
+      "InmateID": "35",
+      "FirstName": "BARF",
+      "LastName": "SPIMSTON",
+      "Dob": "1996",
+      "Age": "22",
+      "ArrestDate": "1/1/1111",
+      "ArrestTime": "2122",
+      "ArrestingOfficer": null,
+      "ArrestingAgency": null,
+      "Sex": "M",
+      "BookedStatus": "CURRENTLY BOOKED",
+      "DaysInJail": "39",
+      "Charges": [
+        "Id:ID2,code:CODE,off1:POSSESSION,off2:,type:Felony,sent:,court:SUPERIOR,counts:"
+      ],
+      "ReleaseDate": "",
+      "ReleaseTime": "",
+      "Bond": "15000",
+      "Address": "ADDRESS",
+      "Location": "Cell:, Hall:",
+      "Visitation": [],
+      "History": []
+    }
+  ],
+  "TotalCount": 13
+}

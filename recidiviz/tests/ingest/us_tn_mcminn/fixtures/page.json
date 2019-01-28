@@ -1,0 +1,60 @@
+{
+  "Inmates": [
+    {
+      "InmateID": "5",
+      "FirstName": "FIRST",
+      "LastName": "LAST",
+      "Dob": "1989",
+      "Age": "29",
+      "ArrestDate": "1/1/1111",
+      "ArrestTime": "1111",
+      "ArrestingOfficer": null,
+      "ArrestingAgency": null,
+      "Sex": "M",
+      "BookedStatus": "CURRENTLY BOOKED",
+      "Height": "000",
+      "Weight": "000",
+      "DaysInJail": "000",
+      "Charges": [
+        "Id:16,code:TITLE,off1:VIOLATION,off2:,type:Felony,sent:REVOKED,court:CRIMINAL,counts:1"
+      ],
+      "ReleaseDate": "",
+      "ReleaseTime": "",
+      "Bond": "0",
+      "Address": "123 PLACE PLACE",
+      "Location": "Cell:Q, Hall:Q, Bed:Q",
+      "History": [
+        "book:1/1/2009,release:1/1/2018",
+        "book:1/1/2012,release:1/1/2018"
+      ]
+    },
+    {
+      "InmateID": "18",
+      "FirstName": "BART",
+      "LastName": "SIMPSON",
+      "Dob": "1989",
+      "Age": "29",
+      "ArrestDate": "1/1/1111",
+      "ArrestTime": "111",
+      "ArrestingOfficer": null,
+      "ArrestingAgency": null,
+      "Sex": "M",
+      "BookedStatus": "CURRENTLY BOOKED",
+      "Height": "000",
+      "Weight": "000",
+      "DaysInJail": "000",
+      "Charges": [
+        "Id:17,code:TITLE,off1:VIOLATION,off2:OF PROBATION,type:Misdemeanor,sent:,court:GENERALSESSIONS,counts:1"
+      ],
+      "ReleaseDate": "",
+      "ReleaseTime": "",
+      "Bond": "1234.56",
+      "Address": "SPRINGFIELD",
+      "Location": "Cell:XX, Hall:XX, Bed:XX",
+      "History": [
+        "book:1/1/2009,release:1/1/2018"
+      ]
+    }
+  ],
+  "TotalCount": 21
+}
