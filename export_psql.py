@@ -1,9 +1,10 @@
-"""Writes a SQL script to export the database to JSON for BigQuery ingestion."""
+"""Writes a script to export the database to JSON for BigQuery ingestion."""
 
 import sqlalchemy
 
 from recidiviz.persistence.database import schema
 
+BQ_DATASET = 'census'
 
 BQ_TYPES = {
     sqlalchemy.Boolean: 'BOOL',
@@ -33,8 +34,7 @@ ALL_TABLE_COLUMNS = {
 }
 
 COLUMNS_TO_EXCLUDE = {
-    'person': ['full_name'],
-    'arrest': ['date']
+    'person': ['full_name']
 }
 
 TABLE_COLUMNS_TO_EXPORT = {
@@ -43,9 +43,11 @@ TABLE_COLUMNS_TO_EXPORT = {
     for table_name in ALL_TABLE_COLUMNS
 }
 
+DATA_FILENAME = '{table}_export.json'
+
 TABLE_EXPORT_QUERY = (
     '\\copy (SELECT ROW_TO_JSON(row) FROM '
-    '(SELECT {columns} FROM {table}) row) TO {table}_export.json;'
+    '(SELECT {columns} FROM {table}) row) TO ' + DATA_FILENAME
 )
 
 TABLE_EXPORT_QUERIES = {
@@ -64,24 +66,49 @@ TABLE_EXPORT_SCHEMA = {
     for table in TABLES_TO_EXPORT
 }
 
-PSQL_EXPORT_COMMAND = (
-    'psql --no-password --host=$DB_HOST --username=$DB_USER --dbname=$DB_NAME '
-    '--file={sql_file}'
-)
-
 BQ_LOAD_COMMAND = (
     'bq load --replace --source_format=NEWLINE_DELIMITED_JSON '
     '{dataset}.{table} {data_source} {schema_source}'
 )
 
+SCHEMA_FILENAME = '{table}_schema.json'
+
+BQ_LOAD_COMMANDS = {
+    table: BQ_LOAD_COMMAND.format(
+        dataset=BQ_DATASET,
+        table=table,
+        data_source=DATA_FILENAME.format(table=table),
+        schema_source=SCHEMA_FILENAME.format(table=table))
+    for table in TABLE_EXPORT_SCHEMA
+}
+
+PSQL_EXPORT_COMMAND = (
+    'psql "sslmode=verify-ca sslrootcert=server-ca.pem '
+    'sslcert=client-cert.pem sslkey=client-key.pem '
+    'host=$DB_HOST user=$DB_USER dbname=$DB_NAME" '
+    '--file={sql_file}'
+)
+
+# Dev database does not use client-server certificate checks.
+PSQL_EXPORT_COMMAND_DEV = (
+    'psql "sslmode=require host=$DB_HOST user=$DB_USER dbname=$DB_NAME" '
+    '--file={sql_file}'
+)
 
 if __name__ == '__main__':
     import json
 
-    for table, query in TABLE_EXPORT_QUERIES.items():
-        with open('{}_export.sql'.format(table), 'w') as output_file:
-            output_file.write('{}\n'.format(query))
+    SQL_FILENAME = 'export_all.sql'
+
+    with open(SQL_FILENAME, 'w') as output_file:
+        output_file.write(';\n'.join(TABLE_EXPORT_QUERIES.values()))
 
     for table, schema in TABLE_EXPORT_SCHEMA.items():
-        with open('{}_schema.json'.format(table), 'w') as output_file:
+        with open(SCHEMA_FILENAME.format(table=table), 'w') as output_file:
             output_file.write(json.dumps(schema))
+
+    with open('psql_export.sh', 'w') as output_file:
+        output_file.write(PSQL_EXPORT_COMMAND.format(sql_file=SQL_FILENAME))
+
+    with open('bq_load.sh', 'w') as output_file:
+        output_file.write('\n'.join(BQ_LOAD_COMMANDS.values()))
