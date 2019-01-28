@@ -258,12 +258,10 @@ class ImlScraper(BaseScraper):
                 # Transfer the bond type to charge status, if we
                 # detect that the bond type field contains a charge
                 # status enum value.
-                try:
-                    _ = ChargeStatus.from_str(charge.bond.bond_type)
+                if ChargeStatus.can_parse(charge.bond.bond_type,
+                                          self.get_enum_overrides()):
                     charge.status = charge.bond.bond_type
                     charge.bond.bond_type = None
-                except (AttributeError, EnumParsingError):
-                    pass
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
 

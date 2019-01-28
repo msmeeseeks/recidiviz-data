@@ -50,7 +50,6 @@ from lxml import html
 
 from recidiviz.common.constants.charge import (ChargeClass, ChargeDegree,
                                                ChargeStatus)
-from recidiviz.common.constants.mappable_enum import EnumParsingError
 from recidiviz.common.constants.person import Ethnicity, Race
 from recidiviz.ingest import constants, scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
@@ -349,10 +348,9 @@ class UsNyScraper(BaseScraper):
 
             # Get the degree
             charge_degree = charge_name.split()[-1]
-            try:
-                _ = ChargeDegree.from_str(charge_degree)
+            if ChargeDegree.can_parse(charge_degree, self.get_enum_overrides()):
                 charge_name = ' '.join(charge_name.split()[:-1])
-            except EnumParsingError:
+            else:
                 charge_degree = None
 
             # Get whether the charge was an attempt
