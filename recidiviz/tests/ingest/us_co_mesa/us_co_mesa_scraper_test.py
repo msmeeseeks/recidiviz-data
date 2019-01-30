@@ -37,7 +37,7 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
         self.yaml = None
 
     def test_parse_typical(self):
-        expected = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[_Person(
             full_name="FIRST MIDDLE LAST",
             birthdate="1/1/1970",
             bookings=[
@@ -135,10 +135,10 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
         ), ])
 
         self.validate_and_return_populate_data(
-            _DETAILS_TYPICAL_HTML, {}, expected, IngestInfo())
+            _DETAILS_TYPICAL_HTML, expected_info)
 
     def test_parse_edge(self):
-        expected = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[_Person(
             full_name="FOO BAR",
             birthdate="12/31/1991",
             bookings=[
@@ -244,4 +244,4 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
         ), ])
 
         self.validate_and_return_populate_data(
-            _DETAILS_EDGE_HTML, {}, expected, IngestInfo())
+            _DETAILS_EDGE_HTML, expected_info)

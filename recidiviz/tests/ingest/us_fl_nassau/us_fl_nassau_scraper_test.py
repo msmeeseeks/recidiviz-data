@@ -21,6 +21,7 @@ from lxml import html
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.us_fl_nassau.us_fl_nassau_scraper import UsFlNassauScraper
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 from recidiviz.tests.ingest import fixtures
@@ -40,55 +41,48 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
 
     def test_get_more_tasks(self):
         content = _SEARCH_RESULTS_HTML
-        params = {
-            'endpoint': self.scraper.get_region().base_url
-                        + "/NewWorld.InmateInquiry/nassau?Page=1",
-            'task_type': constants.GET_MORE_TASKS,
-            'data': {
-                'page': 1
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.scraper.get_region().base_url
+            + "/NewWorld.InmateInquiry/nassau?Page=1",
+            post_data={
+                'page': '1'
             }
-        }
+        )
         expected = [
-            {
-                'endpoint': self.scraper.get_region().base_url
-                            + "/NewWorld.InmateInquiry/nassau?Page=2",
-                'task_type': constants.GET_MORE_TASKS,
-                'data': {
-                    'page': 2
+            Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=self.scraper.get_region().base_url
+                + "/NewWorld.InmateInquiry/nassau?Page=2",
+                post_data={
+                    'page': '2'
                 }
-            },
-            {
-                'endpoint': self.scraper.get_region().base_url
-                            + "/NewWorld.InmateInquiry/nassau?Page=3",
-                'task_type': constants.GET_MORE_TASKS,
-                'data': {
-                    'page': 3
+            ), Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=self.scraper.get_region().base_url
+                + "/NewWorld.InmateInquiry/nassau?Page=3",
+                post_data={
+                    'page': '3'
                 }
-            },
-            {
-                'endpoint': self.scraper.get_region().base_url
-                            + '/NewWorld.InmateInquiry/nassau/Inmate/Detail/-1',
-                'task_type': constants.SCRAPE_DATA
-            },
-            {
-                'endpoint': self.scraper.get_region().base_url
-                            + '/NewWorld.InmateInquiry/nassau/Inmate/Detail/-2',
-                'task_type': constants.SCRAPE_DATA
-            }
+            ), Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint=self.scraper.get_region().base_url
+                + '/NewWorld.InmateInquiry/nassau/Inmate/Detail/-1',
+            ), Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint=self.scraper.get_region().base_url
+                + '/NewWorld.InmateInquiry/nassau/Inmate/Detail/-2',
+            )
 
         ]
 
-        self.validate_and_return_get_more_tasks(content, params, expected)
+        self.validate_and_return_get_more_tasks(content, task, expected)
 
     def test_populate_data(self):
         content = _DETAILS_HTML
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-        }
-        expected = IngestInfo()
+        expected_info = IngestInfo()
 
-        person = expected.create_person(
+        person = expected_info.create_person(
             full_name="AARDVARK, ARTHUR",
             person_id="10000",
             gender="Male",
@@ -164,4 +158,4 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
             amount="$3,002.00"
         )
 
-        self.validate_and_return_populate_data(content, params, expected)
+        self.validate_and_return_populate_data(content, expected_info)

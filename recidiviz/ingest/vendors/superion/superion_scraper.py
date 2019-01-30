@@ -32,15 +32,17 @@ Background scraping procedure:
     3. A request for each person.
 """
 
-import copy
 import json
 import logging
 import os
+from typing import List, Optional
 
-from recidiviz.ingest import constants
-from recidiviz.ingest import scraper_utils
+from recidiviz.common.constants.bond import BondStatus
+from recidiviz.ingest import constants, scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class SuperionScraper(BaseScraper):
@@ -86,7 +88,7 @@ class SuperionScraper(BaseScraper):
 
         return data
 
-    def _get_num_people_params(self, content, params):
+    def _get_num_people_task(self, content) -> Task:
         """Returns the params needed to start scraping people.
 
         Args:
@@ -100,15 +102,15 @@ class SuperionScraper(BaseScraper):
         json_content = json.loads(content.text)
         num_people = int(json_content['records'])
 
-        params = {
-            'endpoint': self._session_endpoint,
-            'task_type': constants.GET_MORE_TASKS,
-            'num_people': num_people,
-        }
+        return Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self._session_endpoint,
+            custom={
+                'num_people': num_people,
+            },
+        )
 
-        return params
-
-    def _get_people_params(self, content, params):
+    def _get_people_tasks(self, content, task) -> List[Task]:
         """Returns the params needed to get all person data.
 
         Args:
@@ -123,54 +125,33 @@ class SuperionScraper(BaseScraper):
         session_params = self._retrieve_session_vars(content)
 
         # add tasks for all people
-        people_params = []
-        for person_idx in range(params['num_people']):
-            person_params = {
-                'post_data': copy.deepcopy(session_params),
-                'endpoint': self._session_endpoint,
-                'task_type': constants.SCRAPE_DATA,
-            }
-
+        tasks = []
+        for person_idx in range(task.custom['num_people']):
+            post_data = session_params.copy()
             # Setup the search for the first person
-            person_params['post_data'][self._person_index_param] = person_idx
-            person_params['post_data'][self._detail_indicator_field] = ''
+            post_data[self._person_index_param] = person_idx
+            post_data[self._detail_indicator_field] = ''
+            tasks.append(Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint=self._session_endpoint,
+                post_data=post_data,
+            ))
 
-            people_params.append(person_params)
+        return tasks
 
-        return people_params
-
-    def get_more_tasks(self, content, params):
-        """
-        Gets more tasks based on the content and params passed in.  This
-        function should determine which task params, if any, should be
-        added to the queue
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-
-        Returns:
-            A list of params containing endpoint and task_type at minimum.
-        """
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
         params_list = []
 
-        if self.is_initial_task(params['task_type']):
+        if self.is_initial_task(task.task_type):
             # If it is our first task, grab the total number of people.
-            params_list.append(self._get_num_people_params(content, params))
+            params_list.append(self._get_num_people_task(content))
         else:
             # Add the next person, if there is one
-            params_list.extend(self._get_people_params(content, params))
+            params_list.extend(self._get_people_tasks(content, task))
         return params_list
 
-    def populate_data(self, content, params, ingest_info):
-        """
-        Populates the ingest info object from the content and params given
-
-        Args:
-            content: An lxml html tree.
-            params: dict of parameters passed from the last scrape session.
-            ingest_info: The IngestInfo object to populate
-        """
+    def populate_data(self, content, task: Task,
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         data_extractor = HtmlDataExtractor(self.yaml_file)
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
@@ -178,26 +159,42 @@ class SuperionScraper(BaseScraper):
         if len(ingest_info.people) != 1:
             logging.error("Data extractor didn't find exactly one person as "
                           "it should have")
-            return ingest_info
+            return ScrapedData(ingest_info=ingest_info, persist=True)
 
         person = ingest_info.people[0]
 
-        person.age = person.age.strip().split()[0]
+        if person.age:
+            person.age = person.age.strip().split()[0]
 
-        # Separate bond type and amount. Superion overloads the
-        # contents of the 'Bond Amount' field to contain both the bond
-        # type and bond amount. When there is no bond, there is no '$'
-        # character, and just the bond type.
         for booking in person.bookings:
             for charge in booking.charges:
-                bond = charge.bond
-                if '$' in bond.amount:  # check for dollar amount present
-                    type_and_amount = bond.amount
-                    bond.bond_type = ' '.join(type_and_amount.split('$')[:-1])
-                    bond.amount = type_and_amount.split('$')[-1]
-                else:  # just a bond type, no amount
-                    bond.bond_type = bond.amount
-                    bond.amount = None
+                if charge.bond:
+                    bond = charge.bond
+                    if bond.amount:
+                        # check for dollar amount present
+                        if '$' in bond.amount:
+                            type_and_amount = bond.amount
+                            bond.bond_type = ' '.join(
+                                type_and_amount.split('$')[:-1])
+                            bond.amount = type_and_amount.split('$')[-1]
+                        else:  # just a bond type, no amount
+                            bond.bond_type = bond.amount
+                            bond.amount = None
+
+                # Bond type is listed as 'PAID' when status is posted.
+                if bond.bond_type == 'PAID':
+                    bond.status = BondStatus.POSTED.value
+                    bond.bond_type = None
+
+                # Check for hold information in the charge.
+                hold_values = [
+                    'FEDERAL',
+                    'WRIT',
+                    'OTHER COUNTY HOUSING',
+                ]
+                if charge.status and (charge.status.upper() in hold_values):
+                    booking.create_hold(jurisdiction_name=charge.status)
+                    charge.status = None
 
         # Test if the release date is a projected one
         for booking in person.bookings:
@@ -207,7 +204,7 @@ class SuperionScraper(BaseScraper):
                     ' '.join(booking.release_date.split()[:-1])
                 booking.release_date = None
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
     def _get_scraped_value(self, content, scrape_id):
         """Convenience function to get a scraped value from a row.
@@ -225,14 +222,15 @@ class SuperionScraper(BaseScraper):
             return ''.join(text.split()).split(':')[1]
         return None
 
-    def get_initial_params(self):
-        return {
-            'endpoint': self._search_endpoint,
-            'post_data': {
+    def get_initial_task(self) -> Task:
+        return Task(
+            task_type=constants.TaskType.INITIAL_AND_MORE,
+            endpoint=self._search_endpoint,
+            post_data={
                 't': 'ii',
                 '_search': 'false',
                 'rows': '1',
                 'page': '1',
                 'sidx': 'disp_name',
             },
-        }
+        )

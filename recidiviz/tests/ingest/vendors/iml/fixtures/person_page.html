@@ -1,0 +1,457 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<html>
+<head>
+<title>Inmate Lookup Tool</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="../css/print.css" rel="stylesheet" type="text/css" media="print">
+<link href="../css/heading.css" rel="stylesheet" type="text/css">
+<link href="../css/footer.css" rel="stylesheet" type="text/css">
+<link href="../css/body.css" rel="stylesheet" type="text/css">
+
+<script language="javascript">
+var W3C = document.getElementById? true : false;
+
+function setLargePic(picNum,sysID) {
+if (W3C) {
+    document.getElementById("largephoto").src="imageservlet?imageNumber=" + picNum + "&sysid=" + sysID;
+} else if (is_nav4up) {
+
+} else {
+    document['largephoto'].src="imageservlet?imageNumber=" + picNum + "&sysid=" + sysID;
+}
+
+}
+function submitMe(formname)
+{
+  document.forms[formname].submit();
+}
+
+function submitInmate(inmateid,imgSysID)
+{
+  document.forms['viewInmate'].inmateID.value = inmateid;
+  document.forms['viewInmate'].imgSysID.value = imgSysID;
+  submitMe('viewInmate');
+}
+
+</script>
+
+
+</head>
+
+<body background="../images/bgrd.gif" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0">
+<form name="viewInmate"  method="post" action=>
+<input type="hidden" name="flow_action" value="details_print">
+<input type="hidden" name="CURRENT_QUANTITY" value="10">
+<input type="hidden" name="CURRENT_START" value="null">
+<input type="hidden" name="inmateID" value="0">
+<input type="hidden" name="imgSysID" value="0">
+<input type="hidden" name="QUANTITY" value="10">
+</form>
+<form name="retToSearch"  method="post" action="/IML">
+<input type="hidden" name="flow_action" value="inmatedb_srchresults">
+<input type="hidden" name="QUANTITY" value="null">
+<input type="hidden" name="START" value="null">
+</form>
+
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td background="../images/header_right.gif"><a name="top"></a><img src="../images/header.gif" width="797" height="56"></td>
+  </tr>
+</table>
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tr class = "removeWhenPrinted">
+    <td colspan="6"><img src="../images/spacer.gif" width="1" height="12"></td>
+  </tr>
+  <tr>
+    <td width="2%">&nbsp;</td>
+    <td colspan="3">
+  <table width="710" border="0" cellspacing="0" cellpadding="0" class = "removeWhenPrinted">
+        <tr class = "removeWhenPrinted">
+          <td width="237" class = "removeWhenPrinted"><img src="../images/tab_1a.gif" width="237" height="28" border="0" usemap="#Map2"></td>
+          <td width="237" class = "removeWhenPrinted"><img src="../images/tab_2a.gif" width="237" height="28" border="0" usemap="#Map"></td>
+          <td width="237" class = "removeWhenPrinted"><img src="../images/tab_3.gif" width="237" height="28"></td>
+          <td width="130">&nbsp;</td>
+        </tr>
+      </table></td>
+    <td width="1%">&nbsp;</td>
+    <td width="3%">&nbsp;</td>
+  </tr>
+  <tr class = "removeWhenPrinted">
+    <td>&nbsp;</td>
+    <td width="3%" bgcolor="#FFFFFF">&nbsp;</td>
+    <td colspan="2" bgcolor="#FFFFFF" class="body">&nbsp;</td>
+    <td><img src="../images/rucorner.gif" width="20" height="20"></td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td bgcolor="#FFFFFF">&nbsp;</td>
+    <td colspan="2" bgcolor="#FFFFFF" class="body">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr class = "removeWhenPrinted">
+          <td valign="top" class="removeWhenPrinted"><span class="body">To return to the Search
+            Results page, click on the Inmate Database Search Results tab, or
+            to revise your search, click on the Inmate Database Search tab.</span></td>
+        </tr>
+        <tr class = "removeWhenPrinted">
+          <td valign="top" class="body">&nbsp;</td>
+        </tr>
+        <tr>
+          <td valign="top" class="body">
+      <table width="550" border="0" cellspacing="0" cellpadding="0" bordercolor="#336699" bgcolor="#ffffff" align="left">
+              <tr>
+                <td width="194" height="21">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td><table width="720" border="0" cellpadding="0" cellspacing="1" bgcolor="#CCCCCC">
+                          <tr class="bodysmallbold">
+                            <td width="715" colspan="4" bgcolor="#006699"><div align="left" class="body">
+                                <table width="100%" border="0" cellspacing="0" cellpadding="3">
+                                  <tr>
+                                    <td width="483"
+                                    ><div class="header"><font color="#FFFFFF">Name: </font> <font class="bodywhite">BART SIMPSON</font> </div></td>
+                                    <td width="8%" class="body"><div align="center"></div></td>
+                                    <td width="8%" class="body"><div align="center"></div></td>
+                                    <td width="8%" class="body"><div align="center"></div></td>
+                                  </tr>
+                                </table>
+                              </div></td>
+                          </tr>
+                          <tr class="bodysmall">
+                            <td colspan="4" bgcolor="#FFFFFF"><div align="center"></div>
+                              <div align="center">
+                                <table width="80%" border="0" cellspacing="0" cellpadding="0">
+                                  <tr>
+
+
+
+                                  <td width="23%" rowspan="9" class="body">
+                                  <div align="center">
+                                  <table>
+                                    <tr>
+                                    </tr>
+                                  </table>
+                                  </div></td>
+
+                                  <td width="6%" rowspan="9">&nbsp;</td>
+                                    <td width="10%" class="bodysmall">Sex:</td>
+                                    <td width="38%" class="bodysmall">M</td>
+                                  </tr>
+                                  <tr>
+                                    <td class="bodysmall">DOB:</td>
+                                    <td width="38%" class="bodysmall">01/27/1986</td>
+                                  </tr>
+                                  <tr>
+                                    <td class="bodysmall">Height:</td>
+                                    <td width="38%" class="bodysmall">6&#039; 6&#034;</td>
+                                  </tr>
+                                  <tr>
+                                    <td class="bodysmall">Weight:</td>
+                                    <td width="38%" class="bodysmall">145</td>
+                                  </tr>
+                                  <tr>
+                                    <td class="bodysmall">Race:</td>
+                                    <td width="38%" class="bodysmall">BLACK</td>
+                                  </tr>
+                                  <tr>
+                                    <td class="bodysmall">Hair Color:</td>
+                                    <td width="38%" class="bodysmall">BLACK</td>
+                                  </tr>
+                                  <tr>
+                                    <td class="bodysmall">Hair Length:</td>
+                                    <td width="38%" class="bodysmall"></td>
+                                  </tr>
+                                  <tr>
+                                    <td class="bodysmall">Eye Color:</td>
+                                    <td width="38%" class="bodysmall">BROWN</td>
+                                  </tr>
+                                  <tr>
+                                    <td class="bodysmall">Complexion:</td>
+                                    <td width="38%" class="bodysmall">DARK SKINNED</td>
+                                  </tr>
+
+
+
+
+
+                                </table>
+                              </div></td>
+                          </tr>
+                        </table>
+                        <br>
+            <table width="720" border="0" cellpadding="0" cellspacing="1" bgcolor="#CCCCCC">
+                          <tr class="bodysmallbold">
+                            <td colspan="4" bgcolor="#006699"><div align="left" class="header">
+                                <table width="100%" border="0" cellspacing="0" cellpadding="3">
+                                  <tr>
+                                    <td width="100%" class="header">Inmate Information</td>
+                                  </tr>
+                                </table>
+                              </div></td>
+                          </tr>
+                          <tr class="bodysmall">
+                            <td width="130" bgcolor="#D7D7D7" class="bodysmallbold">Marital Status:</td>
+                            <td width="170" bgcolor="#FFFFFF"></td>
+                            <td width="85" bgcolor="#D7D7D7" class="bodysmallbold">State ID:</td>
+                            <td width="336" bgcolor="#FFFFFF"></td>
+                          </tr>
+                          <tr class="bodysmall">
+                            <td width="95" bgcolor="#D7D7D7" class="bodysmallbold">FBI:</td>
+                            <td bgcolor="#FFFFFF">      </td>
+                            <td bgcolor="#D7D7D7" class="bodysmallbold">INS:</td>
+                            <td width="359" bgcolor="#FFFFFF">072784764      </td>
+                          </tr>
+                          <tr class="bodysmall">
+                            <td bgcolor="#D7D7D7" class="bodysmallbold">Citizen:</td>
+                            <td bgcolor="#FFFFFF">US</td>
+                            <td bgcolor="#D7D7D7" class="bodysmallbold">COB:</td>
+                            <td bgcolor="#FFFFFF">US</td>
+                          </tr>
+                        </table>
+                        <br>
+            <table width="720" border="0" cellpadding="0" cellspacing="1" bgcolor="#CCCCCC">
+                          <tr class="bodysmall">
+                            <td colspan="4" bgcolor="#006699" class="header"><table width="100%" border="0" cellspacing="0" cellpadding="3">
+                                <tr>
+                                  <td width="100%" class="header">Incarceration
+                                    Information</td>
+                                </tr>
+                              </table></td>
+                          </tr>
+                          <tr bgcolor="#FFFFFF" class="bodysmall">
+                            <td width="130" bgcolor="#D7D7D7" class="bodysmallbold">Current Location:</td>
+                            <td width="170" bgcolor="#FFFFFF">MAIN      </td>
+                            <td width="85" bgcolor="#D7D7D7" class="bodysmallbold">County:</td>
+                            <td width="340" bgcolor="#FFFFFF">IMMIGRATION</td>
+                          </tr>
+                          <tr bgcolor="#FFFFFF" class="bodysmall">
+                            <td width="130" bgcolor="#D7D7D7" class="bodysmallbold">Current Housing Section:</td>
+                            <td width="170" bgcolor="#FFFFFF">NORTH          </td>
+                            <td width="85" bgcolor="#D7D7D7" class="bodysmallbold">Current Housing Block:</td>
+                            <td width="340" bgcolor="#FFFFFF">N3D       </td>
+                          </tr>
+                          <tr class="bodysmall">
+                            <td bgcolor="#D7D7D7" class="bodysmallbold">Current Housing Cell:</td>
+                            <td bordercolor="#CCCCCC" bgcolor="#FFFFFF">14   </td>
+                            <td bordercolor="#CCCCCC" bgcolor="#D7D7D7" class="bodysmallbold">Current Housing Bed: </td>
+                            <td bordercolor="#CCCCCC" bgcolor="#FFFFFF">Lower     </td>
+                          </tr>
+                          <tr class="bodysmall">
+                            <td bgcolor="#D7D7D7" class="bodysmallbold">Commitment Date:</td>
+                            <td bordercolor="#CCCCCC" bgcolor="#FFFFFF">07/25/2018</td>
+                            <td bordercolor="#CCCCCC" bgcolor="#D7D7D7" class="bodysmallbold">Release Date: </td>
+                            <td bordercolor="#CCCCCC" bgcolor="#FFFFFF"></td>
+                          </tr>
+                        </table>
+                        <br>
+            <table width="720" border="0" cellpadding="0" cellspacing="1" bgcolor="#CCCCCC">
+                          <tr class="bodysmall">
+                            <td width="715" height="15" colspan="4" bgcolor="#006699" class="header"><table width="100%" border="0" cellspacing="0" cellpadding="3">
+                                <tr>
+                                  <td width="100%" class="header">Alias Information</td>
+                                </tr>
+                              </table></td>
+                          </tr>
+
+
+
+                          <tr bgcolor="#FFFFFF" class="bodysmall">
+                            <td colspan="4">There are no aliases for this inmate.</td>
+                          </tr>
+
+
+
+                        </table>
+                        <br>
+            <table width="720" border="0" cellpadding="0" cellspacing="1" bgcolor="#CCCCCC">
+                          <tr class="bodysmall">
+                            <td height="15" bgcolor="#006699" class="header" colspan="10"><table width="100%" border="0" cellspacing="0" cellpadding="3">
+                                <tr>
+                                  <td width="100%" class="header">Detainer Information</td>
+                                </tr>
+                              </table></td>
+                          </tr>
+
+
+
+
+                          <tr bgcolor="#FFFFFF" class="bodysmall">
+                            <td>There is no detainer information for this inmate.</td>
+                          </tr>
+
+
+
+
+                        </table>
+
+
+                        <br>
+            <table width="720" border="0" cellpadding="0" cellspacing="1" bgcolor="#CCCCCC">
+                          <tr class="bodysmall">
+                            <td height="15" colspan="10" bgcolor="#006699" class="header"><table width="100%" border="0" cellspacing="0" cellpadding="3">
+                                <tr>
+                                  <td width="100%" class="header">Bond Information</td>
+                                </tr>
+                              </table></td>
+                          </tr>
+
+
+
+
+
+
+                          <tr bgcolor="#FFFFFF"   class="bodysmall">
+                            <td width="44" bgcolor="#D7D7D7" class="bodysmallbold">Case #:</td>
+                            <td width="90" bgcolor="#FFFFFF"></td>
+                            <td width="48" bgcolor="#D7D7D7" class="bodysmallbold">Amount:</td>
+                            <td width="111" bgcolor="#FFFFFF"></td>
+                            <td width="44" bgcolor="#D7D7D7" class="bodysmallbold">Status:</td>
+                            <td width="70" bgcolor="#FFFFFF">
+
+
+
+
+
+
+
+
+
+
+
+                            </td>
+                            <td width="70" bgcolor="#D7D7D7" class="bodysmallbold">Posted By:</td>
+                            <td width="74" bgcolor="#FFFFFF"></td>
+                            <td width="73" bgcolor="#D7D7D7" class="bodysmallbold">Post Date:</td>
+                            <td width="108" bgcolor="#FFFFFF"></td>
+                          </tr>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        </table>
+<br>
+                        <table width="720" border="0" cellpadding="0" cellspacing="1" bgcolor="#CCCCCC">
+                          <tr class="bodysmall">
+                            <td height="15" colspan="7" bgcolor="#006699" class="header"><table width="100%" border="0" cellspacing="0" cellpadding="3">
+                                <tr>
+                                  <td width="100%" class="header">Charge Information</td>
+                                </tr>
+                              </table></td>
+                          </tr>
+
+
+
+
+
+<tr bgcolor="#D7D7D7" class="bodysmallbold">
+                            <td>Case #</td>
+                            <td>Offense Date</td>
+                            <td>Code</td>
+                            <td colspan="2">Description</td>
+                            <td>Grade</td>
+                            <td>Degree</td>
+                          </tr>
+
+
+                          <tr bgcolor="#FFFFFF" class="bodysmall">
+                            <td></td>
+                            <td>07/25/2018</td>
+                            <td>2C:21-31C</td>
+                            <td colspan="2">IMMIGRATION DETAINEE</td>
+                            <td></td>
+                            <td></td>
+                          </tr>
+
+
+
+
+
+
+                        </table></td>
+                    </tr>
+                  </table></td>
+              </tr>
+            </table></td>
+        </tr>
+        <tr>
+          <td valign="top" class="body">&nbsp; </td>
+        </tr>
+        <tr>
+          <td height="18" valign="top" class="body">&nbsp;</td>
+        </tr>
+      </table></td>
+    <td bgcolor="#FFFFFF">&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td colspan="6"><img src="../images/spacer.gif" width="4" height="8"></td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+    <td colspan="2" valign="top" class="footer"><div align="center">&copy; Copyright
+        2007, Digital Solutions, Inc. All Rights Reserved</div></td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+</table>
+<tr>
+  <td colspan="2" valign="top" bgcolor="#FFFFFF">&nbsp;</td>
+    <td width="1%" bgcolor="#FFFFFF">&nbsp;</td>
+    <td width="3%">&nbsp;</td>
+  </tr>
+  <tr>
+
+  <td colspan="6">&nbsp;</td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+
+  <td colspan="2" valign="top">&nbsp; </td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+</table>
+
+<map name="Map">
+  <area shape="rect" coords="1,2,217,26" href="javascript:document.forms['retToSearch'].submit();">
+</map>
+<map name="Map2">
+  <area shape="rect" coords="1,2,211,27" href="/IML">
+</map>
+</body>
+</html>

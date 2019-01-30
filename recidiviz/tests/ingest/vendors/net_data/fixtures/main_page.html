@@ -1,0 +1,111 @@
+
+<html>
+<title>Inmate Listing</title>
+<!-- <link href="styles.css" rel="stylesheet" type="text/css" /> -->
+<head>
+<LINK REL="SHORTCUT ICON" href="images/favicon.ico"/>
+<h4 align="center">
+<img border="0" src="images/county.jpg"/>
+<script type="text/javascript" type="text/javascript"
+	src="utilities/datetimepicker_css.js">
+</script>
+</h4>
+<script language="javascript" type="text/javascript">
+			function buildEmail() {
+				var link = document.getElementById('email');
+				link.onclick = function() {
+					this.href = "mailto:webmaster@netdatacorp.net?subject=CGI site issue&body=";
+					this.href += getBody();
+				};
+			}
+			function getBody() {
+				var currURL = "Please add a short description of any issues with the site below:";
+				currURL += "%0d%0a %0d%0a %0d%0a %0d%0a %0d%0a";
+				currURL += window.location.protocol + "//"
+				currURL += window.location.host + "" + window.location.pathname;
+				return currURL;
+			}
+</script>
+</head>
+<body onload="buildEmail()">
+<form id=form1 action='CGIBOK108.ws' method="post">
+<table border="0" align="center">
+	<tbody>
+		<tr>
+			<td align="right">As Of Date (MM/DD/YYYY):</td>
+			<td>
+				<input name="S108ASOFDT" id="S108ASOFDT" type="text" size="10"
+					maxlength="10"> <a
+					href="javascript:NewCssCal('S108ASOFDT','mmddyyyy','arrow')"><img
+					src="images/cal.gif" width="16" height="16" border="0"
+					alt="Pick a date"></a>
+			</td>
+		</tr>
+		<tr>
+<!--			<td align="right">As Of Time (HHMM):</td> -->
+			<td>
+				<hidden name="S108ASOFTM"
+					id="S108ASOFTM"
+					type="text"
+					size="4"
+					maxlength="4">
+			</td>
+		</tr>
+		<tr>
+<!--			<td align="right">Begining Key:</td> -->
+			<td>
+				<hidden name="S108ORD"
+					id="S108ORD"
+					type="text"
+					VALUE="NX">
+			</td>
+		</tr>
+		<tr>
+			<td align="right">Starting Inmate Name:</td>
+			<td>
+				<input name="S108INMNAM"
+					id="S108INMNAM"
+					type="text"
+					size="30"
+					maxlength="30">
+			</td>
+		</tr>
+		<tr>
+<!--			<td align="right">Begining Key:</td> -->
+			<td>
+				<hidden name="S108KEY"
+					id="S108KEY"
+					type="text"
+					size="14"
+					maxlength="14">
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<input type="hidden" name="S108LIB" id = "S108LIB" value = "QS36F" />
+				<input type="hidden" name="S108PFX" id = "S108PFX" value = "LE" />
+				<input type="hidden" name="S108CNTY" id = "S108CNTY" value = "county" />
+			</td>
+		</tr>
+		<tr>
+			<td/>
+			<td>
+			blank for current
+			</td>
+		</tr>
+		<tr/>
+		<tr>
+			<td>
+				<input type=submit value="Inmate Listing" />
+			</td>
+		</tr>
+	</tbody>
+</table>
+</form>
+<BR>
+<a href="http://www.netdatacorp.net"><img border="0" src="images/netdlogo.gif"/></a>
+<BR>
+&copy; 2012 NET Data Corporation |
+<a id = "email" href="#">Contact Net Data</a>
+</body>
+</html>

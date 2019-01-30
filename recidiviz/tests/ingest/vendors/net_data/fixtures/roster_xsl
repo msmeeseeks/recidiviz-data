@@ -1,0 +1,251 @@
+<!-- CGIBOK108 -->
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+<xsl:template match="/">
+<html>
+<title>Jail Report</title>
+<head>
+<LINK REL="SHORTCUT ICON" href="images/favicon.ico"/>
+<script type="text/javascript">
+<![CDATA[
+
+ function run100(bokKey) {
+ document.S100Form.S100KEY.setAttribute("value", bokKey);
+ document.S100Form.submit();
+ }
+ function buildEmail() {
+ var link = document.getElementById('email');
+ link.onclick = function() {
+ this.href = "mailto:webmaster@netdatacorp.net?subject=CGI site issue&body=";
+ this.href += getBody();
+ };
+ }
+ function getBody() {
+ var currURL = "Please add a short description of any issues with the site below:";
+ currURL += "%0d%0a %0d%0a %0d%0a %0d%0a %0d%0a";
+ currURL += window.location.protocol + "//"
+ currURL += window.location.host + "" + window.location.pathname;
+ return currURL;
+ }
+]]>
+</script>
+</head>
+<xsl:if test="CGIBOK108/ERROR-MESSAGE">
+<h1 ALIGN="CENTER">
+<xsl:value-of select="CGIBOK108/ERROR-MESSAGE"/>
+</h1>
+</xsl:if>
+<h2 align="center">
+ <!-- <img boarder="0" src="images/county.jpg"/> -->
+<img>
+<xsl:attribute name="src">
+images/
+<xsl:value-of select="/CGIBOK108/HEAD02/H02-CNTY"/>
+.jpg
+</xsl:attribute>
+</img>
+</h2>
+<h4 ALIGN="CENTER">
+As of:
+<xsl:text> </xsl:text>
+<xsl:value-of select="CGIBOK108/HEAD02/H02-DATE"/>
+ <!--
+				<xsl:text>&#160;</xsl:text>
+				<xsl:value-of select="CGIBOK108/HEAD02/H02-Time" />
+-->
+</h4>
+<body onload="buildEmail()">
+<form style="margin-bottom: 0" name="S100Form" id="S100Form" method="post" action="CGIBOK100.ws">
+<input type="hidden" name="S100KEY" id="S100KEY"> </input>
+<input type="hidden" name="S100LIB" id="S100LIB">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/HEAD02/H02-LIB"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="S100PFX" id="S100PFX">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/HEAD02/H02-PFX"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="S100CNTY" id="S100CNTY">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/HEAD02/H02-CNTY"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="S100COCOD" id="S100COCOD">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/HEAD02/H02-COCOD"/>
+</xsl:attribute>
+</input>
+</form>
+<table align="center" border="0" cellspacing="0" cellpadding="4">
+<tr bgColor="dimgray">
+<th>
+<font color="white">Arrest #</font>
+</th>
+<th>
+<font color="white">Inmate Name</font>
+</th>
+<th>
+<font color="white">Book Date</font>
+</th>
+ <!--
+						<th>
+							<font color="white">Dorm</font>
+						</th>
+-->
+<th>
+<font color="white">Charge</font>
+</th>
+</tr>
+<xsl:for-each select="CGIBOK108/LINE01">
+<xsl:if test="(position() mod 2 = 1)">
+<tr bgColor="lightgrey">
+<td>
+<xsl:value-of select="L01-ARREST-NO"/>
+</td>
+<td>
+<xsl:element name="a">
+<xsl:attribute name="href">
+Javascript:run100('
+<xsl:value-of select="L01-KEY"/>
+')
+</xsl:attribute>
+<xsl:value-of select="L01-INMATE-NAME"/>
+</xsl:element>
+</td>
+<td>
+<xsl:value-of select="L01-BOOK-DATE"/>
+</td>
+ <!--
+							<td>
+								<xsl:value-of
+									select="L01-DORM" />
+							</td>
+-->
+<td>
+<xsl:value-of select="L01-CHARGE"/>
+</td>
+</tr>
+</xsl:if>
+<xsl:if test="(position() mod 2 = 0)">
+<tr bgColor="white">
+<td>
+<xsl:value-of select="L01-ARREST-NO"/>
+</td>
+<td>
+<xsl:element name="a">
+<xsl:attribute name="href">
+Javascript:run100('
+<xsl:value-of select="L01-KEY"/>
+')
+</xsl:attribute>
+<xsl:value-of select="L01-INMATE-NAME"/>
+</xsl:element>
+</td>
+<td>
+<xsl:value-of select="L01-BOOK-DATE"/>
+</td>
+ <!--
+							<td>
+								<xsl:value-of
+									select="L01-DORM" />
+							</td>
+-->
+<td>
+<xsl:value-of select="L01-CHARGE"/>
+</td>
+</tr>
+</xsl:if>
+</xsl:for-each>
+<tr>
+<td>
+ <!--
+							<xsl:if test="/CGIBOK108/FOOT01/F01-PR = 'Y'">
+								<form
+									style="margin-bottom: 0"
+									method="post"
+									action="CGIBOK108.ws">
+									<input
+										type="hidden" name="S108ORD" id="S108ORD" value="PR">
+									</input>
+									<input type="hidden" name="S108ASOFDT" id="S108ASOFDT">
+										<xsl:attribute name="value">
+										<xsl:value-of select="/CGIBOK108/HEAD02/H02-DATE"/>
+										</xsl:attribute>
+									</input>
+									<input type="hidden" name="S108INMNAM" id="S108INMNAM">
+										<xsl:attribute name="value">
+										<xsl:value-of select="/CGIBOK108/FOOT01/F01-PR-INMATE-NAME"/>
+										</xsl:attribute>
+									</input>
+									<input type="hidden" name="S108KEY" id="S108KEY">
+										<xsl:attribute name="value">
+										<xsl:value-of select="/CGIBOK108/FOOT01/F01-PR-KEY"/>
+										</xsl:attribute>
+									</input>
+									<input type="submit" value="Prior" />
+								</form>
+							</xsl:if>
+-->
+</td>
+<td/>
+<td>
+<xsl:if test="/CGIBOK108/FOOT01/F01-NX = 'Y'">
+<form style="margin-bottom: 0" method="post" action="CGIBOK108.ws">
+<input type="hidden" name="S108ORD" id="S108ORD" value="NX"> </input>
+<input type="hidden" name="S108ASOFDT" id="S108ASOFDT">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/HEAD02/H02-DATE"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="S108INMNAM" id="S108INMNAM">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/FOOT01/F01-NX-INMATE-NAME"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="S108KEY" id="S108KEY">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/FOOT01/F01-NX-KEY"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="S108LIB" id="S108LIB">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/HEAD02/H02-LIB"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="S108PFX" id="S108PFX">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/HEAD02/H02-PFX"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="S108CNTY" id="S108CNTY">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/HEAD02/H02-CNTY"/>
+</xsl:attribute>
+</input>
+<input type="hidden" name="S108COCOD" id="S108COCOD">
+<xsl:attribute name="value">
+<xsl:value-of select="/CGIBOK108/HEAD02/H02-COCOD"/>
+</xsl:attribute>
+</input>
+<input type="submit" value="Next"/>
+</form>
+</xsl:if>
+</td>
+</tr>
+</table>
+<BR/>
+<a href="http://www.netdatacorp.net">
+<img border="0" src="images/netdlogo.gif"/>
+</a>
+<BR/>
+© 2012 NET Data Corporation |
+<a id="email" href="#">Contact Net Data</a>
+  |
+<a href="javascript:window.print()">
+<img src="images/btn_printPopup.gif" width="16" height="16" border="0" title="Print"/>
+</a>
+</body>
+</html>
+</xsl:template>
+</xsl:stylesheet>

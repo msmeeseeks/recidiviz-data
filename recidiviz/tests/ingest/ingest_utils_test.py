@@ -32,14 +32,37 @@ def test_validate_regions_one_all():
         "us_fl_hendry",
         "us_fl_martin",
         "us_fl_osceola",
+        "us_ga_berrien",
+        "us_in_vigo",
         "us_mo_stone",
+        "us_ms_desoto",
         "us_mt_gallatin",
         "us_fl_nassau",
+        "us_nc_buncombe",
         "us_nc_guilford",
+        "us_nj_bergen",
         "us_ny",
         "us_pa",
         "us_pa_dauphin",
         "us_pa_greene",
+        "us_tn_mcminn",
+        "us_tx_brown",
+        "us_tx_cochran",
+        "us_tx_coleman",
+        "us_tx_cooke",
+        "us_tx_erath",
+        "us_tx_freestone",
+        "us_tx_hockley",
+        "us_tx_hopkins",
+        "us_tx_liberty",
+        "us_tx_ochiltree",
+        "us_tx_red_river",
+        "us_tx_rusk",
+        "us_tx_titus",
+        "us_tx_upshur",
+        "us_tx_van_zandt",
+        "us_tx_wilson",
+        "us_tx_young",
         "us_vt",
     }
 
@@ -64,14 +87,37 @@ def test_validate_regions_multiple_all():
         "us_fl_hendry",
         "us_fl_martin",
         "us_fl_osceola",
+        "us_ga_berrien",
+        "us_in_vigo",
         "us_mo_stone",
+        "us_ms_desoto",
         "us_mt_gallatin",
         "us_fl_nassau",
+        "us_nc_buncombe",
         "us_nc_guilford",
+        "us_nj_bergen",
         "us_ny",
         "us_pa",
         "us_pa_dauphin",
         "us_pa_greene",
+        "us_tn_mcminn",
+        "us_tx_brown",
+        "us_tx_cochran",
+        "us_tx_coleman",
+        "us_tx_cooke",
+        "us_tx_erath",
+        "us_tx_freestone",
+        "us_tx_hockley",
+        "us_tx_hopkins",
+        "us_tx_liberty",
+        "us_tx_ochiltree",
+        "us_tx_red_river",
+        "us_tx_rusk",
+        "us_tx_titus",
+        "us_tx_upshur",
+        "us_tx_van_zandt",
+        "us_tx_wilson",
+        "us_tx_young",
         "us_vt",
     }
 
@@ -86,12 +132,13 @@ def test_validate_regions_empty():
 
 def test_validate_scrape_types_one_ok():
     assert ingest_utils.validate_scrape_types(
-        [constants.SNAPSHOT_SCRAPE]) == [constants.SNAPSHOT_SCRAPE]
+        [constants.ScrapeType.SNAPSHOT.value]) == \
+           [constants.ScrapeType.SNAPSHOT]
 
 
 def test_validate_scrape_types_one_all():
     assert ingest_utils.validate_scrape_types(["all"]) == [
-        constants.BACKGROUND_SCRAPE, constants.SNAPSHOT_SCRAPE]
+        constants.ScrapeType.BACKGROUND, constants.ScrapeType.SNAPSHOT]
 
 
 def test_validate_scrape_types_one_invalid():
@@ -100,19 +147,20 @@ def test_validate_scrape_types_one_invalid():
 
 def test_validate_scrape_types_multiple_ok():
     assert ingest_utils.validate_scrape_types(
-        [constants.BACKGROUND_SCRAPE, constants.SNAPSHOT_SCRAPE]) == \
-           [constants.BACKGROUND_SCRAPE, constants.SNAPSHOT_SCRAPE]
+        [constants.ScrapeType.BACKGROUND.value,
+         constants.ScrapeType.SNAPSHOT.value]) == \
+           [constants.ScrapeType.BACKGROUND, constants.ScrapeType.SNAPSHOT]
 
 
 def test_validate_scrape_types_multiple_invalid():
     assert not ingest_utils.validate_scrape_types(
-        [constants.BACKGROUND_SCRAPE, "invalid"])
+        [constants.ScrapeType.BACKGROUND.value, "invalid"])
 
 
 def test_validate_scrape_types_multiple_all():
     assert ingest_utils.validate_scrape_types(
-        [constants.BACKGROUND_SCRAPE, "all"]) == \
-           [constants.BACKGROUND_SCRAPE, constants.SNAPSHOT_SCRAPE]
+        [constants.ScrapeType.BACKGROUND.value, "all"]) == \
+           [constants.ScrapeType.BACKGROUND, constants.ScrapeType.SNAPSHOT]
 
 
 def test_validate_scrape_types_multiple_all_invalid():
@@ -121,7 +169,7 @@ def test_validate_scrape_types_multiple_all_invalid():
 
 def test_validate_scrape_types_empty():
     assert ingest_utils.validate_scrape_types(
-        []) == [constants.BACKGROUND_SCRAPE]
+        []) == [constants.ScrapeType.BACKGROUND]
 
 
 def test_convert_ingest_info_id_is_generated():

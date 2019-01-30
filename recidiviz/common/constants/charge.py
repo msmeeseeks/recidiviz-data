@@ -26,6 +26,7 @@ class ChargeDegree(MappableEnum):
     FIRST = enum_strings.degree_first
     SECOND = enum_strings.degree_second
     THIRD = enum_strings.degree_third
+    FOURTH = enum_strings.degree_fourth
 
     @staticmethod
     def _get_default_map():
@@ -67,6 +68,7 @@ class ChargeStatus(MappableEnum):
 
 class CourtType(MappableEnum):
     CIRCUIT = enum_strings.court_type_circuit
+    CIVIL = enum_strings.court_type_civil
     DISTRICT = enum_strings.court_type_district
     EXTERNAL_UNKNOWN = enum_strings.external_unknown
     OTHER = enum_strings.court_type_other
@@ -78,51 +80,70 @@ class CourtType(MappableEnum):
 
 
 _CHARGE_DEGREE_MAP = {
+    '1': ChargeDegree.FIRST,
     '1ST': ChargeDegree.FIRST,
+    '2': ChargeDegree.SECOND,
     '2ND': ChargeDegree.SECOND,
+    '3': ChargeDegree.THIRD,
     '3RD': ChargeDegree.THIRD,
+    '4': ChargeDegree.FOURTH,
+    '4TH': ChargeDegree.FOURTH,
     'FIRST': ChargeDegree.FIRST,
+    'FOURTH': ChargeDegree.FOURTH,
     'SECOND': ChargeDegree.SECOND,
     'THIRD': ChargeDegree.THIRD,
     'UNKNOWN': ChargeDegree.EXTERNAL_UNKNOWN,
 }
 
-
 _CHARGE_CLASS_MAP = {
     'CIVIL': ChargeClass.CIVIL,
     'FELONY': ChargeClass.FELONY,
     'F': ChargeClass.FELONY,
+    'I': ChargeClass.INFRACTION,
     'INFRACTION': ChargeClass.INFRACTION,
     'MISDEMEANOR': ChargeClass.MISDEMEANOR,
     'M': ChargeClass.MISDEMEANOR,
+    'O': ChargeClass.OTHER,
+    'OTHER': ChargeClass.OTHER,
     'PAROLE VIOLATION': ChargeClass.PAROLE_VIOLATION,
     'PROBATION VIOLATION': ChargeClass.PROBATION_VIOLATION,
     'UNKNOWN': ChargeClass.EXTERNAL_UNKNOWN
 }
 
-
 _CHARGE_STATUS_MAP = {
     'ACQUITTED': ChargeStatus.ACQUITTED,
     'COMPLETED SENTENCE': ChargeStatus.COMPLETED_SENTENCE,
     'CONVICTED': ChargeStatus.CONVICTED,
+    'DISMISSED': ChargeStatus.DROPPED,
     'DISMISSED BY DISTRICT ATTORNEY': ChargeStatus.DROPPED,
     'DROPPED': ChargeStatus.DROPPED,
     'NOT GUILTY': ChargeStatus.ACQUITTED,
+    'OPEN': ChargeStatus.PENDING,
     'PENDING': ChargeStatus.PENDING,
+    'PRE TRIAL': ChargeStatus.PRETRIAL,
     'PRE-TRIAL': ChargeStatus.PRETRIAL,
     'PRETRIAL': ChargeStatus.PRETRIAL,
     'PROBATION': ChargeStatus.SENTENCED,
+    'REVOKED': ChargeStatus.DROPPED,
     'SENTENCED': ChargeStatus.SENTENCED,
     'TIME SERVED': ChargeStatus.COMPLETED_SENTENCE,
     'UNKNOWN': ChargeStatus.EXTERNAL_UNKNOWN,
 }
 
-
 _COURT_TYPE_MAP = {
     'CIRCUIT': CourtType.CIRCUIT,
-    'DISTRICT': CourtType.DISTRICT,
+    'CIRCUIT COURT': CourtType.CIRCUIT,
+    'CITY': CourtType.DISTRICT,
+    'CIVIL': CourtType.CIVIL,
+    'CHANCERY': CourtType.CIVIL,
     'CRIMINAL': CourtType.DISTRICT,
+    'DISTRICT': CourtType.DISTRICT,
+    'DISTRICT COURT': CourtType.DISTRICT,
+    'MAGISTRATE': CourtType.DISTRICT,
+    'MUNICIPAL': CourtType.DISTRICT,
     'OTHER': CourtType.OTHER,
+    'STATE': CourtType.SUPERIOR,
     'SUPERIOR': CourtType.SUPERIOR,
+    'SUPERIOR COURT': CourtType.SUPERIOR,
     'UNKNOWN': CourtType.EXTERNAL_UNKNOWN,
 }

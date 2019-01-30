@@ -19,6 +19,8 @@
 from enum import Enum
 from typing import Dict, Optional
 
+from recidiviz.common.common_utils import normalize
+
 
 class EnumParsingError(Exception):
     """Raised if an MappableEnum can't be built from the provided string."""
@@ -35,12 +37,11 @@ class MappableEnum(Enum):
     """
 
     @classmethod
-    def from_str(cls,
-                 label: str,
-                 override_map: Dict[str, Optional['MappableEnum']] = None) \
-            -> Optional['MappableEnum']:
+    def parse(cls, label: str,
+              override_map: Dict[str, Optional['MappableEnum']]) \
+              -> Optional['MappableEnum']:
 
-        label = label.strip().upper()
+        label = normalize(label)
         if not override_map:
             return cls._parse_to_enum(label, cls._get_default_map())
 
@@ -54,6 +55,21 @@ class MappableEnum(Enum):
         complete_map.update(cls_override_map)
 
         return cls._parse_to_enum(label, complete_map)
+
+    @classmethod
+    def can_parse(
+            cls, label: str,
+            override_map: Dict[str, Optional['MappableEnum']]) -> bool:
+        """Checks if the given string will parse into this enum.
+
+        Convenience method to be used by a child scraper to tell if a given
+        string should be used for this field.
+        """
+        try:
+            cls.parse(label, override_map)
+            return True
+        except EnumParsingError:
+            return False
 
     @classmethod
     def _parse_to_enum(cls, label, complete_map):

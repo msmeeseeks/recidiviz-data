@@ -44,19 +44,18 @@ Roster scraping procedure:
 import copy
 import logging
 import os
+from typing import List, Optional
 
 from lxml import html
 
-from recidiviz.common.constants.charge import ChargeClass
-from recidiviz.common.constants.charge import ChargeDegree
-from recidiviz.common.constants.charge import ChargeStatus
-from recidiviz.common.constants.person import Ethnicity
-from recidiviz.common.constants.person import Race
-from recidiviz.common.constants.mappable_enum import EnumParsingError
-from recidiviz.ingest import constants
-from recidiviz.ingest import scraper_utils
+from recidiviz.common.constants.charge import (ChargeClass, ChargeDegree,
+                                               ChargeStatus)
+from recidiviz.common.constants.person import Ethnicity, Race
+from recidiviz.ingest import constants, scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
+from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 
 class UsNyScraper(BaseScraper):
@@ -100,33 +99,32 @@ class UsNyScraper(BaseScraper):
 
         super(UsNyScraper, self).__init__('us_ny')
 
-    def get_more_tasks(self, content, params):
-        task_type = params['task_type']
-        params_list = []
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
+        task_list = []
 
-        if self.is_initial_task(task_type):
-            params_list.append(self._get_first_search_page_params(content))
+        if self.is_initial_task(task.task_type):
+            task_list.append(self._get_first_search_page_task(content))
         else:
             # Search and disambiguation pages have lists of people to
             # be scraped, person pages do not. Decide here if we're
             # handling a person detail page based on whether a list of
             # people pages was found.
-            person_params = self._get_person_params(content, params)
-            if person_params:
-                params_list.extend(person_params)
+            person_tasks = self._get_person_tasks(content, task)
+            if person_tasks:
+                task_list.extend(person_tasks)
             else:
-                params_list.append(
-                    self._get_store_person_params(content))
-            params_list.extend(self._get_next_page_params(content))
+                task_list.append(
+                    self._get_store_person_task(content))
+            task_list.extend(self._get_next_page_tasks(content))
 
         # Add session variables to the post data of each params dict.
         session_vars = self._get_session_vars(content)
 
-        for next_param in params_list:
-            if 'post_data' in next_param:
-                next_param['post_data'].update(session_vars)
+        for next_task in task_list:
+            if next_task.post_data:
+                next_task.post_data.update(session_vars)
 
-        return params_list
+        return task_list
 
     def _get_session_vars(self, content):
         """Returns the session variables contained in a webpage.
@@ -161,7 +159,7 @@ class UsNyScraper(BaseScraper):
 
         return data
 
-    def _get_first_search_page_params(self, content):
+    def _get_first_search_page_task(self, content) -> Task:
         """Returns the parameters needed to fetch the initial search page.
         Args:
             content: (html tree) a webpage with the search form on it.
@@ -175,15 +173,13 @@ class UsNyScraper(BaseScraper):
 
         action = content.xpath('//div[@id="content"]/form/@action')[0]
 
-        params = {
-            'post_data': post_data,
-            'endpoint': self.get_region().base_url + action,
-            'task_type': constants.GET_MORE_TASKS,
-        }
+        return Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.get_region().base_url + action,
+            post_data=post_data,
+        )
 
-        return params
-
-    def _get_next_page_params(self, content):
+    def _get_next_page_tasks(self, content) -> List[Task]:
         """Returns the parameters needed to fetch the next search page.
         Args:
             content: (html tree) a webpage with the 'next' button on it.
@@ -202,15 +198,13 @@ class UsNyScraper(BaseScraper):
             return []
 
         action = next_button.xpath('attribute::action')[0]
-        params = {
-            'post_data': self._get_post_data(next_button),
-            'endpoint': self.get_region().base_url + action,
-            'task_type': constants.GET_MORE_TASKS,
-        }
+        return [Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.get_region().base_url + action,
+            post_data=self._get_post_data(next_button),
+        )]
 
-        return [params]
-
-    def _get_person_params(self, content, params):
+    def _get_person_tasks(self, content, task) -> List[Task]:
         """Returns the parameters needed to fetch the person details page.
         Args:
             content: (html tree) a webpage with a table with person links on
@@ -224,8 +218,8 @@ class UsNyScraper(BaseScraper):
         result_list = content.xpath('//table[@id="dinlist"]/tr/td/form')
 
         # on the disambiguation page, there's no name but the table is first.
-        if not result_list and 'din' in params:
-            din = params['din']
+        if not result_list and 'din' in task.custom:
+            din = task.custom['din']
 
             # Find the particular DIN we were after on this click.
             result_list = [
@@ -234,58 +228,49 @@ class UsNyScraper(BaseScraper):
                 if res.xpath('div/input[@type="submit"]')[0].value == din
             ]
 
-        params_list = []
+        task_list = []
         for row in result_list:
             data = self._get_post_data(row)
 
             # special case for navigating away from a disambiguation page.
-            if 'din' in params:
-                data['M12_SEL_DINI'] = params['din']
+            if 'din' in task.custom:
+                data['M12_SEL_DINI'] = task.custom['din']
 
             submit_name = row.xpath('./div/input[@type="submit"]/@name')[0]
             submit_value = row.xpath('./div/input[@type="submit"]/@value')[0]
             data[submit_name] = submit_value
 
             action = row.xpath('attribute::action')[0]
-            result_params = {
-                'post_data': data,
-                'endpoint': self.get_region().base_url + action,
-                'din': data['M13_SEL_DINI'],
+            result_task = Task(
                 # Even though we are looking for data here, we might
                 # get a disambiguation page, so we have to pretend we
                 # get more tasks in case we do.
-                'task_type': constants.GET_MORE_TASKS,
-            }
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=self.get_region().base_url + action,
+                post_data=data,
+                custom={'din': data['M13_SEL_DINI']},
+            )
 
-            params_list.append(result_params)
+            task_list.append(result_task)
 
-        return params_list
+        return task_list
 
-    def _get_store_person_params(self, content):
+    def _get_store_person_task(self, content) -> Task:
         """Returns the parameters needed to store the person details.
         Args:
             content: (html tree) a webpage with the person details.
         Returns:
             A dict containing the params necessary to store the person info.
         """
-        params = {
-            'endpoint': None,
-            'content': html.tostring(content, encoding='unicode'),
-            'task_type': constants.SCRAPE_DATA,
-        }
+        return Task(
+            # TODO(680): Remove empty string assignment.
+            endpoint='',
+            content=html.tostring(content, encoding='unicode'),
+            task_type=constants.TaskType.SCRAPE_DATA,
+        )
 
-        return params
-
-    def populate_data(self, content, params, ingest_info):
-        """Extracts data from the content passed into an ingest_info object.
-        Args:
-            content: (html tree) a webpage with the person details.
-            params: (dict) parameters sent to the last task.
-            ingest_info: (ingest_info object) and ingested info about this
-                person from prior tasks
-        Returns:
-            A completely filled in ingest_info object.
-        """
+    def populate_data(self, content, task: Task,
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         booking_extractor = HtmlDataExtractor(self.booking_mapping_filepath)
         ingest_info = booking_extractor.extract_and_populate_data(content,
                                                                   ingest_info)
@@ -295,7 +280,7 @@ class UsNyScraper(BaseScraper):
                           "as it should.")
             # TODO This is for debugging issue #483. Remove when that
             # issue is solved.
-            logging.error("params: %r", params)
+            logging.error("task: %r", task)
             return None
 
         if len(ingest_info.people[0].bookings) != 1:
@@ -363,10 +348,9 @@ class UsNyScraper(BaseScraper):
 
             # Get the degree
             charge_degree = charge_name.split()[-1]
-            try:
-                _ = ChargeDegree.from_str(charge_degree)
+            if ChargeDegree.can_parse(charge_degree, self.get_enum_overrides()):
                 charge_name = ' '.join(charge_name.split()[:-1])
-            except EnumParsingError:
+            else:
                 charge_degree = None
 
             # Get whether the charge was an attempt
@@ -384,4 +368,4 @@ class UsNyScraper(BaseScraper):
                 sentence=sentence,
             )
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)

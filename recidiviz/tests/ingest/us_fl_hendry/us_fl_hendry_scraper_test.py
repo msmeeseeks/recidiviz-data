@@ -21,6 +21,7 @@ from lxml import html
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.us_fl_hendry.us_fl_hendry_scraper \
     import UsFlHendryScraper
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
@@ -45,81 +46,77 @@ class TestUsFlHendryScraper(BaseScraperTest, unittest.TestCase):
 
     def test_initial_task(self):
         content = None
-        params = {
-            'endpoint': None,
-            'task_type': constants.INITIAL_TASK,
-        }
+        task = Task(
+            task_type=constants.TaskType.INITIAL,
+            endpoint=None,
+        )
 
         endpoint = self.scraper.get_region().base_url + \
                     '/inmate_search/INMATE_Results.php'
 
         expected_result = [
-            {
-                'endpoint': endpoint,
-                'task_type': constants.GET_MORE_TASKS
-            }
+            Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=endpoint,
+            )
         ]
 
         self.validate_and_return_get_more_tasks(
-            content, params, expected_result)
+            content, task, expected_result)
 
     def test_get_more_tasks(self):
         content = _SEARCH_PAGE_HTML
-        params = {
-            'endpoint': self.scraper.get_region().base_url
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.scraper.get_region().base_url
                         + '/inmate_search/NMATE_Results.php',
-            'task_type': constants.GET_MORE_TASKS,
-        }
+        )
 
         endpoint = self.scraper.get_region().base_url + \
             '/inmate_search/INMATE_Results.php' + \
             '?pageNum_WADAINMATE=1&totalRows_WADAINMATE=9834'
 
         expected_result = [
-            {
-                'endpoint': endpoint,
-                'task_type': constants.GET_MORE_TASKS
-            },
-            {
-                'endpoint': self.scraper.get_region().base_url+
+            Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=endpoint,
+            ),
+            Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint=self.scraper.get_region().base_url+
                             '/inmate_search/INMATE_Detail.php'+
                             '?INMATE_ID=1&pageNum_WADAINMATE=0',
-                'task_type': constants.SCRAPE_DATA
-            },
-            {
-                'endpoint': self.scraper.get_region().base_url+
+            ),
+            Task(
+                task_type=constants.TaskType.SCRAPE_DATA,
+                endpoint=self.scraper.get_region().base_url+
                             '/inmate_search/INMATE_Detail.php?'+
                             'INMATE_ID=2&pageNum_WADAINMATE=0',
-                'task_type': constants.SCRAPE_DATA
-            }
+            )
         ]
 
         self.validate_and_return_get_more_tasks(
-            content, params, expected_result)
+            content, task, expected_result)
 
     def test_get_more_tasks_last_page(self):
         content = _LAST_PAGE_HTML
-        params = {
-            'endpoint': self.scraper.get_region().base_url +
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.scraper.get_region().base_url +
                         '/inmate_search/INMATE_Results.php'+
                         '?pageNum_WADAINMATE=546&totalRows_WADAINMATE=9834',
-            'task_type': constants.GET_MORE_TASKS,
-        }
+        )
 
         expected_result = []
         self.validate_and_return_get_more_tasks(
-            content, params, expected_result)
+            content, task, expected_result)
 
     def test_populate_data(self):
         content = _DETAIL_HTML
-        params = {
-            'endpoint': None,
-            'task_type': constants.SCRAPE_DATA,
-        }
 
-        expected_result = IngestInfo()
+        expected_info = IngestInfo()
 
-        person = expected_result.create_person(
+        person = expected_info.create_person(
             full_name="NAME NAME",
             gender="F",
             race="WHITE",
@@ -186,5 +183,4 @@ class TestUsFlHendryScraper(BaseScraperTest, unittest.TestCase):
             amount="$500"
         )
 
-        self.validate_and_return_populate_data(
-            content, params, expected_result)
+        self.validate_and_return_populate_data(content, expected_info)

@@ -1,0 +1,28 @@
+key_mappings:
+  PID: person.person_id
+  Name: person.full_name
+  Race: person.race
+  Ethnic: person.ethnicity
+  Sex: person.gender
+  Age: person.age
+
+multi_key_mapping:
+  Offense: charge.name
+  Bond Amount: bond.amount
+  Book Date: booking.admission_date
+  Release Date: booking.release_date
+
+keys_to_ignore:
+  - ARREST NO
+  # TODO(719): Move to multi_key mappings once bond agency exists
+  - Bondsman
+  - Place of Birth
+  - Height
+  - Weight
+  - Hair
+  - Eyes
+  - Glasses?
+  - Facial Hair
+  - Skin
+  - Scars/Marks
+  - Build

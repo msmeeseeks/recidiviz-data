@@ -28,7 +28,7 @@ desired temporal table behavior. Because of this non-uniqueness, any foreign key
 pointing to a historical table does NOT have a foreign key constraint.
 """
 from sqlalchemy import Boolean, Column, Date, DateTime, Enum, ForeignKey, \
-    Integer, String, Text
+    Integer, String, Text, UniqueConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from sqlalchemy.orm import relationship
@@ -172,10 +172,16 @@ charge_status_values = (enum_strings.charge_status_acquitted,
                         enum_strings.unknown_removed_from_source)
 
 court_type_values = (enum_strings.court_type_circuit,
+                     enum_strings.court_type_civil,
                      enum_strings.court_type_district,
                      enum_strings.external_unknown,
                      enum_strings.court_type_other,
                      enum_strings.court_type_superior)
+
+# Aggregate enums
+report_granularity_values = (enum_strings.daily_granularity,
+                             enum_strings.weekly_granularity,
+                             enum_strings.monthly_granularity)
 
 # SQLAlchemy enums. Created separately from the tables so they can be shared
 # between the master and historical tables for each entity.
@@ -354,7 +360,7 @@ class Arrest(Base, DatabaseEntity):
     booking_id = Column(
         Integer, ForeignKey('booking.booking_id'), nullable=False)
     external_id = Column(String(255), index=True)
-    date = Column(Date)
+    arrest_date = Column(Date)
     location = Column(String(255))
     agency = Column(String(255))
     officer_name = Column(String(255))
@@ -376,7 +382,7 @@ class ArrestHistory(Base, DatabaseEntity):
     valid_to = Column(DateTime)
     booking_id = Column(Integer, nullable=False, index=True)
     external_id = Column(String(255), index=True)
-    date = Column(Date)
+    arrest_date = Column(Date)
     location = Column(String(255))
     agency = Column(String(255))
     officer_name = Column(String(255))
@@ -394,6 +400,7 @@ class Bond(Base, DatabaseEntity):
     bond_type_raw_text = Column(String(255))
     status = Column(bond_status, nullable=False)
     status_raw_text = Column(String(255))
+    bond_agent = Column(String(255))
 
     charges = relationship('Charge', back_populates='bond')
 
@@ -415,6 +422,7 @@ class BondHistory(Base, DatabaseEntity):
     bond_type_raw_text = Column(String(255))
     status = Column(bond_status, nullable=False)
     status_raw_text = Column(String(255))
+    bond_agent = Column(String(255))
 
 
 class Sentence(Base, DatabaseEntity):
@@ -547,6 +555,7 @@ class Charge(Base, DatabaseEntity):
     case_number = Column(String(255))
     next_court_date = Column(Date)
     judge_name = Column(String(255))
+    charge_notes = Column(Text)
 
     booking = relationship('Booking', back_populates='charges')
     bond = relationship('Bond', back_populates='charges')
@@ -587,3 +596,245 @@ class ChargeHistory(Base, DatabaseEntity):
     case_number = Column(String(255))
     next_court_date = Column(Date)
     judge_name = Column(String(255))
+    charge_notes = Column(Text)
+
+
+# ==================== Aggregate Tables ====================
+# Note that we generally don't aggregate any fields in the schemas below.  The
+# fields are a one to one mapping from the column names in the PDF tables from
+# the aggregate reports.  Any aggregation will happen later in the post
+# processing.  The exception is total_population which some states did not
+# include a column for, but could be calculated from multiple columns.  It is
+# an important enough field that we add it as a field.
+
+class _AggregateTableMixin:
+    """A mixin which defines common fields between all Aggregate Tables."""
+
+    # Consider this class a mixin and only allow instantiating subclasses
+    def __new__(cls, *_, **__):
+        if cls is _AggregateTableMixin:
+            raise Exception('_AggregateTableMixin cannot be instantiated')
+        return super().__new__(cls)
+
+    # Use a synthetic primary key and enforce uniqueness over a set of columns
+    # (instead of setting these columns as a MultiColumn Primary Key) to allow
+    # each row to be referenced by an int directly.
+    record_id = Column(Integer, primary_key=True)
+
+    # TODO(#689): Ensure that `fips` also supports facility level fips
+    # TODO(#689): Consider adding fips_type to denote county vs facility
+    fips = Column(String(255))
+
+    report_date = Column(Date)
+    report_granularity = Column(
+        Enum(*report_granularity_values, name='report_granularity'),
+    )
+
+
+class FlCountyAggregate(Base, _AggregateTableMixin):
+    """FL state-provided aggregate statistics."""
+    __tablename__ = 'fl_county_aggregate'
+    __table_args__ = (
+        UniqueConstraint('fips', 'report_date', 'report_granularity'),
+    )
+
+    county_name = Column(String(255))
+    county_population = Column(Integer)
+    average_daily_population = Column(Integer)
+
+    # If a county fails to send updated statistics to FL State, date_reported
+    # will be set with the last time valid data was add to this report.
+    date_reported = Column(Date)
+
+
+class FlFacilityAggregate(Base, _AggregateTableMixin):
+    """FL state-provided pretrial aggregate statistics.
+
+    Note: This 2nd FL database table is special because FL reports contain a 2nd
+    table for Pretrial information by Facility.
+    """
+    __tablename__ = 'fl_facility_aggregate'
+    __table_args__ = (
+        UniqueConstraint('fips', 'report_date', 'report_granularity'),
+    )
+
+    facility_name = Column(String(255))
+    average_daily_population = Column(Integer)
+    number_felony_pretrial = Column(Integer)
+    number_misdemeanor_pretrial = Column(Integer)
+
+
+class GaCountyAggregate(Base, _AggregateTableMixin):
+    """GA state-provided aggregate statistics."""
+    __tablename__ = 'ga_county_aggregate'
+    __table_args__ = (
+        UniqueConstraint('fips', 'report_date', 'report_granularity'),
+    )
+
+    county_name = Column(String(255))
+    total_number_of_inmates_in_jail = Column(Integer)
+    jail_capacity = Column(Integer)
+
+    number_of_inmates_sentenced_to_state = Column(Integer)
+    number_of_inmates_awaiting_trial = Column(Integer)  # Pretrial
+    number_of_inmates_serving_county_sentence = Column(Integer)  # Sentenced
+    number_of_other_inmates = Column(Integer)
+
+
+class HiFacilityAggregate(Base, _AggregateTableMixin):
+    """HI state-provided aggregate statistics."""
+    __tablename__ = 'hi_facility_aggregate'
+    __table_args__ = (
+        UniqueConstraint('fips', 'report_date', 'report_granularity'),
+    )
+
+    facility_name = Column(String(255))
+
+    design_bed_capacity = Column(Integer)
+    operation_bed_capacity = Column(Integer)
+
+    total_population = Column(Integer)
+    male_population = Column(Integer)
+    female_population = Column(Integer)
+
+    sentenced_felony_male_population = Column(Integer)
+    sentenced_felony_female_population = Column(Integer)
+
+    sentenced_felony_probation_male_population = Column(Integer)
+    sentenced_felony_probation_female_population = Column(Integer)
+
+    sentenced_misdemeanor_male_population = Column(Integer)
+    sentenced_misdemeanor_female_population = Column(Integer)
+
+    sentenced_pretrial_felony_male_population = Column(Integer)
+    sentenced_pretrial_felony_female_population = Column(Integer)
+
+    sentenced_pretrial_misdemeanor_male_population = Column(Integer)
+    sentenced_pretrial_misdemeanor_female_population = Column(Integer)
+
+    held_for_other_jurisdiction_male_population = Column(Integer)
+    held_for_other_jurisdiction_female_population = Column(Integer)
+
+    parole_violation_male_population = Column(Integer)
+    parole_violation_female_population = Column(Integer)
+
+    probation_violation_male_population = Column(Integer)
+    probation_violation_female_population = Column(Integer)
+
+
+class KyFacilityAggregate(Base, _AggregateTableMixin):
+    """KY state-provided aggregate statistics."""
+    __tablename__ = 'ky_county_aggregate'
+    __table_args__ = (
+        UniqueConstraint('fips', 'report_date', 'report_granularity'),
+    )
+
+    facility_name = Column(String(255))
+
+    total_jail_beds = Column(Integer)
+    reported_population = Column(Integer)  # TODO: Is this adp or population
+
+    male_population = Column(Integer)
+    female_population = Column(Integer)
+
+    class_d_male_population = Column(Integer)
+    class_d_female_population = Column(Integer)
+
+    community_custody_male_population = Column(Integer)
+    community_custody_female_population = Column(Integer)
+
+    alternative_sentence_male_population = Column(Integer)
+    alternative_sentence_female_population = Column(Integer)
+
+    controlled_intake_male_population = Column(Integer)
+    controlled_intake_female_population = Column(Integer)
+
+    parole_violators_male_population = Column(Integer)
+    parole_violators_female_population = Column(Integer)
+
+    federal_male_population = Column(Integer)
+    federal_female_population = Column(Integer)
+
+
+class NyFacilityAggregate(Base, _AggregateTableMixin):
+    """NY state-provided aggregate statistics."""
+    __tablename__ = 'ny_facility_aggregate'
+    __table_args__ = (
+        UniqueConstraint('fips', 'report_date', 'report_granularity'),
+    )
+
+    facility_name = Column(String(255))
+
+    census = Column(Integer)  # `In House` - `Boarded In` + `Boarded Out`
+    in_house = Column(Integer)  # ADP of people assigned to facility
+    boarded_in = Column(Integer)  # This is held_for_other_jurisdiction_adp
+    boarded_out = Column(Integer)  # sent_to_other_jurisdiction_adp
+
+    sentenced = Column(Integer)
+    civil = Column(Integer)  # TODO: What is this?
+    federal = Column(Integer)  # TODO: What is this?
+    technical_parole_violators = Column(
+        Integer)  # TODO: Can we drop 'technical'?
+    state_readies = Column(Integer)  # TODO: What is this?
+    other_unsentenced = Column(Integer)
+
+
+class TxCountyAggregate(Base, _AggregateTableMixin):
+    """TX state-provided aggregate statistics."""
+    __tablename__ = 'tx_county_aggregate'
+    __table_args__ = (
+        UniqueConstraint('fips', 'report_date', 'report_granularity'),
+    )
+
+    county_name = Column(String(255))
+
+    pretrial_felons = Column(Integer)
+
+    # These 2 added are 'sentenced' as defined by Vera
+    convicted_felons = Column(Integer)
+    convicted_felons_sentenced_to_county_jail = Column(Integer)
+
+    parole_violators = Column(Integer)
+    parole_violators_with_new_charge = Column(Integer)
+
+    pretrial_misdemeanor = Column(Integer)
+    convicted_misdemeanor = Column(Integer)
+
+    bench_warrants = Column(Integer)
+
+    federal = Column(Integer)
+    pretrial_sjf = Column(Integer)
+    convicted_sjf_sentenced_to_county_jail = Column(Integer)
+    convicted_sjf_sentenced_to_state_jail = Column(Integer)
+
+    # We ignore Total Local, since that's the sum of above
+    total_contract = Column(Integer)  # This is held_for_other_population
+    total_population = Column(Integer)  # This is Total Population
+
+    total_other = Column(Integer)
+
+    total_capacity = Column(Integer)
+    available_beds = Column(Integer)
+
+
+class DcFacilityAggregate(Base, _AggregateTableMixin):
+    """DC state-provided aggregate statistics."""
+    __tablename__ = 'dc_facility_aggregate'
+    __table_args__ = (
+        UniqueConstraint('fips', 'report_date', 'report_granularity'),
+    )
+
+    facility_name = Column(String(255))
+
+    total_population = Column(Integer)
+    male_population = Column(Integer)
+    female_population = Column(Integer)
+
+    stsf_male_population = Column(Integer)
+    stsf_female_population = Column(Integer)
+
+    usms_gb_male_population = Column(Integer)
+    usms_gb_female_population = Column(Integer)
+
+    juvenile_male_population = Column(Integer)
+    juvenile_female_population = Column(Integer)

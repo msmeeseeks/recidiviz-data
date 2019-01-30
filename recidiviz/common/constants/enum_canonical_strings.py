@@ -131,6 +131,7 @@ sentence_relationship_type_consecutive = 'CONSECUTIVE'
 degree_first = 'FIRST'
 degree_second = 'SECOND'
 degree_third = 'THIRD'
+degree_fourth = 'FOURTH'
 
 charge_class_civil = 'CIVIL'
 charge_class_felony = 'FELONY'
@@ -150,6 +151,13 @@ charge_status_pretrial = 'PRETRIAL'
 charge_status_sentenced = 'SENTENCED'
 
 court_type_circuit = 'CIRCUIT'
+court_type_civil = 'CIVIL'
 court_type_district = 'DISTRICT'
 court_type_other = 'OTHER'
 court_type_superior = 'SUPERIOR'
+
+# Aggregates
+
+daily_granularity = 'DAILY'
+weekly_granularity = 'WEEKLY'
+monthly_granularity = 'MONTHLY'

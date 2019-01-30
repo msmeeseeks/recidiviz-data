@@ -33,6 +33,7 @@ from recidiviz.ingest.models.scrape_key import ScrapeKey
 from recidiviz.ingest import queues
 from recidiviz.ingest import tracker
 from recidiviz.utils.regions import Region
+from recidiviz.ingest.task_params import Task, QueueRequest
 
 
 class Scraper(metaclass=abc.ABCMeta):
@@ -72,7 +73,7 @@ class Scraper(metaclass=abc.ABCMeta):
         return None
 
     @abc.abstractmethod
-    def get_initial_task(self):
+    def get_initial_task_method(self):
         """Abstract method for child classes to specify the name of the first
         task to run in the scraper.
 
@@ -80,6 +81,10 @@ class Scraper(metaclass=abc.ABCMeta):
             The name of the function to run as the first task.
 
         """
+
+    @abc.abstractmethod
+    def get_initial_task(self) -> Task:
+        """Returns the initial task to use for the first call."""
 
     def get_region(self):
         """Retrieve the region object associated with this scraper.
@@ -90,14 +95,6 @@ class Scraper(metaclass=abc.ABCMeta):
         """
         return self.region
 
-    def get_now_as_str(self):
-        """Returns the current time as a datetime
-
-        Returns:
-            datetime object set to the current time
-        """
-        return datetime.now().strftime(scraper_utils.DATETIME_STR_FORMAT)
-
     def start_scrape(self, scrape_type):
         """Start new scrape session / query against corrections site
 
@@ -105,7 +102,7 @@ class Scraper(metaclass=abc.ABCMeta):
         page scrape to start the new scraping session.
 
         Args:
-            scrape_type: (string) The type of scrape to start
+            scrape_type: (ScrapeType) The type of scrape to start
 
         Returns:
             N/A
@@ -119,11 +116,10 @@ class Scraper(metaclass=abc.ABCMeta):
                                            scrape_type))
             return
 
-        params = {"scrape_type": scrape_type,
-                  "content": docket_item,
-                  "scraper_start_time": self.get_now_as_str()}
-
-        self.add_task(self.get_initial_task(), params)
+        self.add_task(self.get_initial_task_method(),
+                      QueueRequest(scrape_type=scrape_type,
+                                   scraper_start_time=datetime.now(),
+                                   next_task=self.get_initial_task()))
 
     def stop_scrape(self, scrape_types):
         """Stops all active scraping tasks, resume non-targeted scrape types
@@ -140,7 +136,7 @@ class Scraper(metaclass=abc.ABCMeta):
         targets.
 
         Args:
-            scrape_types: (list of strings) Scrape types to terminate
+            scrape_types: (list of ScrapeType) Scrape types to terminate
 
         Returns:
             N/A
@@ -170,12 +166,14 @@ class Scraper(metaclass=abc.ABCMeta):
         different times of day.
 
         Args:
-            scrape_type: (string) Type of scraping to resume
+            scrape_type: (ScrapeType) Type of scraping to resume
 
         Returns:
             N/A
         """
-        if scrape_type == constants.BACKGROUND_SCRAPE:
+        # Note: None of the current scrapers support resumes, so this function
+        # doesn't fully work. For instance, content is thrown away.
+        if scrape_type is constants.ScrapeType.BACKGROUND:
             # Background scrape
 
             # In most scrapers, background scrapes will use
@@ -217,13 +215,14 @@ class Scraper(metaclass=abc.ABCMeta):
                     ScrapeKey(self.get_region().region_code, scrape_type))
                 return
 
-        params = {'scrape_type': scrape_type,
-                  'content': content,
-                  'scraper_start_time': self.get_now_as_str()}
-        self.add_task(self.get_initial_task(), params)
+        self.add_task(self.get_initial_task_method(),
+                      QueueRequest(scrape_type=scrape_type,
+                                   scraper_start_time=datetime.now(),
+                                   next_task=self.get_initial_task()))
 
     @staticmethod
-    def fetch_page(url, headers=None, post_data=None, json_data=None):
+    def fetch_page(url, headers=None, cookies=None,
+                   post_data=None, json_data=None):
         """Fetch content from a URL. If data is None (the default), we perform
         a GET for the page. If the data is set, it must be a dict of parameters
         to use as POST data in a POST request to the url.
@@ -231,7 +230,12 @@ class Scraper(metaclass=abc.ABCMeta):
         Args:
             url: (string) URL to fetch content from
             headers: (dict) any headers to send in addition to the default
+            cookies: (dict) any cookies to send in the request.
             post_data: dict of parameters to pass into the html POST request
+            json_data: dict of parameters in JSON format to pass into the html
+                       POST request
+            extra_headers: dict of parameters to add to the headers of this
+                           request
 
         Returns:
             The content if successful, -1 if fails.
@@ -243,10 +247,12 @@ class Scraper(metaclass=abc.ABCMeta):
 
         try:
             if post_data is None and json_data is None:
-                page = requests.get(url, proxies=proxies, headers=headers)
+                page = requests.get(
+                    url, proxies=proxies, headers=headers, cookies=cookies)
             else:
-                page = requests.post(url, proxies=proxies, headers=headers,
-                                     data=post_data, json=json_data)
+                page = requests.post(
+                    url, proxies=proxies, headers=headers, cookies=cookies,
+                    data=post_data, json=json_data)
             page.raise_for_status()
         except requests.exceptions.RequestException as ce:
             log_error = "Error: {0}".format(ce)
@@ -280,13 +286,13 @@ class Scraper(metaclass=abc.ABCMeta):
 
         return page
 
-    def add_task(self, task_name, params):
+    def add_task(self, task_name, request: QueueRequest):
         """ Add a task to the task queue.
 
         Args:
             task_name: (string) name of the function in the scraper class to
                        be invoked
-            params: (dict) parameters to be passed to the function
+            request: (dict) parameters to be passed to the function
 
         Returns:
             The content if successful, -1 if fails.
@@ -297,7 +303,7 @@ class Scraper(metaclass=abc.ABCMeta):
             body={
                 'region': self.get_region().region_code,
                 'task': task_name,
-                'params': params
+                'params': request.to_serializable(),
             }
         )
 
@@ -323,7 +329,7 @@ class Scraper(metaclass=abc.ABCMeta):
         if item_content is None:
             return False
 
-        if scrape_type == constants.SNAPSHOT_SCRAPE:
+        if scrape_type is constants.ScrapeType.SNAPSHOT:
             # Content will be in the form (person ID, [list of records
             # to ignore]); allow the child class to convert person to
             # record

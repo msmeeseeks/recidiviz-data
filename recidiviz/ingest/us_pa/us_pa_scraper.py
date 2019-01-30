@@ -24,10 +24,13 @@ location.
 """
 
 import re
-from copy import deepcopy
+from typing import Optional
+from typing import List
 
-from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest import constants
+from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.task_params import ScrapedData, Task
 
 _SEARCH_RESULTS_PAGE = 'https://captorapi.cor.pa.gov/InmLocAPI/' + \
     'api/v1/InmateLocator/SearchResults'
@@ -40,7 +43,8 @@ class UsPaScraper(BaseScraper):
         super(UsPaScraper, self).__init__('us_pa')
 
 
-    def populate_data(self, content, params, ingest_info):
+    def populate_data(self, content, task: Task,
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
         # 'inmatedetails' may contain multiple entries if this person has
         #  multiple aliases; the fields are otherwise identical.
         person = content['inmatedetails'][0]
@@ -57,22 +61,22 @@ class UsPaScraper(BaseScraper):
         ingest_sentence = ingest_booking.create_charge().create_sentence()
         ingest_sentence.sentencing_region = person['cnty_name']
 
-        return ingest_info
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
 
-    def get_more_tasks(self, content, params):
-        if self.is_initial_task(params['task_type']):
-            return self._get_js_params(content)
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
+        if self.is_initial_task(task.task_type):
+            return self._get_js_tasks(content)
 
-        if 'endpoint' in params and params['endpoint'].endswith('.js'):
-            return self._get_people_params(content)
+        if task.endpoint and task.endpoint.endswith('.js'):
+            return self._get_people_tasks(content)
 
-        if 'endpoint' in params and params['endpoint'] == _SEARCH_RESULTS_PAGE:
-            return self._get_person_params(content, params)
+        if task.endpoint == _SEARCH_RESULTS_PAGE:
+            return self._get_person_tasks(content, task)
 
-        raise ValueError('unexpected params: %s' % str(params))
+        raise ValueError('unexpected task: %s' % str(task))
 
-    def _get_js_params(self, content):
+    def _get_js_tasks(self, content) -> List[Task]:
         matches = content.xpath('//script[starts-with(@src, "main.")]')
 
         if len(matches) != 1:
@@ -81,14 +85,14 @@ class UsPaScraper(BaseScraper):
         js_filename = matches[0].attrib['src']
         js_url = '{}/{}'.format(self.get_region().base_url, js_filename)
 
-        return [{
-            'endpoint': js_url,
-            'response_type': constants.TEXT_RESPONSE_TYPE,
-            'task_type': constants.GET_MORE_TASKS,
-        }]
+        return [Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=js_url,
+            response_type=constants.ResponseType.TEXT,
+        )]
 
 
-    def _get_people_params(self, content):
+    def _get_people_tasks(self, content) -> List[Task]:
         """From the main.*.js file, find all committing counties and facility
         locations.
         By default, we search for all people in a given location. Searches
@@ -107,12 +111,12 @@ class UsPaScraper(BaseScraper):
         county_options = dict(keyvalue_pattern.findall(county_text))
         location_options = dict(keyvalue_pattern.findall(location_text))
 
-        params_list = [
-            {
-                'endpoint': _SEARCH_RESULTS_PAGE,
-                'response_type': constants.JSON_RESPONSE_TYPE,
-                'task_type': constants.GET_MORE_TASKS,
-                'json': {
+        return [
+            Task(
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=_SEARCH_RESULTS_PAGE,
+                response_type=constants.ResponseType.JSON,
+                json={
                     'age': '',
                     'citizenlistkey': '---',
                     'countylistkey': '---',
@@ -126,48 +130,61 @@ class UsPaScraper(BaseScraper):
                     'sexlistkey': '---',
                     'sortBy': '1'
                 },
-                # Store the list of counties for more granular search.
-                'county_options': county_options,
-                # Store the location name for debugging.
-                'location': location_options[location]
-            } for location in location_options.keys()
+                custom={
+                    # Store the list of counties for more granular search.
+                    'county_options': county_options,
+                    # Store the location name for debugging.
+                    'location': location_options[location]
+                }
+            ) for location in location_options.keys()
         ]
 
-        return params_list
 
-
-    def _get_people_params_by_county(self, params):
+    def _get_people_tasks_by_county(self, task: Task) -> List[Task]:
         """Returns a list of GET_MORE_TASKS params with the JSON data's
         |countylistkey| field set to each of the counties scraped from the
         search page.
         """
-        if not params['county_options']:
+        if task.json is None:
+            raise ValueError('Expected JSON in prior task: {}'.format(task))
+        if not task.custom['county_options']:
             raise ValueError("Didn't scrape county names from search page")
 
-        params_list = list()
-        for county_code, county_name in params['county_options'].items():
-            params_copy = deepcopy(params)
-            params_copy['json']['countylistkey'] = county_code
-            params_copy['county'] = county_name
-            params_list.append(params_copy)
-        return params_list
+        task_list = list()
+        for county_code, county_name in task.custom['county_options'].items():
+            new_json = task.json.copy()
+            new_json['countylistkey'] = county_code
+            new_custom = task.custom.copy()
+            new_custom['county'] = county_name
+            task_list.append(Task.evolve(
+                task,
+                json=new_json,
+                custom=new_custom,
+            ))
+        return task_list
 
 
-    def _get_people_params_by_age(self, params):
+    def _get_people_tasks_by_age(self, task: Task) -> List[Task]:
         """Returns a list of GET_MORE_TASKS params with the JSON data's |age|
         field set in the range(150).
         Because of the order this is called, |params| should already have a
         'countylistkey' field set in the JSON data.
         """
-        params_list = list()
+        if task.json is None:
+            raise ValueError('Expected JSON in prior task: {}'.format(task))
+
+        task_list = list()
         for i in range(150):
-            params_copy = deepcopy(params)
-            params_copy['json']['age'] = str(i)
-            params_list.append(params_copy)
-        return params_list
+            new_json = task.json.copy()
+            new_json['age'] = str(i)
+            task_list.append(Task.evolve(
+                task,
+                json=new_json
+            ))
+        return task_list
 
 
-    def _get_person_params(self, content, params):
+    def _get_person_tasks(self, content, task: Task) -> List[Task]:
         """Search results are encoded in JSON. The JSON response contains a
         list of person IDs ('inmate_number') which we pass as SCRAPE_DATA
         tasks. However, if the search returns more than 500 results, we retry
@@ -176,25 +193,27 @@ class UsPaScraper(BaseScraper):
         """
         total_records = int(content['pagestats'][0]['totalrecords'])
         if total_records <= 500:
-            params_list = [
-                {
-                    'endpoint': '{}/{}'.format(_DETAILS_PAGE,
-                                               person['inmate_number']),
-                    'response_type': constants.JSON_RESPONSE_TYPE,
-                    'task_type': constants.SCRAPE_DATA
-                } for person in content['inmates']
+            return [
+                Task(
+                    task_type=constants.TaskType.SCRAPE_DATA,
+                    endpoint='{}/{}'.format(_DETAILS_PAGE,
+                                            person['inmate_number']),
+                    response_type=constants.ResponseType.JSON,
+                ) for person in content['inmates']
             ]
-            return params_list
+
+        if task.json is None:
+            raise ValueError('Expected JSON in prior task: {}'.format(task))
 
         # There are more than 500 results. Fall back on searching for:
         #   - people committed from each county
         #   - people committed from each county, by age
-        search_county = params['json']['countylistkey']
-        search_age = params['json']['age']
+        search_county = task.json['countylistkey']
+        search_age = task.json['age']
         if search_county == '---':
-            return self._get_people_params_by_county(params)
+            return self._get_people_tasks_by_county(task)
         if search_age == '':
-            return self._get_people_params_by_age(params)
+            return self._get_people_tasks_by_age(task)
 
         # If the search for people of a one age, committed from one county, in
         # one location, is greater than 500, give up.
@@ -202,7 +221,6 @@ class UsPaScraper(BaseScraper):
                           'got {} results for '
                           'people age {} in'
                           'Current Location {} and '
-                          'Committing County {}').format(total_records,
-                                                         search_age,
-                                                         params['location'],
-                                                         params['county']))
+                          'Committing County {}').format(
+                              total_records, search_age,
+                              task.custom['location'], task.custom['county']))
