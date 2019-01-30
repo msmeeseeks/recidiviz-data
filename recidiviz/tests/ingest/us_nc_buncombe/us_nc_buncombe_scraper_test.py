@@ -100,12 +100,14 @@ class SuperionScraperTest(BaseScraperTest, unittest.TestCase):
 
         booking.create_charge(
             name='MISDEMEANOR CHILD ABUSE',
+            charge_class='MISDEMEANOR',
             status='PRE-TRIAL',
             case_number='18CR 089385').create_bond(
             amount='5,000.00',
             bond_type='SECURED ')
         booking.create_charge(
             name='FELONY PROBATION VIOLATION',
+            charge_class='FELONY',
             status='PRE-TRIAL',
             case_number='17CRS093084').create_bond(
             amount='5,000.00',
@@ -118,6 +120,7 @@ class SuperionScraperTest(BaseScraperTest, unittest.TestCase):
             bond_type='SECURED ')
         booking.create_charge(
             name='FELONY POSSESSION SCH II CS',
+            charge_class='FELONY',
             status='PRE-TRIAL',
             case_number='18CR 089383').create_bond(
             amount='0.00',

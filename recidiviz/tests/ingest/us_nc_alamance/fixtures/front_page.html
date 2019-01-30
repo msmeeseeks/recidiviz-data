@@ -1,0 +1,193 @@
+<!--P2CBasic-->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head><meta http-equiv="Page-Enter" content="Alpha(opacity=100)" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><link id="activeStylesheetLink" href="css/active.css" rel="Stylesheet" /><link id="commonStylesheet" href="css/p2cBase.css" rel="Stylesheet" /><link rel="Shortcut Icon" href="./images/favicon.ico" type="image/x-icon" /><script src="js/jquery-1.8.3.min.js" type="text/javascript"></script><link type="text/css" href="css/superfish.css" media="screen" rel="stylesheet" /><script type="text/javascript" src='js/hoverIntent.js'></script> <script type="text/javascript" src='js/superfish.js'></script> <script src="jqui/1.11.4/jquery-ui-1.11.4.custom.min.js" type="text/javascript"></script><link href="jqui/1.11.4/start/jquery-ui.css" rel="Stylesheet" class="ui-theme" />
+
+
+    <link rel="stylesheet" type="text/css" media="screen" href="js/jqgrid/ui.jqgrid.css" />
+    <script src="js/jqgrid/i18n/grid.locale-en.js" type="text/javascript"></script>
+    <script src="js/jqgrid/jquery.jqGrid.min.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#btnSearch2').button({ icons: { primary: 'ui-icon-search'} });
+            jQuery("#tblII").jqGrid({
+                url: 'jqHandler.ashx?op=s',
+                postData: { t: 'ii' },
+                datatype: "json",
+                colModel: [
+                  { label: 'Index', name: 'my_num', index: 'my_num', hidden:true },
+                  { label: 'Name', name: 'disp_name', index: 'disp_name', width: 33, search:false },
+                  { label: 'Last Name', name: 'lastname', index: 'lastname', hidden: true, searchoptions: { searchhidden: true} },
+                  { label: 'First Name', name: 'firstname', index: 'firstname', hidden: true, searchoptions: { searchhidden: true} },
+                  { label: 'Middle Name', name: 'middlename', index: 'middlename', hidden: true, searchoptions: { searchhidden: true} },
+                  { label: 'Race', name: 'race', index: 'race', hidden: true, sType: 'select', searchoptions: { dataUrl: 'jqHandler.ashx?t=ii&op=psf&sf=race', searchhidden: true} },
+                  { label: 'Sex', name: 'sex', index: 'sex', hidden: true, sType: 'select', searchoptions: { dataUrl: 'jqHandler.ashx?t=ii&op=psf&sf=sex', searchhidden: true} },
+                  { label: 'Age', name: 'age', index: 'age', hidden: true, searchoptions: { searchhidden: true} },
+                  { label: 'Primary Charge', name: 'disp_charge', index: 'chrgdesc', width: 33 },
+                    { label: 'Arrest Date', name: 'disp_arrest_date', index: 'date_arr', width: 20}, //formatter:'date', formatoptions:{srcformat:'n/j/Y g:i:s A', newformat:'n/j/Y'}
+                  { label: 'Booking Agency', name: 'disp_agency', index: 'disp_agency', width:30, sType: 'select', searchoptions: { dataUrl: 'jqHandler.ashx?t=ii&op=psf&sf=disp_agency', searchhidden: true} }
+                ],
+                rowNum: 10,
+                rowList: [5, 10, 20, 50, 10000],
+                loadComplete: function () {
+                    $("option[value=10000]").text('All');
+                },
+                pager: '#pager',
+                pginput: false,
+                sortname: 'disp_name',
+                viewrecords: true,
+                caption: "Inmate Inquiry",
+                hidegrid: false,
+                emptyrecords: 'No inmates matching the current criteria.',
+                jsonReader: {
+                    root: "rows",
+                    page: "page",
+                    total: "total",
+                    records: "records",
+                    repeatitems: false,
+                    id: "0"
+                },
+                altRows: true,
+                height: "auto",
+                width: "457",
+                mtype: "POST",
+                gridComplete: gridLoaded,
+                onSelectRow: selectRow
+            }).navGrid('#pager',
+                { add: false, del: false, edit: false, view: false },
+                {}, //settings for edit
+                {}, //settings for add
+                {}, //settings for delete
+                {multipleSearch: true, closeAfterSearch: true, closeOnEscape: true, caption:"Filter Inmate List" }, //settings for search
+                {closeOnEscape: true, modal: true} //settings for view
+                ).jqGrid('gridResize', { minWidth: 350, maxWidth: 800, minHeight: 80, maxHeight: 800 });
+            $('#btnSearch2').click(function(){
+                var postData = { t: 'ii', fn: $('#txtFName')[0].value, ln: $('#txtLName')[0].value };
+                $('#tblII').setGridParam({postData: postData});
+                $('#tblII').trigger("reloadGrid");
+                return false;
+            });
+            $('#txtFName,#txtLName').keyup(function(event){
+                if(event.keyCode == 13){
+                    $('#btnSearch2').click();
+                }
+                return false;
+            }).change(function(event){
+                var postData = { t: 'ii', fn: $('#txtFName')[0].value, ln: $('#txtLName')[0].value };
+                $('#tblII').setGridParam({postData: postData});
+                return false;
+            });
+        });
+        function gridLoaded(){
+            $('#btnGridSearch').button({ icons: { primary: 'ui-icon-search'}});
+            $('#search_tblII').hide();
+        }
+        function openSearch(){
+            $('#search_tblII').click();
+        }
+        function selectRow(id) {
+            $('#mainContent_CenterColumnContent_hfRecordIndex')[0].value = id;
+            $('#mainContent_CenterColumnContent_btnInmateDetail').click();
+        }
+    </script>
+    <style type="text/css">
+        .ui-searchFilter table
+        {
+            position: relative;
+            margin: 7px auto;
+        }
+        /*centers search dialog for jqgrid*/
+        .ui-jqgrid tr.jqgrow td
+        {
+            white-space: normal;
+            height: auto;
+            font-size:1.1em;
+        }
+        .ui-th-column
+        {
+            font-size: .6em;
+        }
+        .ui-jqgrid-btable
+        {
+            font-size: 1em;
+        }
+        .ui-paging-info
+        {
+            font-size: .8em;
+        }
+        .jqgrow{cursor:pointer;}
+    </style>
+
+<link id="jquiOverride" href="css/jqui-override.css" rel="Stylesheet" />
+    <script language="javascript" type="text/javascript">
+        // DO NOT REMOVE
+        // this function is used by the form builder
+        // to control tab index issues
+        function getASPElm(nm, tag) {
+            if ($get(nm)) { return $get(nm); }
+            if (!tag) { tag = '*'; }
+            var e = document.getElementsByTagName(tag);
+            for (var i = 0; i < e.length; i++) {
+                if (e[i].id) {
+                    if (e[i].id.indexOf(nm) != -1) {
+                        return e[i];
+                    }
+                }
+            }
+            return null;
+        }
+
+        $(document).ready(function () {
+            $("input").attr("autocomplete", "off");
+        });
+    </script>
+
+    <!-- JQuery Menu Helper Script -->
+    <script language="javascript" type="text/javascript">$(document).ready(function() {$('ul.sf-menu').superfish({delay:       1000,animation:   {opacity:'show',height:'show'},speed:  'fast',autoArrows:  false, dropShadows: false });});</script>
+    <!-- JQuery Menu Helper Script -->
+<title>
+  Alamance County Sheriff's Office P2C - provided by OSSI
+</title></head>
+
+<body class="Body">
+    <script language="javascript" type="text/javascript">
+        $(function () {
+            var backgrounds = [
+            'image1.jpg',
+
+            ];
+
+            var path = '/p2c';
+            var $body = $(document.body);
+            backgrounds.forEach(function (background, index) {
+                var $element = $('<div class="background-image toggle-image' + (index === 0 ? ' show' : '') + '" style="background-image: url(\''+ path + '/images/background/' + background + '\'); z-index: -' + index + 1 + ';" ></div>');
+                $body.append($element);
+            });
+
+            (function () {
+                if (backgrounds.length > 1) {
+                    var index = 0;
+
+                    $imageElements = $('.toggle-image'); // Get the images to be cycled.
+
+                    setInterval(function () {
+                        index = index + 1 < $imageElements.length ? index + 1 : 0;
+                        $imageElements.eq(index - 1).removeClass('show');
+                        $imageElements.eq(index).addClass('show');
+                    }, 18000);
+                }
+            })();
+        });
+    </script>
+    <form method="post" action="./jailinmates.aspx" id="Form1" onsubmit="return(onsubmitEventsHandler());">
+<div class="aspNetHidden">
+<input type="hidden" name="_popupBlockerExists" id="_popupBlockerExists" value="true" />
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUKMTMyNTg1OTUwMQ9kFgJmD2QWAmYPZBYGZg9kFgQCBQ9kFgRmDxYCHgRUZXh0BUU8c2NyaXB0IHNyYz0ianMvanF1ZXJ5LTEuOC4zLm1pbi5qcyIgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij48L3NjcmlwdD5kAgEPFgIfAAX7AjxsaW5rIHR5cGU9InRleHQvY3NzIiBocmVmPSJjc3Mvc3VwZXJmaXNoLmNzcyIgbWVkaWE9InNjcmVlbiIgcmVsPSJzdHlsZXNoZWV0IiAvPjxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0IiBzcmM9J2pzL2hvdmVySW50ZW50LmpzJz48L3NjcmlwdD4gPHNjcmlwdCB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiIHNyYz0nanMvc3VwZXJmaXNoLmpzJz48L3NjcmlwdD4gPHNjcmlwdCBzcmM9ImpxdWkvMS4xMS40L2pxdWVyeS11aS0xLjExLjQuY3VzdG9tLm1pbi5qcyIgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij48L3NjcmlwdD48bGluayBocmVmPSJqcXVpLzEuMTEuNC9zdGFydC9qcXVlcnktdWkuY3NzIiByZWw9IlN0eWxlc2hlZXQiIGNsYXNzPSJ1aS10aGVtZSIgLz5kAgkPFgIfAAXxATxzY3JpcHQgbGFuZ3VhZ2U9ImphdmFzY3JpcHQiIHR5cGU9InRleHQvamF2YXNjcmlwdCI+JChkb2N1bWVudCkucmVhZHkoZnVuY3Rpb24oKSB7JCgndWwuc2YtbWVudScpLnN1cGVyZmlzaCh7ZGVsYXk6ICAgICAgIDEwMDAsYW5pbWF0aW9uOiAgIHtvcGFjaXR5OidzaG93JyxoZWlnaHQ6J3Nob3cnfSxzcGVlZDogICdmYXN0JyxhdXRvQXJyb3dzOiAgZmFsc2UsIGRyb3BTaGFkb3dzOiBmYWxzZSB9KTt9KTs8L3NjcmlwdD5kAgEPZBYEAgMPFgIeBWFsaWduBQZjZW50ZXIWCAIBDxYCHgNzcmMFF34vaW1hZ2VzL0FnZW5jeU5hbWUuc3ZnZAIDDxYEHghkaXNhYmxlZAUIZGlzYWJsZWQeB1Zpc2libGVoFgJmD2QWAgIBD2QWAgIBD2QWAmYPEA8WBh4NRGF0YVRleHRGaWVsZAUEdGV4dB4ORGF0YVZhbHVlRmllbGQFBGxpbmseC18hRGF0YUJvdW5kZ2QQFQQESG9tZRAtIFF1aWNrIExpbmtzIC0gA0ZBUQ5Jbm1hdGUgSW5xdWlyeRUEC34vbWFpbi5hc3B4A34vMAp+L2ZhcS5hc3B4En4vamFpbGlubWF0ZXMuYXNweBQrAwRnZ2dnFgFmZAIFD2QWAmYPZBYCZg9kFgICAQ8WAh8ABewHPHVsIGNsYXNzPSJzZi1tZW51IHVpLXdpZGdldCIgc3R5bGU9InotaW5kZXg6OTk5Ij48bGkgY2xhc3M9IiIgc3R5bGU9IiI+PGEgc3R5bGU9IiIgY2xhc3M9InVpLWNvcm5lci1hbGwgdWktc3RhdGUtZGVmYXVsdCIgaHJlZj0iLi9tYWluLmFzcHgiPkhvbWU8L2E+PC9saT48bGkgY2xhc3M9IiIgc3R5bGU9IiI+PGEgc3R5bGU9IiIgY2xhc3M9InVpLWNvcm5lci1hbGwgdWktc3RhdGUtZGVmYXVsdCIgaHJlZj0iLi9mYXEuYXNweCI+RmFxPC9hPjwvbGk+PGxpIGNsYXNzPSIiIHN0eWxlPSIiPjxhIHN0eWxlPSIiIGNsYXNzPSJ1aS1jb3JuZXItYWxsIHVpLXN0YXRlLWRlZmF1bHQiIGhyZWY9Ii4vamFpbGlubWF0ZXMuYXNweCI+SW5tYXRlIElucXVpcnk8L2E+PC9saT48bGkgY2xhc3M9IiIgc3R5bGU9InotaW5kZXg6OTk7IHBvc2l0aW9uOnJlbGF0aXZlOyI+PGEgY2xhc3M9InVpLWNvcm5lci1hbGwgdWktc3RhdGUtZGVmYXVsdCIgaHJlZj0iIyI+UXVpY2sgTGlua3M8L2E+PHVsIHN0eWxlPSJ0ZXh0LWFsaWduOmxlZnQ7d2lkdGg6MjAwcHg7dG9wOiAyNXB4OyBkaXNwbGF5Om5vbmU7Ij48bGkgc3R5bGU9IndpZHRoOjIwMHB4Ij48YSBzdHlsZT0iZm9udC1zaXplOi43ZW07IiBjbGFzcz0idWktY29ybmVyLWFsbCB1aS1zdGF0ZS1ob3ZlciB1aS1zdGF0ZS1kZWZhdWx0IiBocmVmPSIuL21haW4uYXNweCI+SG9tZTwvYT48L2xpPjxsaSBzdHlsZT0id2lkdGg6MjAwcHgi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" />
+</div>
+</form>
+
+</body>
+</html>

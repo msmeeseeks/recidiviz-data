@@ -1,0 +1,338 @@
+<!--P2CBasic-->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head><meta http-equiv="Page-Enter" content="Alpha(opacity=100)" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><link id="activeStylesheetLink" href="css/active.css" rel="Stylesheet" /><link id="commonStylesheet" href="css/p2cBase.css" rel="Stylesheet" /><link rel="Shortcut Icon" href="./images/favicon.ico" type="image/x-icon" /><script src="js/jquery-1.8.3.min.js" type="text/javascript"></script><link type="text/css" href="css/superfish.css" media="screen" rel="stylesheet" /><script type="text/javascript" src='js/hoverIntent.js'></script> <script type="text/javascript" src='js/superfish.js'></script> <script src="jqui/1.11.4/jquery-ui-1.11.4.custom.min.js" type="text/javascript"></script><link href="jqui/1.11.4/start/jquery-ui.css" rel="Stylesheet" class="ui-theme" />
+
+<link id="jquiOverride" href="css/jqui-override.css" rel="Stylesheet" />
+    <script language="javascript" type="text/javascript">
+        // DO NOT REMOVE
+        // this function is used by the form builder
+        // to control tab index issues
+        function getASPElm(nm, tag) {
+            if ($get(nm)) { return $get(nm); }
+            if (!tag) { tag = '*'; }
+            var e = document.getElementsByTagName(tag);
+            for (var i = 0; i < e.length; i++) {
+                if (e[i].id) {
+                    if (e[i].id.indexOf(nm) != -1) {
+                        return e[i];
+                    }
+                }
+            }
+            return null;
+        }
+
+        $(document).ready(function () {
+            $("input").attr("autocomplete", "off");
+        });
+    </script>
+
+    <!-- JQuery Menu Helper Script -->
+    <script language="javascript" type="text/javascript">$(document).ready(function() {$('ul.sf-menu').superfish({delay:       1000,animation:   {opacity:'show',height:'show'},speed:  'fast',autoArrows:  false, dropShadows: false });});</script>
+    <!-- JQuery Menu Helper Script -->
+<title>
+  Alamance County Sheriff's Office P2C - provided by OSSI
+</title></head>
+
+<body class="Body">
+    <script language="javascript" type="text/javascript">
+        $(function () {
+            var backgrounds = [
+            'image1.jpg',
+
+            ];
+
+            var path = '/p2c';
+            var $body = $(document.body);
+            backgrounds.forEach(function (background, index) {
+                var $element = $('<div class="background-image toggle-image' + (index === 0 ? ' show' : '') + '" style="background-image: url(\''+ path + '/images/background/' + background + '\'); z-index: -' + index + 1 + ';" ></div>');
+                $body.append($element);
+            });
+
+            (function () {
+                if (backgrounds.length > 1) {
+                    var index = 0;
+
+                    $imageElements = $('.toggle-image'); // Get the images to be cycled.
+
+                    setInterval(function () {
+                        index = index + 1 < $imageElements.length ? index + 1 : 0;
+                        $imageElements.eq(index - 1).removeClass('show');
+                        $imageElements.eq(index).addClass('show');
+                    }, 18000);
+                }
+            })();
+        });
+    </script>
+    <form method="post" action="./InmateDetail.aspx?navid=636842747622313771" id="Form1" onsubmit="return(onsubmitEventsHandler());">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUKMTYzODQ3NTUyMA9kFgJmD2QWAmYPZBYGZg9kFgQCBQ9kFgRmDxYCHgRUZXh0BUU8c2NyaXB0IHNyYz0ianMvanF1ZXJ5LTEuOC4zLm1pbi5qcyIgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij48L3NjcmlwdD5kAgEPFgIfAAX7AjxsaW5rIHR5cGU9InRleHQvY3NzIiBocmVmPSJjc3Mvc3VwZXJmaXNoLmNzcyIgbWVkaWE9InNjcmVlbiIgcmVsPSJzdHlsZXNoZWV0IiAvPjxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0IiBzcmM9J2pzL2hvdmVySW50ZW50LmpzJz48L3NjcmlwdD4gPHNjcmlwdCB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiIHNyYz0nanMvc3VwZXJmaXNoLmpzJz48L3NjcmlwdD4gPHNjcmlwdCBzcmM9ImpxdWkvMS4xMS40L2pxdWVyeS11aS0xLjExLjQuY3VzdG9tLm1pbi5qcyIgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij48L3NjcmlwdD48bGluayBocmVmPSJqcXVpLzEuMTEuNC9zdGFydC9qcXVlcnktdWkuY3NzIiByZWw9IlN0eWxlc2hlZXQiIGNsYXNzPSJ1aS10aGVtZSIgLz5kAgkPFgIfAAXxATxzY3JpcHQgbGFuZ3VhZ2U9ImphdmFzY3JpcHQiIHR5cGU9InRleHQvamF2YXNjcmlwdCI+JChkb2N1bWVudCkucmVhZHkoZnVuY3Rpb24oKSB7JCgndWwuc2YtbWVudScpLnN1cGVyZmlzaCh7ZGVsYXk6ICAgICAgIDEwMDAsYW5pbWF0aW9uOiAgIHtvcGFjaXR5OidzaG93JyxoZWlnaHQ6J3Nob3cnfSxzcGVlZDogICdmYXN0JyxhdXRvQXJyb3dzOiAgZmFsc2UsIGRyb3BTaGFkb3dzOiBmYWxzZSB9KTt9KTs8L3NjcmlwdD5kAgEPZBYEAgMPFgIeBWFsaWduBQZjZW50ZXIWCAIBDxYCHgNzcmMFF34vaW1hZ2VzL0FnZW5jeU5hbWUuc3ZnZAIDDxYEHghkaXNhYmxlZAUIZGlzYWJsZWQeB1Zpc2libGVoFgJmD2QWAgIBD2QWAgIBD2QWAmYPEA8WBh4NRGF0YVRleHRGaWVsZAUEdGV4dB4ORGF0YVZhbHVlRmllbGQFBGxpbmseC18hRGF0YUJvdW5kZ2QQFQQESG9tZRAtIFF1aWNrIExpbmtzIC0gA0ZBUQ5Jbm1hdGUgSW5xdWlyeRUEC34vbWFpbi5hc3B4A34vMAp+L2ZhcS5hc3B4En4vamFpbGlubWF0ZXMuYXNweBQrAwRnZ2dnFgFmZAIFD2QWAmYPZBYCZg9kFgICAQ8WAh8ABewHPHVsIGNsYXNzPSJzZi1tZW51IHVpLXdpZGdldCIgc3R5bGU9InotaW5kZXg6OTk5Ij48bGkgY2xhc3M9IiIgc3R5bGU9IiI+PGEgc3R5bGU9IiIgY2xhc3M9InVpLWNvcm5lci1hbGwgdWktc3RhdGUtZGVmYXVsdCIgaHJlZj0iLi9tYWluLmFzcHgiPkhvbWU8L2E+PC9saT48bGkgY2xhc3M9IiIgc3R5bGU9IiI+PGEgc3R5bGU9IiIgY2xhc3M9InVpLWNvcm5lci1hbGwgdWktc3RhdGUtZGVmYXVsdCIgaHJlZj0iLi9mYXEuYXNweCI+RmFxPC9hPjwvbGk+PGxpIGNsYXNzPSIiIHN0eWxlPSIiPjxhIHN0eWxlPSIiIGNsYXNzPSJ1aS1jb3JuZXItYWxsIHVpLXN0YXRlLWRlZmF1bHQiIGhyZWY9Ii4vamFpbGlubWF0ZXMuYXNweCI+SW5tYXRlIElucXVpcnk8L2E+PC9saT48bGkgY2xhc3M9IiIgc3R5bGU9InotaW5kZXg6OTk7IHBvc2l0aW9uOnJlbGF0aXZlOyI+PGEgY2xhc3M9InVpLWNvcm5lci1hbGwgdWktc3RhdGUtZGVmYXVsdCIgaHJlZj0iIyI+UXVpY2sgTGlua3M8L2E+PHVsIHN0eWxlPSJ0ZXh0LWFsaWduOmxlZnQ7d2lkdGg6MjAwcHg7dG9wOiAyNXB4OyBkaXNwbGF5Om5vbmU7Ij48bGkgc3R5bGU9IndpZHRoOjIwMHB4Ij48YSBzdHlsZT0iZm9udC1zaXplOi43ZW07IiBjbGFzcz0idWktY29ybmVyLWFsbCB1aS1zdGF0ZS1ob3ZlciB1aS1zdGF0ZS1kZWZhdWx0IiBocmVmPSIuL21haW4uYXNweCI+SG9tZTwvYT48L2xpPjxsaSBzdHlsZT0id2lkdGg6MjAwcHgiPjxhIHN0eWxlPSJmb250LXNpemU6LjdlbTsiIGNsYXNzPSJ1aS1jb3JuZXItYWxsIHVpLXN0YXRlLWhvdmVyIHVpLXN0YXRlLWRlZmF1bHQiIGhyZWY9Ii4vZmFxLmFzcHgiPkZhcTwvYT48L2xpPjxsaSBzdHlsZT0id2lkdGg6MjAwcHgiPjxhIHN0eWxlPSJmb250LXNpemU6LjdlbTsiIGNsYXNzPSJ1aS1jb3JuZXItYWxsIHVpLXN0YXRlLWhvdmVyIHVpLXN0YXRlLWRlZmF1bHQiIGhyZWY9Ii4vamFpbGlubWF0ZXMuYXNweCI+SW5tYXRlIElucXVpcnk8L2E+PC9saT48L3VsPjwvbGk+PC91bD5kAgcPZBYCZg9kFgICAw8PFgIfAAUqVGhlcmUgYXJlIGN1cnJlbnRseSBubyBpdGVtcyBpbiB5b3VyIGNhcnQuZGQCBw9kFgICBQ9kFhQCAw8PFgIfAAUYQUJFUk5BVEhZLCBNSUNIQUVMIEtFSVRIZGQCBw8PFgIfAAUMMjQgWUVBUlMgT0xEZGQCCw8PFgIfAAUFQkxBQ0tkZAINDw8WAh8ABQRNQUxFZGQCEQ8PFgIfAAUIOC8yLzIwMThkZAIVDw8WAh8AZWRkAhkPDxYCHwBlZGQCGw8PFgIeCEltYWdlVXJsBQhNdWcuYXNweGRkAh0PZBYCAgEPPCsACwEADxYKHhBDdXJyZW50UGFnZUluZGV4Zh4IRGF0YUtleXMWAB4LXyFJdGVtQ291bnQCCB4JUGFnZUNvdW50AgEeFV8hRGF0YVNvdXJjZUl0ZW1Db3VudAIIZBYCZg9kFhACAQ9kFghmDw8WAh8ABShCUkVBS0lORyBBTkQgRU5URVJJTkctQlVJTERJTkcgIChGRUxPTlkpZGQCAQ8PFgIfAAUOQVdBSVRJTkcgVFJJQUxkZAICDw8WAh8ABQkxOENSNTQxNzJkZAIDDw8WAh8ABRFTRUNVUkUgQk9ORCAkMC4wMGRkAgIPZBYIZg8PFgIfAAUQUEFST0xFIFZJT0xBVElPTmRkAgEPDxYCHwAFCVNFTlRFTkNFRGRkAgIPDxYCHwAFASBkZAIDDw8WAh8ABQNOL0FkZAIDD2QWCGYPDxYCHwAFKEJSRUFLSU5HIEFORCBFTlRFUklORy1CVUlMRElORyAgKEZFTE9OWSlkZAIBDw8WAh8ABQ5BV0FJVElORyBUUklBTGRkAgIPDxYCHwAFCTE4Q1I1NDE3M2RkAgMPDxYCHwAFEVNFQ1VSRSBCT05EICQwLjAwZGQCBA9kFghmDw8WAh8ABRVMQVJDRU5ZIChNSVNERU1FQU5PUilkZAIBDw8WAh8ABQ5BV0FJVElORyBUUklBTGRkAgIPDxYCHwAFCTE4Q1I1NDE3NGRkAgMPDxYCHwAFEVNFQ1VSRSBCT05EICQwLjAwZGQCBQ9kFghmDw8WAh8ABRVMQVJDRU5ZIChNSVNERU1FQU5PUilkZAIBDw8WAh8ABQ5BV0FJVElORyBUUklBTGRkAgIPDxYCHwAFCTE4Q1I1NDE3M2RkAgMPDxYCHwAFEVNFQ1VSRSBCT05EICQwLjAwZGQCBg9kFghmDw8WAh8ABRlMQVJDRU5ZIEFGVEVSIEJSRUFLL0VOVEVSZGQCAQ8PFgIfAAUOQVdBSVRJTkcgVFJJQUxkZAICDw8WAh8ABQkxOENSNTQxNzJkZAIDDw8WAh8ABRFTRUNVUkUgQk9ORCAkMC4wMGRkAgcPZBYIZg8PFgIfAAUZTEFSQ0VOWSBBRlRFUiBCUkVBSy9FTlRFUmRkAgEPDxYCHwAFDkFXQUlUSU5HIFRSSUFMZGQCAg8PFgIfAAUJMThDUjU0MTczZGQCAw8PFgIfAAURU0VDVVJFIEJPTkQgJDAuMDBkZAIID2QWCGYPDxYCHwAFIlNUT0xFTiBQUk9QRVJUWSAtIEJVWUlORy9SRUNFSVZJTkdkZAIBDw8WAh8ABQ5BV0FJVElORyBUUklBTGRkAgIPDxYCHwAFCTE4Q1I1NDE3NGRkAgMPDxYCHwAFB05PIEJPTkRkZAIgDw8WAh8ABQdOTyBCT05EZGQCAg8WAh8AZWRktshoNWBDlHuu1r/4wKXL79Jn2gqml7WVJIsDbqlT/j8=" />
+</div>
+
+<div class="aspNetHidden">
+
+  <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="6C4C18E6" />
+</div>
+
+
+        <table class="MainTable" id="Table1" cellspacing="0" cellpadding="0">
+            <tr height="40px">
+                <td valign="bottom" align="left">
+                    <div id="divHeader" class="Header" align="center">
+                        <img src="images/AgencyName.svg" id="imgAgencyBanner" /><br />
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td>
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="ui-widget">
+                                    <table id="superfishtb" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr style="padding: 0 0 0 0;">
+    <td style="font-size: 1em;" class="ui-widget-header">
+                                                <!-- Use the Literal control below to store JQuery Menu scripts-->
+                                                <ul class="sf-menu ui-widget" style="z-index:999"><li class="" style=""><a style="" class="ui-corner-all ui-state-default" href="./main.aspx">Home</a></li><li class="" style=""><a style="" class="ui-corner-all ui-state-default" href="./faq.aspx">Faq</a></li><li class="" style=""><a style="" class="ui-corner-all ui-state-default" href="./jailinmates.aspx">Inmate Inquiry</a></li><li class="" style="z-index:99; position:relative;"><a class="ui-corner-all ui-state-default" href="#">Quick Links</a><ul style="text-align:left;width:200px;top: 25px; display:none;"><li style="width:200px"><a style="font-size:.7em;" class="ui-corner-all ui-state-hover ui-state-default" href="./main.aspx">Home</a></li><li style="width:200px"><a style="font-size:.7em;" class="ui-corner-all ui-state-hover ui-state-default" href="./faq.aspx">Faq</a></li><li style="width:200px"><a style="font-size:.7em;" class="ui-corner-all ui-state-hover ui-state-default" href="./jailinmates.aspx">Inmate Inquiry</a></li></ul></li></ul>
+                                                <!-- Use the Literal control below to store JQuery Menu scripts-->
+                                            </td>
+  </tr>
+</table>
+
+                                </td>
+                            </tr>
+
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            <tr class="p2c-main-content-row">
+                <td valign="top">
+
+
+    <table cellpadding="0" cellspacing="0" style="width: 100%; height:100%;">
+
+        <tr>
+            <td class="LeftTable" style="width: 155px;" valign="top" align="center">
+
+                    <div style="padding: 40px 12px 12px 12px;">
+                        <div id="mainContent_LeftColumnContent_PnlLoadUC1" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_LeftColumnContent_PnlLoadUC3" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_LeftColumnContent_PnlLoadUC4" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_LeftColumnContent_PnlLoadUC5" style="margin-bottom: 20px;">
+
+</div>
+                    </div>
+
+            </td>
+            <td style="height: 248px; padding:10px;" valign="top" align="center">
+                <div class="p2c-border" style="text-align:center;">
+
+
+                    <div style="margin: 1em auto .2em auto; font-style: italic; font-family: Georgia, Arial; font-variant: small-caps; font-weight: bold; text-align: center;" class="MainFont">Inmate Detail</div>
+
+
+    <div style="text-align:center; width:482px; margin: 0 auto;">
+        <div class="shadowbox" style="padding:10px 0; margin-bottom:5px;">
+            <div>
+                <table id="Table4" cellspacing="0" cellpadding="0" border="0" width="100%">
+                    <tr>
+                        <td valign="top" align="left" style="padding-left:10px;">
+                            <table id="Table5" cellspacing="1" cellpadding="1" border="0">
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label1" class="ShadowBoxFont" style="font-weight:bold;">Name:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <p align="center">
+                                            <span id="mainContent_CenterColumnContent_lblName"
+                                            class="ShadowBoxFont"
+                                            style="font-weight:bold;">SIMPSON, BART</span></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label6" class="ShadowBoxFont" style="font-weight:bold;">Age:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <p align="center">
+                                            <span id="mainContent_CenterColumnContent_lblAge" class="ShadowBoxFont" style="font-weight:bold;">24 YEARS OLD</span></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label3" class="ShadowBoxFont" style="font-weight:bold;">Race / Sex:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <span id="mainContent_CenterColumnContent_lblRace" class="ShadowBoxFont" style="font-weight:bold;">BLACK</span><span id="mainContent_CenterColumnContent_Label9" class="ShadowBoxFont" style="font-weight:bold;"> / </span><span id="mainContent_CenterColumnContent_lblSex" class="ShadowBoxFont" style="font-weight:bold;">MALE</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label4" class="ShadowBoxFont" style="font-weight:bold;">Arrest Date:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <span id="mainContent_CenterColumnContent_lblArrestDate" class="ShadowBoxFont" style="font-weight:bold;">8/2/2018</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label7" class="ShadowBoxFont" style="font-weight:bold;">Release Date:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <span id="mainContent_CenterColumnContent_lblReleaseDate" class="ShadowBoxFont" style="font-weight:bold;"></span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label5" class="ShadowBoxFont" style="font-weight:bold;">Next Court Date:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <span id="mainContent_CenterColumnContent_lblNextCourtDate" class="ShadowBoxFont" style="font-weight:bold;"></span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td align="center" style="width:168px;">
+                            <img id="mainContent_CenterColumnContent_imgPhoto" src="Mug.aspx" style="width:138px;" />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <div id="mainContent_CenterColumnContent_Panel2">
+
+                <div style="font-size: x-small;" align="center">
+                    <table class="p2c-datagrid" cellspacing="0" rules="all" border="1" id="mainContent_CenterColumnContent_dgMainResults" style="font-size:X-Small;width:100%;border-collapse:collapse;">
+    <tr style="font-weight:bold;">
+      <td>Charge</td><td>Status</td><td>Docket #</td><td>Bond Amount</td>
+    </tr><tr>
+      <td>BREAKING AND ENTERING-BUILDING  (FELONY)</td><td>AWAITING TRIAL</td><td>18CR54172</td><td align="right">SECURE BOND $0.00</td>
+    </tr><tr>
+      <td>PAROLE VIOLATION</td><td>SENTENCED</td><td> </td><td align="right">N/A</td>
+    </tr><tr>
+      <td>BREAKING AND ENTERING-BUILDING  (FELONY)</td><td>AWAITING TRIAL</td><td>18CR54173</td><td align="right">SECURE BOND $0.00</td>
+    </tr>
+  </table></div>
+
+</div>
+            <table border="0">
+                <tr>
+                    <td align="right">
+                        <span id="mainContent_CenterColumnContent_Label8" class="MainFont" style="font-weight:bold;font-size: x-small">Total Bond Amount:</span><span id="mainContent_CenterColumnContent_lblTotalBoundAmount" class="MainFont" style="font-weight:bold;font-size: x-small; padding-left:1em;">NO BOND</span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+
+                        <div id="mainContent_AdminPanel_pnlAdmin" style="width:381px; margin: 0 auto;">
+
+</div>
+
+                </div>
+            </td>
+            <td class="RightTable" style="width: 155px" valign="top" align="center">
+
+                    <div style="padding: 40px 12px 12px 12px;">
+                        <div id="mainContent_RightColumnContent_PnlLoadUC12" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_RightColumnContent_PnlLoadUC13" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_RightColumnContent_PnlLoadUC14" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_RightColumnContent_PnlLoadUC15" style="margin-bottom: 20px;">
+
+</div>
+                    </div>
+
+            </td>
+        </tr>
+    </table>
+
+                    <div id="pnlThemeSwitcher">
+
+</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="Footer" align="center" style="font-size: 10pt;">
+                    <div style="margin: 2px 0;">
+
+                        <span class="FooterText">powered by</span>
+                        <a href="https://www.superion.com/public-safety/" class="NoUnderLine">
+                            <span style="color: mediumblue;">Superion</span>
+                        </a>
+                        <span class="FooterText">P2C engine</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    <div id="_UniqueWaitControlID" style="visibility:hidden;height:10px;">
+  <TABLE width='100%' height='100%'>
+<TR><TD align='middle'>
+<span id="_WaitControlMessageID">Request in process, please wait...</span>
+</TD></TR>
+<TR><TD>&nbsp;</TD></TR>
+<TR><TD align='middle'>
+<IMG id='_UniqueWaitControlID_Image1' src='/p2c/images/progress1.gif' align='middle' name='Image1'>
+</TD></TR>
+<TR><TD align='middle'><a style='color:#3333cc;text-decoration:underline;' href='javascript:window.document.fireEvent("onstop"); void 0;'>Cancel</a></TD></TR>
+</TABLE>
+
+</div>
+<script language='javascript'>
+var ImgProgress = new Array(4);
+for (var i=0;i<ImgProgress.length;i++)
+{
+ImgProgress[i]=new Image(0,0);
+ImgProgress[i].src = '/p2c/images/progress' + (i+1) + '.gif';
+}
+function WaitALittleBit()
+{
+setTimeout('InProcessPleaseWait()',750);
+}
+function InProcessPleaseWait()
+{
+document.forms[0].style.visibility='hidden';
+_UniqueWaitControlID.style.left = (document.body.offsetWidth / 2) - (_UniqueWaitControlID.offsetWidth / 2);
+_UniqueWaitControlID.style.top = (document.body.offsetHeight / 2) - (_UniqueWaitControlID.offsetHeight / 2);
+_UniqueWaitControlID.style.position = 'absolute';
+_UniqueWaitControlID.style.visibility='visible';
+AnimationImage();
+}
+var ImgIndex=0;
+function AnimationImage()
+{
+window.document._UniqueWaitControlID_Image1.src=ImgProgress[ImgIndex%ImgProgress.length].src;
+ImgIndex++;
+if (document.readyState!='complete')
+{
+setTimeout('AnimationImage()',250);
+}
+else
+{
+document.forms[0].style.visibility='visible';
+_UniqueWaitControlID.style.visibility='hidden';
+}
+}
+</script>
+
+<script language="javascript">
+function onsubmitEventsHandler(){
+if(WaitALittleBit()==false){return false;}
+return true;}
+</script></form>
+
+</body>
+</html>
