@@ -65,9 +65,9 @@ def create_scraper_files(subs):
     scraper_target = os.path.join(target_dir, subs['region'] + '_scraper.py')
     populate_file(scraper_template, scraper_target, subs)
 
-    yaml_template = os.path.join(template_dir, 'region.txt')
-    yaml_target = os.path.join(target_dir, subs['region'] + '.yaml')
-    populate_file(yaml_template, yaml_target, subs)
+    # yaml_template = os.path.join(template_dir, 'region.txt')
+    # yaml_target = os.path.join(target_dir, subs['region'] + '.yaml')
+    # populate_file(yaml_template, yaml_target, subs)
 
 
 def create_test_files(subs):
