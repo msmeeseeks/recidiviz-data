@@ -100,8 +100,10 @@ def _parse_total_bond_if_necessary(booking: Booking) \
     """Looks at booking.total_bond_amount and, if necessary, parses it into a
     list of individual bond amounts or bond status."""
     if booking.total_bond_amount:
-        if booking.total_bond_amount.startswith('No Bond Available'):
+        if booking.total_bond_amount.lower().startswith('no bond'):
             return None, BondStatus.DENIED
+        if booking.total_bond_amount.lower().startswith('must see judge'):
+            return None, BondStatus.PENDING
 
         split_bonds = _split(booking.total_bond_amount)
         if len(split_bonds) > 1:
