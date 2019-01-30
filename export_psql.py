@@ -84,8 +84,8 @@ BQ_LOAD_COMMANDS = {
 }
 
 PSQL_EXPORT_COMMAND = (
-    'psql "sslmode=verify-ca sslrootcert=server-ca.pem '
-    'sslcert=client-cert.pem sslkey=client-key.pem '
+    'psql "sslmode=verify-ca sslrootcert=$CERTDIR/server-ca.pem '
+    'sslcert=$CERTDIR/client-cert.pem sslkey=$CERTDIR/client-key.pem '
     'host=$DB_HOST user=$DB_USER dbname=$DB_NAME" '
     '--file={sql_file}'
 )
