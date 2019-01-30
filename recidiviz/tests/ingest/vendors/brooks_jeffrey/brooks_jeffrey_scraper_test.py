@@ -37,6 +37,14 @@ _FRONT_PAGE_HTML = html.fromstring(
 _PERSON_PAGE_HTML = html.fromstring(
     fixtures.as_string('vendors/brooks_jeffrey', 'person_page.html'))
 
+_PERSON_PAGE_MULTIPLE_BONDS_HTML = html.fromstring(
+    fixtures.as_string('vendors/brooks_jeffrey',
+                       'person_page_multiple_bonds.html'))
+
+_PERSON_PAGE_NO_BOND_AVAILABLE_HTML = html.fromstring(
+    fixtures.as_string('vendors/brooks_jeffrey',
+                       'person_page_no_bond_available.html'))
+
 
 class BrooksJeffreyScraperTest(BaseScraperTest):
     """Test class for TestBrooksJeffreyScraper."""
@@ -94,6 +102,68 @@ class BrooksJeffreyScraperTest(BaseScraperTest):
 
         self.validate_and_return_populate_data(
             _get_person_page(), expected_info)
+
+    def test_populate_data_no_bond_available(self):
+        expected_info = IngestInfo()
+
+        person = expected_info.create_person()
+        person.full_name = "First Middle Last"
+        person.gender = "M"
+        person.age = "100"
+        person.race = "W"
+
+        booking = person.create_booking()
+        booking.booking_id = "123"
+        booking.admission_date = "1-1-2048- 12:30 am"
+
+        charge_1 = booking.create_charge(name="Charge 1")
+        charge_1.create_bond(status="DENIED")
+        charge_2 = booking.create_charge(name="Charge 2")
+        charge_2.create_bond(status="DENIED")
+        charge_3 = booking.create_charge(name="Charge 3")
+        charge_3.create_bond(status="DENIED")
+
+        arrest = booking.create_arrest()
+        arrest.agency = "Agency"
+
+        self.validate_and_return_populate_data(
+            _get_person_page_no_bond_available(), expected_info)
+
+    def test_populate_data_multiple_bonds(self):
+        expected_info = IngestInfo()
+
+        person = expected_info.create_person()
+        person.full_name = "First Middle Last"
+        person.gender = "M"
+        person.age = "100"
+        person.race = "W"
+
+        booking = person.create_booking()
+        booking.booking_id = "123"
+        booking.admission_date = "1-1-2048- 12:30 am"
+
+        charge_1 = booking.create_charge(name="Charge 1")
+        charge_1.create_bond(amount="$1")
+        charge_2 = booking.create_charge(name="Charge 2")
+        charge_2.create_bond(amount="$2")
+        charge_3 = booking.create_charge(name="Charge 3")
+        charge_3.create_bond(amount="$3")
+
+        arrest = booking.create_arrest()
+        arrest.agency = "Agency"
+
+        self.validate_and_return_populate_data(
+            _get_person_page_multiple_bonds(), expected_info)
+
+
+def _get_person_page_no_bond_available():
+    # Make defensive copy since content is mutable
+    return copy(_PERSON_PAGE_NO_BOND_AVAILABLE_HTML)
+
+
+def _get_person_page_multiple_bonds():
+    # Make defensive copy since content is mutable
+    return copy(_PERSON_PAGE_MULTIPLE_BONDS_HTML)
 
 
 def _get_person_page():

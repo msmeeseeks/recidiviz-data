@@ -14,4 +14,5 @@ multi_key_mapping:
   Charges: charge.name
 
 keys_to_ignore:
+  - "Bond Information"
   - "Notice of Federal Funding and Federal Disclaimer"
