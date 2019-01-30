@@ -19,8 +19,8 @@
 import unittest
 from lxml import html
 from recidiviz.ingest import constants
-from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, \
-    _Charge, _Sentence
+from recidiviz.ingest.models.ingest_info import IngestInfo, Person, Booking, \
+    Charge, Sentence
 from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.us_ny.us_ny_scraper import UsNyScraper
 from recidiviz.tests.ingest import fixtures
@@ -212,16 +212,16 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
 
     def test_parse(self):
 
-        expected_sentence = _Sentence(
+        expected_sentence = Sentence(
             min_length='0008 Years, 04 Months,\n                00 Days',
             max_length='0025 Years, 00 Months,\n                00 Days')
-        expected_info = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[Person(
             birthdate='04/22/1972',
             bookings=[
-                _Booking(
+                Booking(
                     admission_date='05/10/2013',
                     charges=[
-                        _Charge(
+                        Charge(
                             attempted='True',
                             charge_class='FELONY',
                             degree='1ST',
@@ -230,7 +230,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
                             status='SENTENCED',
                             sentence=expected_sentence,
                             ),
-                        _Charge(
+                        Charge(
                             attempted='False',
                             charge_class='FELONY',
                             level='TWO',
@@ -260,16 +260,16 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             _DETAILS_PAGE_HTML, expected_info, task=task)
 
     def test_parse_white_hispanic(self):
-        expected_sentence = _Sentence(
+        expected_sentence = Sentence(
             min_length='0008 Years, 04 Months,\n                00 Days',
             max_length='0025 Years, 00 Months,\n                00 Days')
-        expected_info = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[Person(
             birthdate='04/22/1972',
             bookings=[
-                _Booking(
+                Booking(
                     admission_date='05/10/2013',
                     charges=[
-                        _Charge(
+                        Charge(
                             attempted='True',
                             charge_class='FELONY',
                             degree='1ST',
@@ -278,7 +278,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
                             status='SENTENCED',
                             sentence=expected_sentence,
                         ),
-                        _Charge(
+                        Charge(
                             attempted='False',
                             charge_class='FELONY',
                             level='TWO',
@@ -310,16 +310,16 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             _DETAILS_PAGE_WHITE_HISPANIC_HTML, expected_info, task=task)
 
     def test_parse_black_hispanic(self):
-        expected_sentence = _Sentence(
+        expected_sentence = Sentence(
             min_length='0008 Years, 04 Months,\n                00 Days',
             max_length='0025 Years, 00 Months,\n                00 Days')
-        expected_info = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[Person(
             birthdate='04/22/1972',
             bookings=[
-                _Booking(
+                Booking(
                     admission_date='05/10/2013',
                     charges=[
-                        _Charge(
+                        Charge(
                             attempted='True',
                             charge_class='FELONY',
                             degree='1ST',
@@ -328,7 +328,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
                             status='SENTENCED',
                             sentence=expected_sentence,
                         ),
-                        _Charge(
+                        Charge(
                             attempted='False',
                             charge_class='FELONY',
                             level='TWO',
@@ -360,16 +360,16 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             _DETAILS_PAGE_BLACK_HISPANIC_HTML, expected_info, task=task)
 
     def test_parse_life_sentence(self):
-        expected_sentence = _Sentence(
+        expected_sentence = Sentence(
             min_length='0008 Years, 04 Months,\n                00 Days',
             is_life='True')
-        expected_info = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[Person(
             birthdate='04/22/1972',
             bookings=[
-                _Booking(
+                Booking(
                     admission_date='05/10/2013',
                     charges=[
-                        _Charge(
+                        Charge(
                             attempted='True',
                             charge_class='FELONY',
                             degree='1ST',
@@ -378,7 +378,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
                             status='SENTENCED',
                             sentence=expected_sentence,
                         ),
-                        _Charge(
+                        Charge(
                             attempted='False',
                             charge_class='FELONY',
                             level='TWO',
@@ -410,16 +410,16 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
             _DETAILS_PAGE_LIFE_SENTENCE_HTML, expected_info, task=task)
 
     def test_parse_no_release_date(self):
-        expected_sentence = _Sentence(
+        expected_sentence = Sentence(
             min_length='0008 Years, 04 Months,\n                00 Days',
             max_length='0025 Years, 00 Months,\n                00 Days')
-        expected_info = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[Person(
             birthdate='04/22/1972',
             bookings=[
-                _Booking(
+                Booking(
                     admission_date='05/10/2013',
                     charges=[
-                        _Charge(
+                        Charge(
                             attempted='True',
                             charge_class='FELONY',
                             degree='1ST',
@@ -428,7 +428,7 @@ class TestIngest(BaseScraperTest, unittest.TestCase):
                             status='SENTENCED',
                             sentence=expected_sentence,
                         ),
-                        _Charge(
+                        Charge(
                             attempted='False',
                             charge_class='FELONY',
                             level='TWO',

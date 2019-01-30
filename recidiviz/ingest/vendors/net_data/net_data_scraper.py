@@ -43,7 +43,7 @@ from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.errors import ScraperError
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
-from recidiviz.ingest.models.ingest_info import IngestInfo, _Booking
+from recidiviz.ingest.models.ingest_info import IngestInfo, Booking
 from recidiviz.ingest.task_params import Task, ScrapedData
 
 _BOOKING_ID_KEY = 'ARREST NO'
@@ -214,7 +214,7 @@ def _merge_bookings(ingest_info: IngestInfo) -> None:
     admission and release date."""
 
     for person in ingest_info.people:
-        merged_bookings: List[_Booking] = []
+        merged_bookings: List[Booking] = []
         for booking in person.bookings:
             merged_booking = _find_matching_booking(
                 booking, merged_bookings)
@@ -226,8 +226,8 @@ def _merge_bookings(ingest_info: IngestInfo) -> None:
 
 
 def _find_matching_booking(
-        booking_to_match: _Booking, bookings: List[_Booking]) \
-        -> Optional[_Booking]:
+        booking_to_match: Booking, bookings: List[Booking]) \
+        -> Optional[Booking]:
     for booking in bookings:
         if booking.admission_date == booking_to_match.admission_date and \
                 booking.release_date == booking_to_match.release_date:

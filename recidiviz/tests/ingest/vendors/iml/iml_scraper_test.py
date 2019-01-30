@@ -21,8 +21,8 @@ import unittest
 from lxml import html
 from recidiviz.ingest import constants
 
-from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, \
-    _Booking, _Charge, _Bond, _Hold
+from recidiviz.ingest.models.ingest_info import IngestInfo, Person, \
+    Booking, Charge, Bond, Hold
 from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.vendors.iml.iml_scraper import ImlScraper
 from recidiviz.tests.ingest import fixtures
@@ -160,22 +160,22 @@ class ImlScraperTest(BaseScraperTest, unittest.TestCase):
 
     def test_populate_data(self):
         expected_result = IngestInfo(
-            people=[_Person(
+            people=[Person(
                 person_id='12345',
                 full_name='BART SIMPSON',
                 birthdate='01/27/1986',
                 race='BLACK',
-                bookings=[_Booking(
+                bookings=[Booking(
                     booking_id='67890',
                     admission_date='07/25/2018',
                     facility='MAIN',
-                    charges=[_Charge(
+                    charges=[Charge(
                         offense_date='07/25/2018',
                         statute='2C:21-31C',
                         name='IMMIGRATION DETAINEE')
                     ],
-                    holds=[_Hold(jurisdiction_name='ICE')
-                    ],
+                    holds=[Hold(jurisdiction_name='ICE')
+                           ],
                 )])
             ])
 
