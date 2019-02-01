@@ -339,3 +339,11 @@ regions:
     base_url: https://apps.alamance-nc.com/p2c
     scraper_package: us_nc_alamance
     timezone: America/New_York
+  us_nc_burke:
+    agency_name: Burke County Sheriff's Office
+    region_code: us_nc_burke
+    agency_type: jail
+    queue: us-nc-burke-scraper
+    base_url: http://www.morgantonps.org/p2c
+    scraper_package: us_nc_burke
+    timezone: America/New_York
