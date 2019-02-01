@@ -100,9 +100,12 @@ def _parse_total_bond_if_necessary(booking: Booking) \
     """Looks at booking.total_bond_amount and, if necessary, parses it into a
     list of individual bond amounts or bond status."""
     if booking.total_bond_amount:
-        if booking.total_bond_amount.lower().startswith('no bond'):
+        normalized = booking.total_bond_amount.lower()
+        if normalized.startswith('denied'):
             return None, BondStatus.DENIED
-        if booking.total_bond_amount.lower().startswith('must see judge'):
+        if normalized.startswith('no bond'):
+            return None, BondStatus.DENIED
+        if normalized.startswith('must see judge'):
             return None, BondStatus.PENDING
 
         split_bonds = _split(booking.total_bond_amount)
@@ -143,4 +146,4 @@ def _split_charges(
 
 
 def _split(repeated_object_str: str) -> List[str]:
-    return [s for s in repeated_object_str.split('\n') if s]
+    return list(filter(None, map(str.strip, repeated_object_str.split('\n'))))
