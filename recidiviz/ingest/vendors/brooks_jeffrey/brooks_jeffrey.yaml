@@ -17,4 +17,6 @@ keys_to_ignore:
   - "Address"
   - "Bond Information"
   - "Bond/Fine Amounts"
+  - "Bond / Fine Amounts"
+  - "Bond / Fine Amount"
   - "Notice of Federal Funding and Federal Disclaimer"
