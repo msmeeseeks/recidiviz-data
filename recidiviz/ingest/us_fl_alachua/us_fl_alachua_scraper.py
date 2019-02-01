@@ -66,18 +66,38 @@ class UsFlAlachuaScraper(Html5BaseScraper):
     #             logging.error("there is no bookings table in %s, the following is the ingest info: %s",
     #                           content, ingest_info)
     #     return ScrapedData(ingest_info = ingest_info)
+    # MOST RECENT COMMENT
+    # def populate_data(self, content, task: Task,
+    #                   ingest_info: IngestInfo) -> Optional[ScrapedData]:
+    #
+    #     data_extractor = HtmlDataExtractor(self.mapping_filepath)
+    #     ingest_info = data_extractor.extract_and_populate_data(content,
+    #                                                            ingest_info)
+    #
+    #     print("ingest_info")
+    #     print(ingest_info)
 
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[ScrapedData]:
+        tables = content.xpath('//table')
+        person_table, charge_tables = tables[0], tables[1:]
 
-        data_extractor = HtmlDataExtractor(self.mapping_filepath)
-        ingest_info = data_extractor.extract_and_populate_data(content,
-                                                               ingest_info)
+        extractor = HtmlDataExtractor(self.mapping_filepath)
+        person_info = extractor.extract_and_populate_data(person_table,
+                                                          ingest_info)
 
-        print("ingest_info")
-        print(ingest_info)
-
-
+        for charge_table in charge_tables:
+            charges_info = extractor.extract_and_populate_data(charge_table)
+            bond = extractor.get_value('Bond Amount')
+            agency = extractor.get_value('Agency')
+            status = extractor.get_value('Status')
+            case_no = extractor.get_value('Case #')
+            for charge in charges_info.people[0].bookings[0].charges:
+                charge.create_bond(amount=bond)
+                charge.charging_entity = agency
+                charge.status = status
+                charge.case_number = case_no
+                person_info.people[0].bookings[0].charges.append(charge)
 
 
         # for person in ingest_info.people:

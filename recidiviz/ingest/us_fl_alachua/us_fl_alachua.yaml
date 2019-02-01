@@ -41,10 +41,15 @@ key_mappings:
 #  Hold: hold.jurisdiction_name
 
   #putting this in fake booking
-  Bond Amount: booking.total_bond_amount #bond.amount
-  Agency: booking.facility  #charge.charging_entity
-  Status: booking.custody_status #charge.status
-  "Case #": booking.booking_id #charge.case_number
+#  Bond Amount: booking.total_bond_amount #bond.amount
+#  Agency: booking.facility  #charge.charging_entity
+#  Status: booking.custody_status #charge.status
+#  "Case #": booking.booking_id #charge.case_number
+
+  Bond Amount:
+  Agency:
+  Status:
+  "Case #":
 
 keys_to_ignore:
   - Booking Date/Time
