@@ -151,10 +151,16 @@ class HtmlDataExtractor(DataExtractor):
     def _process_html(content):
         """Cleans up the provided content."""
         # Remove <script> elements
-        for script in content.xpath('//script'):
-            parent = script.getparent()
-            if parent is not None:
-                parent.remove(script)
+        _remove_from_content(content, '//script')
+        # _remove_from_content(content, '//comment()')
+        # for script in content.xpath('//script'):
+        #     parent = script.getparent()
+        #     if parent is not None:
+        #         parent.remove(script)
+        # for comment in content.xpath('//comment()'):
+        #     parent = comment.getparent()
+        #     if parent is not None:
+        #         parent.remove(comment)
 
         # Format line breaks as newlines
         for br in content.xpath('//br'):
@@ -198,7 +204,13 @@ class HtmlDataExtractor(DataExtractor):
             match.addprevious(key_cell)
 
     def _get_text_from_element(self, element):
-        return element.text if element.text else element.text_content()
+        if element.text and element.text.strip():
+            return element.text.strip()
+        if element.text_content() and element.text_content().strip():
+            return element.text_content().strip()
+        return None
+        # return element.text_content()
+        # return element.text if element.text else element.text_content()
 
     def _key_element_to_cell(self, key, key_element):
         """Converts a |key_element| Element to a table cell and tries to modify
@@ -210,6 +222,7 @@ class HtmlDataExtractor(DataExtractor):
         Returns:
             True if a modification was made and False otherwise.
         """
+        # import ipdb; ipdb.set_trace()
 
         # <foo><bar>key</bar>value</foo>
         # Create a new td element containing the following-sibling's text and
@@ -262,13 +275,13 @@ class HtmlDataExtractor(DataExtractor):
         # if a next element with text exists.
         parent = key_element.getparent()
         grand_parent = parent.getparent() if parent is not None else None
-        while grand_parent is not None and key_element.text == \
-                self._get_text_from_element(grand_parent):
+        while grand_parent is not None and self._get_text_from_element(
+                key_element) == self._get_text_from_element(grand_parent):
             grand_parent = grand_parent.getparent()
-        if parent is not None and key_element.text == \
-                self._get_text_from_element(parent):
+        if parent is not None and self._get_text_from_element(
+                key_element) == self._get_text_from_element(parent):
             next_cell = parent.getnext()
-            if next_cell is not None and next_cell.text:
+            if next_cell is not None and self._get_text_from_element(next_cell):
                 key_element.tag = 'td'
                 next_cell.tag = 'td'
                 return True
@@ -431,3 +444,10 @@ class HtmlDataExtractor(DataExtractor):
         if self._element_contains_key_descendant(value_cell):
             return False
         return True
+
+
+def _remove_from_content(content, xpath: str) -> None:
+    for elem in content.xpath(xpath):
+        parent = elem.getparent()
+        if parent is not None:
+            parent.remove(elem)

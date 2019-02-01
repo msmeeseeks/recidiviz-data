@@ -105,3 +105,11 @@ import recidiviz.ingest.us_tx_wichita
 import recidiviz.ingest.us_tx_young
 import recidiviz.ingest.us_vt
 import recidiviz.ingest.worker
+
+import recidiviz.ingest.us_ar_baxter
+import recidiviz.ingest.us_ar_columbia
+import recidiviz.ingest.us_ar_cross
+import recidiviz.ingest.us_ar_st_francis
+import recidiviz.ingest.us_tx_tom_green
+
+

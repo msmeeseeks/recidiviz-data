@@ -24,6 +24,7 @@ from typing import List, Optional, Tuple
 import more_itertools
 
 from recidiviz.common.constants.bond import BondStatus
+from recidiviz.common.constants.charge import ChargeStatus
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.errors import ScraperError
@@ -58,11 +59,11 @@ class BrooksJeffreyScraper(BaseScraper):
         person = more_itertools.one(ingest_info.people)
         booking = more_itertools.one(person.bookings)
 
-        split_bonds, bond_status = _parse_total_bond_if_necessary(booking)
-        if split_bonds or bond_status:
+        split_bonds, bond_status, charge_status = _parse_total_bond_if_necessary(booking)
+        if any([split_bonds, bond_status, charge_status]):
             booking.total_bond_amount = None
 
-        booking.charges = _split_charges(booking, split_bonds, bond_status)
+        booking.charges = _split_charges(booking, split_bonds, bond_status, charge_status)
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
 
@@ -96,27 +97,34 @@ def _get_person_tasks(content) -> List[Task]:
 
 
 def _parse_total_bond_if_necessary(booking: Booking) \
-        -> Tuple[Optional[List[str]], Optional[BondStatus]]:
+        -> Tuple[Optional[List[str]], Optional[BondStatus], Optional[ChargeStatus]]:
     """Looks at booking.total_bond_amount and, if necessary, parses it into a
     list of individual bond amounts or bond status."""
     if booking.total_bond_amount:
         normalized = booking.total_bond_amount.lower()
         if normalized.startswith('denied'):
-            return None, BondStatus.DENIED
+            return None, BondStatus.DENIED, None
         if normalized.startswith('no bond'):
-            return None, BondStatus.DENIED
+            return None, BondStatus.DENIED, None
+        if normalized.startswith('none'):
+            return None, BondStatus.DENIED, None
         if normalized.startswith('must see judge'):
-            return None, BondStatus.PENDING
+            return None, BondStatus.PENDING, None
+        if normalized.startswith('parole'):
+            return None, BondStatus.DENIED, None
+        if normalized.startswith('sentenced'):
+            return None, None, ChargeStatus.SENTENCED
 
         split_bonds = _split(booking.total_bond_amount)
         if len(split_bonds) > 1:
-            return split_bonds, None
-    return None, None
+            return split_bonds, None, None
+    return None, None, None
 
 
 def _split_charges(
         booking: Booking, split_bond_amounts: Optional[List[str]],
-        bond_status: Optional[BondStatus]) -> List[Charge]:
+        bond_status: Optional[BondStatus],
+        charge_status: Optional[ChargeStatus]) -> List[Charge]:
     """Splits the found charge into multiple charges and returns the split
     charges. Adds bond amounts and bond_statuses based on the provided
     values."""
@@ -134,6 +142,8 @@ def _split_charges(
 
     for idx, charge_name in enumerate(split_charge_names):
         split_charge = Charge(name=charge_name)
+        if charge_status:
+            split_charge.status = charge_status
         if split_bond_amounts or bond_status:
             bond = split_charge.create_bond()
             if split_bond_amounts:
