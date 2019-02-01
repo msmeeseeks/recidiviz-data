@@ -27,5 +27,4 @@ from recidiviz.tests.ingest.vendors.brooks_jeffrey\
 class Test${class_name}Scraper(BrooksJeffreyScraperTest, unittest.TestCase):
 
     def _init_scraper_and_yaml(self):
-        # The scraper to be tested. Required.
         self.scraper = ${class_name}Scraper()
