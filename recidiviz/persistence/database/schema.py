@@ -126,6 +126,7 @@ bond_status_values = (enum_strings.bond_status_denied,
                       enum_strings.unknown_found_in_source,
                       enum_strings.bond_status_inferred_set,
                       enum_strings.bond_status_not_required,
+                      enum_strings.bond_status_pending,
                       enum_strings.bond_status_posted,
                       enum_strings.unknown_removed_from_source,
                       enum_strings.bond_status_set)
@@ -172,6 +173,7 @@ charge_status_values = (enum_strings.charge_status_acquitted,
                         enum_strings.unknown_removed_from_source)
 
 court_type_values = (enum_strings.court_type_circuit,
+                     enum_strings.court_type_civil,
                      enum_strings.court_type_district,
                      enum_strings.external_unknown,
                      enum_strings.court_type_other,
@@ -359,7 +361,7 @@ class Arrest(Base, DatabaseEntity):
     booking_id = Column(
         Integer, ForeignKey('booking.booking_id'), nullable=False)
     external_id = Column(String(255), index=True)
-    date = Column(Date)
+    arrest_date = Column(Date)
     location = Column(String(255))
     agency = Column(String(255))
     officer_name = Column(String(255))
@@ -381,7 +383,7 @@ class ArrestHistory(Base, DatabaseEntity):
     valid_to = Column(DateTime)
     booking_id = Column(Integer, nullable=False, index=True)
     external_id = Column(String(255), index=True)
-    date = Column(Date)
+    arrest_date = Column(Date)
     location = Column(String(255))
     agency = Column(String(255))
     officer_name = Column(String(255))
@@ -399,6 +401,7 @@ class Bond(Base, DatabaseEntity):
     bond_type_raw_text = Column(String(255))
     status = Column(bond_status, nullable=False)
     status_raw_text = Column(String(255))
+    bond_agent = Column(String(255))
 
     charges = relationship('Charge', back_populates='bond')
 
@@ -420,6 +423,7 @@ class BondHistory(Base, DatabaseEntity):
     bond_type_raw_text = Column(String(255))
     status = Column(bond_status, nullable=False)
     status_raw_text = Column(String(255))
+    bond_agent = Column(String(255))
 
 
 class Sentence(Base, DatabaseEntity):
@@ -552,6 +556,7 @@ class Charge(Base, DatabaseEntity):
     case_number = Column(String(255))
     next_court_date = Column(Date)
     judge_name = Column(String(255))
+    charge_notes = Column(Text)
 
     booking = relationship('Booking', back_populates='charges')
     bond = relationship('Bond', back_populates='charges')
@@ -592,6 +597,7 @@ class ChargeHistory(Base, DatabaseEntity):
     case_number = Column(String(255))
     next_court_date = Column(Date)
     judge_name = Column(String(255))
+    charge_notes = Column(Text)
 
 
 # ==================== Aggregate Tables ====================
@@ -613,14 +619,14 @@ class _AggregateTableMixin:
 
     # Use a synthetic primary key and enforce uniqueness over a set of columns
     # (instead of setting these columns as a MultiColumn Primary Key) to allow
-    # each row to be reference by an int directly.
+    # each row to be referenced by an int directly.
     record_id = Column(Integer, primary_key=True)
 
     # TODO(#689): Ensure that `fips` also supports facility level fips
     # TODO(#689): Consider adding fips_type to denote county vs facility
     fips = Column(String(255))
 
-    report_date = Column(DateTime)
+    report_date = Column(Date)
     report_granularity = Column(
         Enum(*report_granularity_values, name='report_granularity'),
     )
@@ -639,7 +645,7 @@ class FlCountyAggregate(Base, _AggregateTableMixin):
 
     # If a county fails to send updated statistics to FL State, date_reported
     # will be set with the last time valid data was add to this report.
-    date_reported = Column(DateTime)
+    date_reported = Column(Date)
 
 
 class FlFacilityAggregate(Base, _AggregateTableMixin):
@@ -717,16 +723,14 @@ class HiFacilityAggregate(Base, _AggregateTableMixin):
     probation_violation_female_population = Column(Integer)
 
 
-# To get counts from the PDF, sum secure/non-secure. For example:
-# male_population = male_population (secure) + male_population (unsecure)
-class KyCountyAggregate(Base, _AggregateTableMixin):
+class KyFacilityAggregate(Base, _AggregateTableMixin):
     """KY state-provided aggregate statistics."""
     __tablename__ = 'ky_county_aggregate'
     __table_args__ = (
         UniqueConstraint('fips', 'report_date', 'report_granularity'),
     )
 
-    county_name = Column(String(255))
+    facility_name = Column(String(255))
 
     total_jail_beds = Column(Integer)
     reported_population = Column(Integer)  # TODO: Is this adp or population

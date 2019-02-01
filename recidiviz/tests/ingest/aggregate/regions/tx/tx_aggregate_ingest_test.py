@@ -20,6 +20,7 @@ from unittest import TestCase
 
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
+import pytest
 from more_itertools import one
 from sqlalchemy import func
 
@@ -31,13 +32,15 @@ from recidiviz.persistence.database.schema import TxCountyAggregate
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils import fakes
 
-DATE_SCRAPED = datetime.datetime(year=2019, month=1, day=1)
-
+DATE_SCRAPED = datetime.date(year=2017, month=12, day=1)
 # Cache the parsed pdf between tests since it's expensive to compute
-PARSED_PDF = tx_aggregate_ingest.parse(
-    fixtures.as_filepath('Abbreviated Pop Rpt Dec 2017.pdf'), DATE_SCRAPED)
+@pytest.fixture(scope="class")
+def parsed_pdf(request):
+    request.cls.parsed_pdf = tx_aggregate_ingest.parse(
+        fixtures.as_filepath('Abbreviated Pop Rpt Dec 2017.pdf'))
 
 
+@pytest.mark.usefixtures("parsed_pdf")
 class TestTxAggregateIngest(TestCase):
     """Test that tx_aggregate_ingest correctly parses the TX PDF."""
 
@@ -45,7 +48,7 @@ class TestTxAggregateIngest(TestCase):
         fakes.use_in_memory_sqlite_database()
 
     def testParse_ParsesHeadAndTail(self):
-        result = PARSED_PDF[TxCountyAggregate]
+        result = self.parsed_pdf[TxCountyAggregate]
 
         # Assert Head
         expected_head = pd.DataFrame({
@@ -101,7 +104,7 @@ class TestTxAggregateIngest(TestCase):
 
     def testWrite_CalculatesSum(self):
         # Act
-        for table, df in PARSED_PDF.items():
+        for table, df in self.parsed_pdf.items():
             database.write_df(table, df)
 
         # Assert

@@ -149,6 +149,7 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
 
         charge = booking.create_charge()
         charge.charge_id = '1'
+        charge.name = 'DISORDERLY CONDUCT-NOISE'
         charge.offense_date = '2017-03-10'
         charge.status = 'Probation'
         charge.number_of_counts = '2'
@@ -160,6 +161,8 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
 
         charge = booking.create_charge()
         charge.charge_id = '2'
+        charge.name = (
+            'DEPRESSANT/STIMULANT/NARCOTIC-POSSESSION \u003c 100X DOSE')
         charge.offense_date = '2017-03-16'
         charge.status = 'Probation'
         charge.charge_class = 'M'
@@ -202,6 +205,7 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
 
         charge = booking.create_charge()
         charge.charge_id = '1'
+        charge.name = 'DISORDERLY CONDUCT-NOISE'
         charge.offense_date = '2017-03-10'
         charge.status = 'Probation'
         charge.number_of_counts = '2'
@@ -213,6 +217,8 @@ class TestUsVtScraper(BaseScraperTest, unittest.TestCase):
 
         charge = booking.create_charge()
         charge.charge_id = '2'
+        charge.name = (
+            'DEPRESSANT/STIMULANT/NARCOTIC-POSSESSION \u003c 100X DOSE')
         charge.offense_date = '2017-03-16'
         charge.status = 'Probation'
         charge.charge_class = 'M'

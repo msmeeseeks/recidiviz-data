@@ -37,12 +37,12 @@ class HtmlDataExtractor(DataExtractor):
         super().__init__(key_mapping_file)
 
         self.css_keys = self.manifest.get('css_key_mappings', {})
-        keys_to_ignore = self.manifest.get('keys_to_ignore', [])
+        self.keys_to_ignore = self.manifest.get('keys_to_ignore', [])
 
         self.keys.update(self.css_keys)
 
         self.all_keys = set(self.keys.keys()) | \
-            set(self.multi_keys.keys()) | set(keys_to_ignore)
+            set(self.multi_keys.keys()) | set(self.keys_to_ignore)
 
     def _set_all_cells(self, content):
         """Finds all leaf cells on a page and sets them.
@@ -103,14 +103,21 @@ class HtmlDataExtractor(DataExtractor):
             # keys that map to the same value ('hi' and 'hi:' both map to the
             # same thing) but that is a more expensive preprocessing calculation
             cell_val = self._normalize_cell(cell)
+            lookup_keys = (self.keys.get(cell_val) or
+                           self.multi_keys.get(cell_val))
+            if not lookup_keys:
+                # Users can specify a key with no value associated and then use
+                # |get_value()| later. We shouldn't warn, even though we
+                # won't find values for these keys.
+                if cell_val in needed_keys:
+                    needed_keys.remove(cell_val)
+                continue
             values = None
             if cell_val in self.keys:
                 values = [self._get_value_cell(cell)]
             elif cell_val in self.multi_keys:
                 values = self._get_values_below_cell(cell)
             if values:
-                lookup_keys = (self.keys.get(cell_val) or
-                               self.multi_keys.get(cell_val))
                 self._set_or_create_object(ingest_info, lookup_keys, values)
                 if cell_val in needed_keys:
                     needed_keys.remove(cell_val)
@@ -166,11 +173,18 @@ class HtmlDataExtractor(DataExtractor):
         # results from the xpath call are references, so modifying them changes
         # |content|.
         for match in matches:
+            # the xpath query above matches on links as well as regular html
+            # elements. Therefore, we need to check text_content() as well as
+            # text for the matching string.
+            text = self._get_text_from_element(match)
+            if text in self.keys_to_ignore:
+                continue
+
             # Only convert elements that are not already table cells.
             if match.tag == 'td' or match.tag == 'th':
                 continue
             # Ensure no individual words in |content| was split when matching.
-            remaining = ' '.join(match.text.split()).replace(key, '')
+            remaining = ' '.join(text.split()).replace(key, '')
             if not remaining or not remaining[0].isalpha():
                 self._key_element_to_cell(key, match)
 
@@ -182,6 +196,9 @@ class HtmlDataExtractor(DataExtractor):
             key_cell.tag = 'td'
             match.tag = 'td'
             match.addprevious(key_cell)
+
+    def _get_text_from_element(self, element):
+        return element.text if element.text else element.text_content()
 
     def _key_element_to_cell(self, key, key_element):
         """Converts a |key_element| Element to a table cell and tries to modify
@@ -214,6 +231,13 @@ class HtmlDataExtractor(DataExtractor):
             key_element.getnext().tag = 'td'
             return True
 
+        # <foo><bar/><baz></baz>key: value</foo>
+        # Create new td elements for the key and the value and insert them.
+        for child in key_element:
+            if child.tail and child.tail.startswith(key):
+                if self._insert_cells_from_text(key, child.tail, key_element):
+                    return True
+
         # <foo>key<bar>value</bar></foo>
         # Create a new td element containing the key and add it before the
         # value cell.
@@ -227,18 +251,26 @@ class HtmlDataExtractor(DataExtractor):
 
         # <foo>key : value</foo>
         # Create new td elements for the key and the value and insert them.
-        text = key_element.text.strip()
+        text = self._get_text_from_element(key_element).strip()
         if text.startswith(key):
-            text = text[len(key):].strip().strip(':').strip()
-            if text != '':
-                key_cell = HtmlElement(key)
-                key_cell.tag = 'td'
-                value_cell = HtmlElement(text)
-                value_cell.tag = 'td'
-                key_element.insert(0, key_cell)
-                key_element.insert(1, value_cell)
+            if self._insert_cells_from_text(key, text, key_element):
                 return True
 
+        return False
+
+    def _insert_cells_from_text(self, key: str, text: str, container) -> bool:
+        """Given a |text| string in the format '<key>: <value>', inserts
+        corresponding key/value td cells into |container|. Returns True if
+        insertion is performed, False otherwise."""
+        remaining = text[len(key):].strip().strip(':').strip()
+        if remaining:
+            key_cell = HtmlElement(key)
+            key_cell.tag = 'td'
+            value_cell = HtmlElement(remaining)
+            value_cell.tag = 'td'
+            container.insert(0, key_cell)
+            container.insert(1, value_cell)
+            return True
         return False
 
     def _below(self, cell):

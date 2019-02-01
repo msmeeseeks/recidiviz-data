@@ -18,14 +18,17 @@
 """Scraper implementation for all websites using Brooks Jeffery marketing.
 """
 
-import logging
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
+import more_itertools
+
+from recidiviz.common.constants.bond import BondStatus
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.errors import ScraperError
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
-from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.models.ingest_info import IngestInfo, Booking, Charge
 from recidiviz.ingest.task_params import ScrapedData, Task
 
 
@@ -43,53 +46,101 @@ class BrooksJeffreyScraper(BaseScraper):
         content.make_links_absolute(self.get_region().base_url)
 
         params_list = []
-        params_list.extend(self._get_person_tasks(content))
-        params_list.extend(self._get_next_page_if_exists_tasks(content))
+        params_list.extend(_get_person_tasks(content))
+        params_list.extend(_get_next_page_if_exists_tasks(content))
         return params_list
 
-    def _get_next_page_if_exists_tasks(self, content) -> List[Task]:
-        links = content.xpath('//a[@class="tbold"]')
-        next_page_links = [link.xpath('./@href')[0] for link in links if
-                           link.text_content() == ">>"]
-        # There are multiple next page links on each roster page; however, they
-        # are all equivalent, so choose the first one arbitrarily
-        task_list = []
-        if next_page_links:
-            task_list.append(Task(
-                task_type=constants.TaskType.GET_MORE_TASKS,
-                endpoint=next_page_links[0],
-            ))
-        return task_list
-
-    def _get_person_tasks(self, content) -> List[Task]:
-        links = content.xpath('//a[@class="text2"]')
-        person_links = [link.xpath('./@href')[0] for link in links if
-                        link.text_content() == "View Profile >>>"]
-        task_list = []
-        for person_link in person_links:
-            task_list.append(Task(
-                task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint=person_link,
-            ))
-        return task_list
-
-    def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
+    def populate_data(self, content, task: Task, ingest_info: IngestInfo) \
+            -> Optional[ScrapedData]:
         data_extractor = HtmlDataExtractor(self.mapping_filepath)
-        ingest_info = data_extractor.extract_and_populate_data(content,
-                                                               ingest_info)
+        ingest_info = data_extractor.extract_and_populate_data(
+            content, ingest_info)
+        person = more_itertools.one(ingest_info.people)
+        booking = more_itertools.one(person.bookings)
 
-        for person in ingest_info.people:
-            if len(person.bookings) != 1 or len(person.bookings[0].charges) > 1:
-                logging.error("Data extraction did not produce a single "
-                              "booking with at most one charge, as it should")
+        split_bonds, bond_status = _parse_total_bond_if_necessary(booking)
+        if split_bonds or bond_status:
+            booking.total_bond_amount = None
 
-            if person.bookings[0].charges:
-                charge_names_raw = person.bookings[0].charges[0].name
-                if charge_names_raw:
-                    charge_names = charge_names_raw.split('\n')
-                    person.bookings[0].charges = []
-                    for charge_name in charge_names:
-                        person.bookings[0].create_charge(name=charge_name)
+        booking.charges = _split_charges(booking, split_bonds, bond_status)
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
+
+
+def _get_next_page_if_exists_tasks(content) -> List[Task]:
+    links = content.xpath('//a[@class="tbold"]')
+    next_page_links = [link.xpath('./@href')[0] for link in links if
+                       link.text_content() == ">>"]
+    # There are multiple next page links on each roster page; however, they
+    # are all equivalent, so choose the first one arbitrarily
+    task_list = []
+    if next_page_links:
+        task_list.append(Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=next_page_links[0],
+        ))
+    return task_list
+
+
+def _get_person_tasks(content) -> List[Task]:
+    links = content.xpath('//a[@class="text2"]')
+    person_links = [link.xpath('./@href')[0] for link in links if
+                    link.text_content() == "View Profile >>>"]
+    task_list = []
+    for person_link in person_links:
+        task_list.append(Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint=person_link,
+        ))
+    return task_list
+
+
+def _parse_total_bond_if_necessary(booking: Booking) \
+        -> Tuple[Optional[List[str]], Optional[BondStatus]]:
+    """Looks at booking.total_bond_amount and, if necessary, parses it into a
+    list of individual bond amounts or bond status."""
+    if booking.total_bond_amount:
+        if booking.total_bond_amount.lower().startswith('no bond'):
+            return None, BondStatus.DENIED
+        if booking.total_bond_amount.lower().startswith('must see judge'):
+            return None, BondStatus.PENDING
+
+        split_bonds = _split(booking.total_bond_amount)
+        if len(split_bonds) > 1:
+            return split_bonds, None
+    return None, None
+
+
+def _split_charges(
+        booking: Booking, split_bond_amounts: Optional[List[str]],
+        bond_status: Optional[BondStatus]) -> List[Charge]:
+    """Splits the found charge into multiple charges and returns the split
+    charges. Adds bond amounts and bond_statuses based on the provided
+    values."""
+    split_charges: List[Charge] = []
+    if not booking.charges:
+        return split_charges
+
+    scraped_charge = more_itertools.one(booking.charges)
+    split_charge_names = _split(scraped_charge.name)
+    if split_bond_amounts and len(split_bond_amounts) != len(
+            split_charge_names):
+        raise ScraperError(
+            'Mismatch, found {} individual bonds and {} charge_names'.format(
+                len(split_bond_amounts), len(split_charge_names)))
+
+    for idx, charge_name in enumerate(split_charge_names):
+        split_charge = Charge(name=charge_name)
+        if split_bond_amounts or bond_status:
+            bond = split_charge.create_bond()
+            if split_bond_amounts:
+                bond.amount = split_bond_amounts[idx]
+            if bond_status:
+                bond.status = bond_status.value
+        split_charges.append(split_charge)
+
+    return split_charges
+
+
+def _split(repeated_object_str: str) -> List[str]:
+    return [s for s in repeated_object_str.split('\n') if s]

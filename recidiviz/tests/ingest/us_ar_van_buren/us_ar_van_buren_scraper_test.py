@@ -16,55 +16,16 @@
 # =============================================================================
 
 """Scraper tests for us_ar_van_buren."""
-import unittest
-from lxml import html
 
-from recidiviz.ingest import constants
-from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+import unittest
 from recidiviz.ingest.us_ar_van_buren.us_ar_van_buren_scraper import \
     UsArVanBurenScraper
-from recidiviz.tests.ingest import fixtures
-from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
-
-_ROSTER_HTML = html.fromstring(fixtures.as_string('us_ar_van_buren',
-                                                  'roster.html'))
-_DETAILS_HTML = html.fromstring(fixtures.as_string('us_ar_van_buren',
-                                                   'detail.html'))
+from recidiviz.tests.ingest.vendors.brooks_jeffrey\
+    .brooks_jeffrey_scraper_test import \
+    BrooksJeffreyScraperTest
 
 
-class TestUsArVanBurenScraper(BaseScraperTest, unittest.TestCase):
+class TestUsArVanBurenScraper(BrooksJeffreyScraperTest, unittest.TestCase):
 
     def _init_scraper_and_yaml(self):
         self.scraper = UsArVanBurenScraper()
-
-    def test_get_more_tasks(self):
-        content = _ROSTER_HTML
-        task = Task(
-            task_type=constants.TaskType.GET_MORE_TASKS,
-            endpoint=None,
-        )
-        expected_result = [
-            Task(
-                task_type=constants.TaskType.GET_MORE_TASKS,
-                endpoint='{}?grp=40'.format(self.scraper.region.base_url),
-            ),
-        ]
-
-        self.validate_and_return_get_more_tasks(content, task, expected_result)
-
-    def test_populate_data(self):
-        content = _DETAILS_HTML
-        expected_info = IngestInfo()
-        p = expected_info.create_person(full_name='FULL NAME', gender='M',
-                                          age='100', race='W')
-        b = p.create_booking(booking_id='123456789',
-                             admission_date='11-11-1111 11:11 am',
-                             total_bond_amount='$10,000.00')
-        b.create_arrest(agency='VBSO')
-        b.create_charge(name='Charge 1')
-        b.create_charge(name='Charge 2')
-        b.create_charge(name='Charge 3')
-        b.create_charge(name='Charge 4')
-
-        self.validate_and_return_populate_data(content, expected_info)

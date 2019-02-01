@@ -23,8 +23,8 @@ preprocess HTML content that may only be accepted in the HTML5 spec.
 import abc
 import xml
 
-import html5lib
 from lxml import html
+import html5lib
 
 from recidiviz.ingest.base_scraper import BaseScraper
 

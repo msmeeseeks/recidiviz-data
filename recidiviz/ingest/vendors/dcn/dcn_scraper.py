@@ -34,7 +34,6 @@ from typing import Optional, List
 
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeStatus
-from recidiviz.common.constants.mappable_enum import EnumParsingError
 from recidiviz.ingest import constants
 from recidiviz.ingest import scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
@@ -131,13 +130,11 @@ class DcnScraper(BaseScraper):
         # The bond type is sometimes overloaded to included charge status.
         for charge in ingest_info.people[0].bookings[0].charges:
             if charge.bond:
-                try:
-                    if charge.bond.bond_type:
-                        _ = ChargeStatus.from_str(charge.bond.bond_type)
-                        charge.status = charge.bond.bond_type
-                        charge.bond.bond_type = None
-                except (AttributeError, EnumParsingError):
-                    pass
+                if charge.bond.bond_type and \
+                        ChargeStatus.can_parse(charge.bond.bond_type,
+                                               self.get_enum_overrides()):
+                    charge.status = charge.bond.bond_type
+                    charge.bond.bond_type = None
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
 

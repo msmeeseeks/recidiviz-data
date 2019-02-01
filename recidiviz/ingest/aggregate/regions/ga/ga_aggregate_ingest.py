@@ -15,30 +15,50 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 """Parse the GA Aggregated Statistics PDF."""
-import datetime
 from typing import Dict
+import datetime
+import dateparser
 
 import pandas as pd
+from PyPDF2 import PdfFileReader
 import tabula
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
 import recidiviz.common.constants.enum_canonical_strings as enum_strings
 from recidiviz.ingest.aggregate import aggregate_ingest_utils
+from recidiviz.ingest.aggregate.errors import AggregateDateParsingError
 from recidiviz.persistence.database.schema import GaCountyAggregate
 
+DATE_PARSE_ANCHOR = 'DATA SUMMARY'
 
-def parse(filename: str, date_scraped: datetime.datetime) \
-        -> Dict[DeclarativeMeta, pd.DataFrame]:
+
+def parse(filename: str) -> Dict[DeclarativeMeta, pd.DataFrame]:
     ga_county_table = _parse_table(filename)
 
     # TODO(#698): Set county fips based on the county_name
     ga_county_table['fips'] = None
-    ga_county_table['report_date'] = date_scraped
+    ga_county_table['report_date'] = _parse_date(filename)
     ga_county_table['report_granularity'] = enum_strings.monthly_granularity
 
     return {
         GaCountyAggregate: ga_county_table
     }
+
+
+def _parse_date(filename: str) -> datetime.date:
+    with open(filename, 'rb') as f:
+        try:
+            pdf = PdfFileReader(f)
+            page = pdf.getPage(0)
+            text = page.extractText()
+            lines = text.split('\n')
+        except Exception as e:
+            raise AggregateDateParsingError(str(e))
+        for index, line in enumerate(lines):
+            if DATE_PARSE_ANCHOR in line:
+                # The date is on the next line if anchor is present on the line
+                return dateparser.parse(lines[index+1]).date()
+        raise AggregateDateParsingError('Could not extract date')
 
 
 def _parse_table(filename: str) -> pd.DataFrame:
@@ -74,7 +94,7 @@ def _parse_table(filename: str) -> pd.DataFrame:
         lattice=use_lattice,
         pandas_options={
             'names': column_names,
-            'skiprows': _every_43,  # Skip header rows at the top of each page
+            'skiprows': _header_on_each_page,
             'skipfooter': 1  # The last row is the grand totals
         })
 
@@ -95,5 +115,6 @@ def _parse_table(filename: str) -> pd.DataFrame:
     return result
 
 
-def _every_43(index: int) -> bool:
+def _header_on_each_page(index: int) -> bool:
+    # Every 43rd row is the header on a new page
     return index % 43 == 0

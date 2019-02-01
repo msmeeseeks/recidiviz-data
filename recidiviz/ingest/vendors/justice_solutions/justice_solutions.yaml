@@ -1,0 +1,17 @@
+key_mappings:
+  NAME: person.full_name
+  CITY:
+  STATE / ZIP:
+  AGE: person.age
+  RACE: person.race
+  S.O. NUMBER: person.person_id
+  BOOKING DATE: booking.admission_date
+
+multi_key_mapping:
+  Charge: charge.name
+  Bond Amount: bond.amount
+  Arrest Agency: charge.charging_entity
+  Court: charge.court_type
+  Court Date: charge.next_court_date
+  Disposition: charge.charge_notes
+  

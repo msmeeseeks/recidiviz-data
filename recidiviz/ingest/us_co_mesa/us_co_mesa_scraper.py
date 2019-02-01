@@ -43,7 +43,7 @@ from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.common.constants.hold import HoldStatus
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
-from recidiviz.ingest.models.ingest_info import IngestInfo, _Bond
+from recidiviz.ingest.models.ingest_info import IngestInfo, Bond
 from recidiviz.ingest.task_params import ScrapedData, Task
 
 
@@ -117,7 +117,7 @@ class UsCoMesaScraper(BaseScraper):
                     bond_id, bond = bond_text.split(' - ')
                     bond_type, bond_amount = bond.split(':')
 
-                    bond = _Bond(
+                    bond = Bond(
                         bond_id=bond_id.strip(),
                         amount=bond_amount.strip(),
                         bond_type=bond_type,

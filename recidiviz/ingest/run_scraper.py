@@ -20,7 +20,7 @@
 usage: run_scraper.py [-h] --region REGION [--num_tasks NUM_TASKS]
                       [--sleep_between_requests SLEEP_BETWEEN_REQUESTS]
                       [--run_forever RUN_FOREVER] [--no_fail_fast]
-                      [--log LOG]
+                      [--log LOG] [--lifo]
 
 Example:
 python -m recidiviz.ingest.run_scraper --region us_pa_greene
@@ -65,11 +65,31 @@ def start_scrape(queue, self, scrape_type):
 
 
 def run_scraper(args):
+    region_codes = args.region.split(',')
+    failed_regions = []
+    for region_code in region_codes:
+        logging.info('***')
+        logging.info('***')
+        logging.info('Starting scraper for region: %s', region_code)
+        logging.info('***')
+        logging.info('***')
+        try:
+            run_scraper_for_region(regions.Region(region_code), args)
+        except Exception:
+            print(traceback.format_exc())
+            failed_regions.append(region_code)
+
+    if failed_regions:
+        logging.info('***')
+        logging.info('The following regions raised errors during scraping: %s',
+                     failed_regions)
+
+
+def run_scraper_for_region(region, args):
     """Runs the scraper for the given region
 
     Creates and manages an in-memory FIFO queue to replicate production.
     """
-    region = regions.Region(args.region)
     scraper = region.get_scraper()
 
     task_queue = deque()
@@ -89,7 +109,10 @@ def run_scraper(args):
                      'infinite' if args.run_forever else args.num_tasks)
 
         # run the task
-        method, request = task_queue.popleft()
+        if args.lifo:
+            method, request = task_queue.pop()
+        else:
+            method, request = task_queue.popleft()
         try:
             getattr(scraper, method)(request)
         except Exception as e:
@@ -110,7 +133,8 @@ def _create_parser():
     """Creates the CLI argument parser."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--region', required=True, help='The region to test')
+    parser.add_argument('--region', required=True,
+                        help='The comma separated list of regions to test')
     parser.add_argument(
         '--num_tasks', required=False, default=5, type=int,
         help='The number of tasks to complete'
@@ -130,6 +154,12 @@ def _create_parser():
     parser.add_argument(
         '--log', required=False, default='INFO', type=logging.getLevelName,
         help='Set the logging level'
+    )
+    parser.add_argument(
+        '--lifo', required=False, action='store_true',
+        help="If true uses a last-in-first-out queue for webpage navigation ("
+             "as opposed to first-in-first-out). This can be used to enforce "
+             "depth first navigation"
     )
     return parser
 

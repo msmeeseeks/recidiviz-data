@@ -8,10 +8,13 @@ key_mappings:
   Bond: booking.total_bond_amount
 
 css_key_mappings:
-  ".ptitles": person.full_name
+  "span.ptitles": person.full_name
 
 multi_key_mapping:
   Charges: charge.name
 
 keys_to_ignore:
+  - "Address"
+  - "Bond Information"
+  - "Bond/Fine Amounts"
   - "Notice of Federal Funding and Federal Disclaimer"

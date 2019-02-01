@@ -17,8 +17,8 @@
 """Scraper tests for us_pa."""
 
 import unittest
-from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, _Booking, \
-    _Charge, _Sentence
+from recidiviz.ingest.models.ingest_info import IngestInfo, Person, Booking, \
+    Charge, Sentence
 from recidiviz.ingest.us_pa.us_pa_scraper import UsPaScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
@@ -34,15 +34,15 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
 
     def test_parse(self):
 
-        expected_info = IngestInfo(people=[_Person(
+        expected_info = IngestInfo(people=[Person(
             person_id="AA0000",
             birthdate="01/01/1000",
             race="WHITE",
             gender="MALE",
             bookings=[
-                _Booking(
+                Booking(
                     facility="CHESTER",
-                    charges=[_Charge(sentence=_Sentence(
+                    charges=[Charge(sentence=Sentence(
                         sentencing_region="WASHINGTON"
                     ))]
                 )

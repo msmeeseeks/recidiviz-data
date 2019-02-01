@@ -14,17 +14,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
+"""
+Scraper tests for regions that use unaltered brooks_jeffrey_scraper.
+Any region scraper test class that inherits from BrooksJeffreyScraperTest must
 
-"""Tests for Brooks Jeffrey scraper:
-ingest/vendors/brooks_jeffrey/brooks_jeffrey_scraper.py."""
+implement the following:
+     _init_scraper_and_yaml(self):
+       self.scraper = RegionScraperCls()
+"""
+from copy import copy
 
-import unittest
 from lxml import html
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.task_params import Task
-from recidiviz.ingest.vendors.brooks_jeffrey.brooks_jeffrey_scraper import \
-    BrooksJeffreyScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
@@ -34,36 +37,49 @@ _FRONT_PAGE_HTML = html.fromstring(
 _PERSON_PAGE_HTML = html.fromstring(
     fixtures.as_string('vendors/brooks_jeffrey', 'person_page.html'))
 
+_PERSON_PAGE_MULTIPLE_BONDS_HTML = html.fromstring(
+    fixtures.as_string('vendors/brooks_jeffrey',
+                       'person_page_multiple_bonds.html'))
 
-class TestBrooksJeffreyScraper(BaseScraperTest, unittest.TestCase):
+_PERSON_PAGE_NO_BOND_AVAILABLE_HTML = html.fromstring(
+    fixtures.as_string('vendors/brooks_jeffrey',
+                       'person_page_no_bond_available.html'))
+
+_PERSON_PAGE_SEE_JUDGE_HTML = html.fromstring(
+    fixtures.as_string('vendors/brooks_jeffrey',
+                       'person_page_see_judge.html'))
+
+
+class BrooksJeffreyScraperTest(BaseScraperTest):
     """Test class for TestBrooksJeffreyScraper."""
 
-    def _init_scraper_and_yaml(self):
-        self.scraper = BrooksJeffreyScraper('us_ar_van_buren')
-        self.yaml = self.scraper.mapping_filepath
-
+    def _get_base_url(self):
+        return self.scraper.region.base_url.rpartition('/')[0] + '/'
 
     def test_home_page_navigation(self):
         expected_result = [
             Task(
                 task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint='https://www.vbcso.com/roster_view.php?booking_num=123'
+                endpoint=
+                self._get_base_url() + 'roster_view.php?booking_num=123'
             ),
             Task(
                 task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint='https://www.vbcso.com/roster_view.php?booking_num=456'
+                endpoint=
+                self._get_base_url() + 'roster_view.php?booking_num=456'
             ),
             Task(
                 task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint='https://www.vbcso.com/roster_view.php?booking_num=789'
+                endpoint=
+                self._get_base_url() + 'roster_view.php?booking_num=789'
             ),
             Task(
-                endpoint='https://www.vbcso.com/roster.php?grp=40',
-                task_type=constants.TaskType.GET_MORE_TASKS
+                task_type=constants.TaskType.GET_MORE_TASKS,
+                endpoint=self._get_base_url() + 'roster.php?grp=40'
             ),
         ]
         self.validate_and_return_get_more_tasks(
-            _FRONT_PAGE_HTML,
+            _get_front_page(),
             Task(task_type=constants.TaskType.INITIAL, endpoint=''),
             expected_result)
 
@@ -88,4 +104,108 @@ class TestBrooksJeffreyScraper(BaseScraperTest, unittest.TestCase):
         arrest = booking.create_arrest()
         arrest.agency = "Agency"
 
-        self.validate_and_return_populate_data(_PERSON_PAGE_HTML, expected_info)
+        self.validate_and_return_populate_data(
+            _get_person_page(), expected_info)
+
+    def test_populate_data_no_bond_available(self):
+        expected_info = IngestInfo()
+
+        person = expected_info.create_person()
+        person.full_name = "First Middle Last"
+        person.gender = "M"
+        person.age = "100"
+        person.race = "W"
+
+        booking = person.create_booking()
+        booking.booking_id = "123"
+        booking.admission_date = "1-1-2048- 12:30 am"
+
+        charge_1 = booking.create_charge(name="Charge 1")
+        charge_1.create_bond(status="DENIED")
+        charge_2 = booking.create_charge(name="Charge 2")
+        charge_2.create_bond(status="DENIED")
+        charge_3 = booking.create_charge(name="Charge 3")
+        charge_3.create_bond(status="DENIED")
+
+        arrest = booking.create_arrest()
+        arrest.agency = "Agency"
+
+        self.validate_and_return_populate_data(
+            _get_person_page_no_bond_available(), expected_info)
+
+    def test_populate_data_must_see_judge(self):
+        expected_info = IngestInfo()
+
+        person = expected_info.create_person()
+        person.full_name = "First Middle Last"
+        person.gender = "M"
+        person.age = "100"
+        person.race = "W"
+
+        booking = person.create_booking()
+        booking.booking_id = "123"
+        booking.admission_date = "1-1-2048- 12:30 am"
+
+        charge_1 = booking.create_charge(name="Charge 1")
+        charge_1.create_bond(status="PENDING")
+        charge_2 = booking.create_charge(name="Charge 2")
+        charge_2.create_bond(status="PENDING")
+        charge_3 = booking.create_charge(name="Charge 3")
+        charge_3.create_bond(status="PENDING")
+
+        arrest = booking.create_arrest()
+        arrest.agency = "Agency"
+
+        self.validate_and_return_populate_data(
+            _get_person_page_see_judge(), expected_info)
+
+    def test_populate_data_multiple_bonds(self):
+        expected_info = IngestInfo()
+
+        person = expected_info.create_person()
+        person.full_name = "First Middle Last"
+        person.gender = "M"
+        person.age = "100"
+        person.race = "W"
+
+        booking = person.create_booking()
+        booking.booking_id = "123"
+        booking.admission_date = "1-1-2048- 12:30 am"
+
+        charge_1 = booking.create_charge(name="Charge 1")
+        charge_1.create_bond(amount="$1")
+        charge_2 = booking.create_charge(name="Charge 2")
+        charge_2.create_bond(amount="$2")
+        charge_3 = booking.create_charge(name="Charge 3")
+        charge_3.create_bond(amount="$3")
+
+        arrest = booking.create_arrest()
+        arrest.agency = "Agency"
+
+        self.validate_and_return_populate_data(
+            _get_person_page_multiple_bonds(), expected_info)
+
+
+def _get_person_page_see_judge():
+    # Make defensive copy since content is mutable
+    return copy(_PERSON_PAGE_SEE_JUDGE_HTML)
+
+
+def _get_person_page_no_bond_available():
+    # Make defensive copy since content is mutable
+    return copy(_PERSON_PAGE_NO_BOND_AVAILABLE_HTML)
+
+
+def _get_person_page_multiple_bonds():
+    # Make defensive copy since content is mutable
+    return copy(_PERSON_PAGE_MULTIPLE_BONDS_HTML)
+
+
+def _get_person_page():
+    # Make defensive copy since content is mutable
+    return copy(_PERSON_PAGE_HTML)
+
+
+def _get_front_page():
+    # Make defensive copy since content is mutable
+    return copy(_FRONT_PAGE_HTML)

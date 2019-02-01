@@ -21,8 +21,8 @@ import unittest
 from lxml import html
 from recidiviz.ingest import constants
 
-from recidiviz.ingest.models.ingest_info import IngestInfo, _Person, \
-    _Booking, _Charge, _Bond
+from recidiviz.ingest.models.ingest_info import IngestInfo, Person, \
+    Booking, Charge, Bond
 from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.vendors.superion.superion_scraper import SuperionScraper
 from recidiviz.tests.ingest import fixtures
@@ -88,68 +88,68 @@ class SuperionScraperTest(BaseScraperTest, unittest.TestCase):
 
     def test_populate_data(self):
         expected_info = IngestInfo(people=[
-            _Person(
+            Person(
                 full_name='NAME, NOPE',
                 gender='MALE',
                 age='30',
                 race='WHITE',
                 bookings=[
-                    _Booking(admission_date='9/13/2018',
-                             charges=[
-                                 _Charge(name='HABITUAL LARCENY',
-                                         status='PRE-TRIAL',
-                                         case_number='18CR84223',
-                                         next_court_date='1/25/2019',
-                                         bond=_Bond(amount='2,500.00',
-                                                    bond_type='SECURED BOND ')),
-                                 _Charge(name='HABITUAL LARCENY',
-                                         status='PRE-TRIAL',
-                                         case_number='DAVIDSON',
-                                         bond=_Bond(amount='10,000.00',
-                                                    bond_type='SECURED BOND ')),
-                                 _Charge(name='IDENTITY THEFT',
-                                         status='PRE-TRIAL',
-                                         case_number='NEW HANOVER',
-                                         bond=_Bond(amount='1,000.00',
-                                                    bond_type='SECURED BOND ')),
-                                 _Charge(name=('RESIST  DELAY  OBSTRUCT PUBLIC'
+                    Booking(admission_date='9/13/2018',
+                            charges=[
+                                 Charge(name='HABITUAL LARCENY',
+                                        status='PRE-TRIAL',
+                                        case_number='18CR84223',
+                                        next_court_date='1/25/2019',
+                                        bond=Bond(amount='2,500.00',
+                                                  bond_type='SECURED BOND ')),
+                                 Charge(name='HABITUAL LARCENY',
+                                        status='PRE-TRIAL',
+                                        case_number='DAVIDSON',
+                                        bond=Bond(amount='10,000.00',
+                                                  bond_type='SECURED BOND ')),
+                                 Charge(name='IDENTITY THEFT',
+                                        status='PRE-TRIAL',
+                                        case_number='NEW HANOVER',
+                                        bond=Bond(amount='1,000.00',
+                                                  bond_type='SECURED BOND ')),
+                                 Charge(name=('RESIST  DELAY  OBSTRUCT PUBLIC'
                                                ' OFFICER'),
-                                         status='PRE-TRIAL',
-                                         case_number='NEW HANOVER',
-                                         bond=_Bond(amount='0.00',
-                                                    bond_type='NONE SET ')),
-                                 _Charge(name='HABITUAL LARCENY',
-                                         status='PRE-TRIAL',
-                                         case_number='DAVIDSON',
-                                         bond=_Bond(amount='0.00',
-                                                    bond_type='NONE SET ')),
-                                 _Charge(name='TRESPASS (SECOND DEGREE)',
-                                         status='PRE-TRIAL',
-                                         case_number='18CR84223',
-                                         bond=_Bond(amount='0.00',
-                                                    bond_type='NONE SET ')),
-                                 _Charge(name='NO OPERATOR LICENSE',
-                                         status='PRE-TRIAL',
-                                         case_number='NEW HANOVER',
-                                         bond=_Bond(amount='0.00',
-                                                    bond_type='NONE SET ')),
-                                 _Charge(name='HABITUAL LARCENY',
-                                         status='PRE-TRIAL',
-                                         case_number='DAVIDSON',
-                                         bond=_Bond(amount='0.00',
-                                                    bond_type='NONE SET ')),
-                                 _Charge(name=('OBTAINING PROPERTY BY FALSE'
+                                        status='PRE-TRIAL',
+                                        case_number='NEW HANOVER',
+                                        bond=Bond(amount='0.00',
+                                                  bond_type='NONE SET ')),
+                                 Charge(name='HABITUAL LARCENY',
+                                        status='PRE-TRIAL',
+                                        case_number='DAVIDSON',
+                                        bond=Bond(amount='0.00',
+                                                  bond_type='NONE SET ')),
+                                 Charge(name='TRESPASS (SECOND DEGREE)',
+                                        status='PRE-TRIAL',
+                                        case_number='18CR84223',
+                                        bond=Bond(amount='0.00',
+                                                  bond_type='NONE SET ')),
+                                 Charge(name='NO OPERATOR LICENSE',
+                                        status='PRE-TRIAL',
+                                        case_number='NEW HANOVER',
+                                        bond=Bond(amount='0.00',
+                                                  bond_type='NONE SET ')),
+                                 Charge(name='HABITUAL LARCENY',
+                                        status='PRE-TRIAL',
+                                        case_number='DAVIDSON',
+                                        bond=Bond(amount='0.00',
+                                                  bond_type='NONE SET ')),
+                                 Charge(name=('OBTAINING PROPERTY BY FALSE'
                                                ' PRETENSES'),
-                                         status='PRE-TRIAL',
-                                         case_number='DAVIDSON',
-                                         bond=_Bond(amount='0.00',
-                                                    bond_type='NONE SET ')),
-                                 _Charge(name=('OBTAINING PROPERTY BY FALSE'
+                                        status='PRE-TRIAL',
+                                        case_number='DAVIDSON',
+                                        bond=Bond(amount='0.00',
+                                                  bond_type='NONE SET ')),
+                                 Charge(name=('OBTAINING PROPERTY BY FALSE'
                                                ' PRETENSES'),
-                                         status='PRE-TRIAL',
-                                         case_number='DAVIDSON',
-                                         bond=_Bond(amount='0.00',
-                                                    bond_type='NONE SET '))])])
+                                        status='PRE-TRIAL',
+                                        case_number='DAVIDSON',
+                                        bond=Bond(amount='0.00',
+                                                  bond_type='NONE SET '))])])
         ])
 
         self.validate_and_return_populate_data(_PERSON_HTML, expected_info)

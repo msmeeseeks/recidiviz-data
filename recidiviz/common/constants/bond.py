@@ -38,6 +38,7 @@ class BondStatus(MappableEnum):
     DENIED = enum_strings.bond_status_denied
     INFERRED_SET = enum_strings.bond_status_inferred_set
     NOT_REQUIRED = enum_strings.bond_status_not_required
+    PENDING = enum_strings.bond_status_pending
     POSTED = enum_strings.bond_status_posted
     SET = enum_strings.bond_status_set
     UNKNOWN_FOUND_IN_SOURCE = enum_strings.unknown_found_in_source
@@ -55,13 +56,19 @@ BOND_TYPE_MAP = {
     'HOLD WITHOUT BAIL': BondType.NO_BOND,
     'CASH': BondType.CASH,
     'CASH BOND': BondType.CASH,
+    'PURGE PAYMENT': BondType.CASH,
+    'U.S. CURRENCY': BondType.CASH,
     'N/A': BondType.NO_BOND,
     'NO BOND': BondType.NO_BOND,
     'NO BOND ALLOWED': BondType.NO_BOND,
     'NONE SET': BondType.NO_BOND,
+    'RELEASE ON RECOGNIZANCE': BondType.NO_BOND,
+    'RELEASED BY COURT': BondType.NO_BOND,
     'RELEASED ON OWN RECOGNIZANCE': BondType.NO_BOND,
     'ROR': BondType.NO_BOND,
+    'WRITTEN PROMISE': BondType.NO_BOND,
     'SECURED': BondType.SECURED,
+    'SECURE BOND': BondType.SECURED,
     'SECURED BOND': BondType.SECURED,
     'SURETY BOND': BondType.UNSECURED,
     'UNKNOWN': BondType.EXTERNAL_UNKNOWN,
@@ -79,6 +86,7 @@ BOND_STATUS_MAP = {
     'NO BOND ALLOWED': BondStatus.DENIED,
     'NONE SET': BondStatus.NOT_REQUIRED,
     'NOT REQUIRED': BondStatus.NOT_REQUIRED,
+    'PENDING': BondStatus.PENDING,
     'POSTED': BondStatus.POSTED,
     'SET': BondStatus.SET,
 }

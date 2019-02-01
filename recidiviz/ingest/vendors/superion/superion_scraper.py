@@ -37,6 +37,10 @@ import logging
 import os
 from typing import List, Optional
 
+from recidiviz.common.constants.bond import BondStatus
+from recidiviz.common.constants.charge import ChargeClass
+from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.common_utils import normalize
 from recidiviz.ingest import constants, scraper_utils
 from recidiviz.ingest.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
@@ -165,10 +169,6 @@ class SuperionScraper(BaseScraper):
         if person.age:
             person.age = person.age.strip().split()[0]
 
-        # Separate bond type and amount. Superion overloads the
-        # contents of the 'Bond Amount' field to contain both the bond
-        # type and bond amount. When there is no bond, there is no '$'
-        # character, and just the bond type.
         for booking in person.bookings:
             for charge in booking.charges:
                 if charge.bond:
@@ -183,6 +183,48 @@ class SuperionScraper(BaseScraper):
                         else:  # just a bond type, no amount
                             bond.bond_type = bond.amount
                             bond.amount = None
+
+                    # Transfer the bond type to charge status, if we
+                    # detect that the bond type field contains a charge
+                    # status enum value.
+                    if (bond.bond_type and
+                            ChargeStatus.can_parse(bond.bond_type,
+                                                   self.get_enum_overrides())):
+                        charge.status = bond.bond_type
+                        bond.bond_type = None
+
+                # Bond type is listed as 'PAID' when status is posted.
+                if bond.bond_type == 'PAID':
+                    bond.status = BondStatus.POSTED.value
+                    bond.bond_type = None
+
+                # Check for hold information in the charge.
+                hold_values = [
+                    'FEDERAL',
+                    'WRIT',
+                    'OTHER COUNTY HOUSING',
+                ]
+                if charge.status and (charge.status.upper() in hold_values):
+                    booking.create_hold(jurisdiction_name=charge.status)
+                    charge.status = None
+
+                # Bond type is listed as 'PAID' when status is posted.
+                if bond.bond_type == 'PAID':
+                    bond.status = 'POSTED'
+                    bond.bond_type = None
+
+                # Fill in charge class, if it's in the name
+                if charge.name:
+                    for charge_class in ChargeClass:
+                        # Skip searching for the string 'OTHER' in
+                        # charge name, as it's probably unrealted to
+                        # the charge class, even if it's there.
+                        if charge_class is ChargeClass.OTHER:
+                            continue
+
+                        if normalize(charge_class.value) in charge.name:
+                            charge.charge_class = charge_class.value
+                            break
 
         # Test if the release date is a projected one
         for booking in person.bookings:

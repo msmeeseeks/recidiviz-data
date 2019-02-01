@@ -71,7 +71,6 @@ class ImlScraper(BaseScraper):
         super(ImlScraper, self).__init__(region_name)
 
         self._base_endpoint = self.get_region().base_url
-        self._cookie = None
 
     def _get_next_search_page_task(self, content):
         """Returns the task needed to get the next search page.
@@ -191,13 +190,6 @@ class ImlScraper(BaseScraper):
     def get_more_tasks(self, content, task: Task) -> List[Task]:
         task_list = []
 
-        # Extract the cookie if we need to.
-        if self.is_initial_task(task.task_type):
-            cookie = self._cookie
-            self._cookie = None
-        else:
-            cookie = task.headers['Cookie']
-
         # Add the tasks for each person on this page.
         task_list.extend(self._get_person_page_tasks(content))
 
@@ -206,15 +198,7 @@ class ImlScraper(BaseScraper):
         if next_page_task:
             task_list.append(next_page_task)
 
-        # Add the cookie and the total number of people to each task.
-        task_list_with_cookie = []
-        for new_task in task_list:
-            task_list_with_cookie.append(Task.evolve(
-                new_task,
-                headers={'Cookie': cookie},
-            ))
-
-        return task_list_with_cookie
+        return task_list
 
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[ScrapedData]:
@@ -274,12 +258,10 @@ class ImlScraper(BaseScraper):
                 # Transfer the bond type to charge status, if we
                 # detect that the bond type field contains a charge
                 # status enum value.
-                try:
-                    _ = ChargeStatus.from_str(charge.bond.bond_type)
+                if ChargeStatus.can_parse(charge.bond.bond_type,
+                                          self.get_enum_overrides()):
                     charge.status = charge.bond.bond_type
                     charge.bond.bond_type = None
-                except (AttributeError, EnumParsingError):
-                    pass
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
 
@@ -302,34 +284,3 @@ class ImlScraper(BaseScraper):
                 'systemUser_includereleasedinmate2': 'N',
             }
         )
-
-    def _fetch_content(self, endpoint, response_type, headers=None,
-                       post_data=None, json_data=None):
-        """Returns the page content.
-
-        Args:
-            endpoint: the endpoint to make a request to.
-            headers: dict of headers to send in the request.
-            post_data: dict of parameters to pass into the html request.
-
-        Returns:
-            Returns the content of the page or -1.
-        """
-        logging.info('Fetching content with endpoint: %s', endpoint)
-
-        page = self.fetch_page(endpoint, headers=headers, post_data=post_data,
-                               json_data=json_data)
-        if page == -1:
-            return -1
-        try:
-            html_tree = html.fromstring(page.content)
-        except XMLSyntaxError as e:
-            logging.error("Error parsing initial page. Error: %s\nPage:\n\n%s",
-                          e, page.content)
-            return -1
-
-        # Set the cookie from the response headers if we need it.
-        if 'Set-Cookie' in page.headers:
-            self._cookie = page.headers['Set-Cookie'].split(';')[0]
-
-        return html_tree
