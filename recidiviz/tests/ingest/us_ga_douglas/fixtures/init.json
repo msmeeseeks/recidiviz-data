@@ -1,0 +1,139 @@
+{
+    "jail_cell_blocks": [
+        {
+            "active": true,
+            "description": "DCSO - 1A",
+            "id": "1"
+        },
+        {
+            "active": true,
+            "description": "DCSO - 1B",
+            "id": "2"
+        },
+        {
+            "active": true,
+            "description": "DCSO - 1C",
+            "id": "3"
+        },
+        {
+            "active": true,
+            "description": "DCSO - 1D",
+            "id": "12"
+        },
+        {
+            "active": true,
+            "description": "DCSO - 1E",
+            "id": "13"
+        },
+        {
+            "active": true,
+            "description": "DCSO - TD E",
+            "id": "34"
+        }
+    ],
+    "sexes": [
+        {
+            "?column?": true,
+            "description": "Female",
+            "id": "F"
+        },
+        {
+            "?column?": true,
+            "description": "Male",
+            "id": "M"
+        },
+        {
+            "?column?": true,
+            "description": "Not Specified",
+            "id": " "
+        },
+        {
+            "?column?": true,
+            "description": "Unknown",
+            "id": "U"
+        }
+    ],
+    "races": [
+        {
+            "active": true,
+            "description": "American Indian/Alaskan Native",
+            "id": "I"
+        },
+        {
+            "active": true,
+            "description": "Asian/Pacific Islander",
+            "id": "A"
+        },
+        {
+            "active": true,
+            "description": "Black",
+            "id": "B"
+        },
+        {
+            "active": true,
+            "description": "Not Specified",
+            "id": " "
+        },
+        {
+            "active": true,
+            "description": "Unknown",
+            "id": "U"
+        },
+        {
+            "active": true,
+            "description": "White",
+            "id": "W"
+        }
+    ],
+    "page_config": {
+        "fooid": null,
+        "available_filters": [
+            "name",
+            "race",
+            "sex",
+            "in_custody"
+        ],
+        "limit_in_custody_date": "no_limit",
+        "page_description": "Inmates",
+        "show_juveniles_with_restricted_info": "juv_age",
+        "page_text": "",
+        "show_juveniles": "false",
+        "show_hold_reasons": "true",
+        "dob_format": "age",
+        "available_columns": [
+            "name",
+            "race",
+            "sex",
+            "dob",
+            "arrest_date"
+        ],
+        "owner_agenciesid": "1"
+    },
+    "jail_agencies": [
+        {
+            "active": false,
+            "description": "A1 - A-1 BAIL BONDS",
+            "id": "69"
+        },
+        {
+            "active": true,
+            "description": "A-1 - A-1 bail bonds",
+            "id": "87"
+        },
+        {
+            "active": true,
+            "description": "AAA - AAA- BONDS",
+            "id": "86"
+        },
+        {
+            "active": false,
+            "description": "ATF - Alcohol Tobacco and Firearms",
+            "id": "28"
+        },
+        {
+            "active": false,
+            "description": "WPD - WOODSTOCK POLICE DEPT",
+            "id": "57"
+        }
+    ]
+}

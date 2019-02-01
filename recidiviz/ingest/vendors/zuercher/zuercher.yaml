@@ -1,0 +1,15 @@
+key_mappings:
+  records.name: person.full_name
+  records.dob: person.age
+  records.sex: person.gender
+  records.release_date: booking.release_date
+  records.held_for_agency: hold.jurisdiction_name
+  records.race: person.race
+  records.arrest_date: booking.admission_date
+  records.charges: charge.name
+
+keys_to_ignore:
+  - records.cell_block
+  - records.is_juvenile
+  - records.mugshot
+  - total_record_count
