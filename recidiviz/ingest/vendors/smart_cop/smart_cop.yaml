@@ -1,0 +1,30 @@
+key_mappings:
+  Status: booking.custody_status
+  Booking No: booking.booking_id
+  MniNo: person.person_id
+  Booking Date: booking.admission_date
+  Age On Booking Date: person.age
+  Address Given: person.place_of_residence
+
+css_key_mappings:
+  .SearchHeader[colspan="4"]: person.full_name
+
+multi_key_mapping:
+  # Charges table
+  STATUTE: charge.statute
+  COURT CASE NUMBER: charge.case_number
+  CHARGE: charge.name
+  DEGREE: charge.degree
+  LEVEL: charge.level
+  BOND: bond.amount
+  BOND TYPE: bond.bond_type
+  FEES: charge.fee_dollars
+
+  # Holds table
+  HOLDS: hold.jurisdiction_name
+
+keys_to_ignore:
+  - Court Information
+  - Enlarge Photo
+  - Print
+  - Load more results

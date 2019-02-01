@@ -25,9 +25,14 @@ implement the following:
 from copy import copy
 
 from lxml import html
+
+from recidiviz.common.constants.bond import BondStatus
 from recidiviz.ingest import constants
+from recidiviz.ingest.models import ingest_info
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.vendors.brooks_jeffrey.brooks_jeffrey_scraper import \
+    _parse_total_bond_if_necessary
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
@@ -44,10 +49,6 @@ _PERSON_PAGE_MULTIPLE_BONDS_HTML = html.fromstring(
 _PERSON_PAGE_NO_BOND_AVAILABLE_HTML = html.fromstring(
     fixtures.as_string('vendors/brooks_jeffrey',
                        'person_page_no_bond_available.html'))
-
-_PERSON_PAGE_SEE_JUDGE_HTML = html.fromstring(
-    fixtures.as_string('vendors/brooks_jeffrey',
-                       'person_page_see_judge.html'))
 
 
 class BrooksJeffreyScraperTest(BaseScraperTest):
@@ -133,32 +134,6 @@ class BrooksJeffreyScraperTest(BaseScraperTest):
         self.validate_and_return_populate_data(
             _get_person_page_no_bond_available(), expected_info)
 
-    def test_populate_data_must_see_judge(self):
-        expected_info = IngestInfo()
-
-        person = expected_info.create_person()
-        person.full_name = "First Middle Last"
-        person.gender = "M"
-        person.age = "100"
-        person.race = "W"
-
-        booking = person.create_booking()
-        booking.booking_id = "123"
-        booking.admission_date = "1-1-2048- 12:30 am"
-
-        charge_1 = booking.create_charge(name="Charge 1")
-        charge_1.create_bond(status="PENDING")
-        charge_2 = booking.create_charge(name="Charge 2")
-        charge_2.create_bond(status="PENDING")
-        charge_3 = booking.create_charge(name="Charge 3")
-        charge_3.create_bond(status="PENDING")
-
-        arrest = booking.create_arrest()
-        arrest.agency = "Agency"
-
-        self.validate_and_return_populate_data(
-            _get_person_page_see_judge(), expected_info)
-
     def test_populate_data_multiple_bonds(self):
         expected_info = IngestInfo()
 
@@ -185,10 +160,24 @@ class BrooksJeffreyScraperTest(BaseScraperTest):
         self.validate_and_return_populate_data(
             _get_person_page_multiple_bonds(), expected_info)
 
+    def test_parse_total_bond_denied(self):
+        booking = ingest_info.Booking(total_bond_amount='DENIED.')
+        assert _parse_total_bond_if_necessary(booking) \
+               == (None, BondStatus.DENIED)
 
-def _get_person_page_see_judge():
-    # Make defensive copy since content is mutable
-    return copy(_PERSON_PAGE_SEE_JUDGE_HTML)
+    def test_parse_total_bond_no_bond(self):
+        booking = ingest_info.Booking(total_bond_amount='No Bond.')
+        assert _parse_total_bond_if_necessary(booking) \
+               == (None, BondStatus.DENIED)
+
+    def test_parse_total_bond_must_see_judge(self):
+        booking = ingest_info.Booking(total_bond_amount='Must See Judge')
+        assert _parse_total_bond_if_necessary(booking) \
+               == (None, BondStatus.PENDING)
+
+    def test_parse_total_bond_multiple_bonds(self):
+        booking = ingest_info.Booking(total_bond_amount='500 \n 600')
+        assert _parse_total_bond_if_necessary(booking) == (['500', '600'], None)
 
 
 def _get_person_page_no_bond_available():

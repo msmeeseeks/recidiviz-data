@@ -26,7 +26,7 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 
 import recidiviz.common.constants.enum_canonical_strings as enum_strings
 from recidiviz.ingest.aggregate import aggregate_ingest_utils
-from recidiviz.ingest.aggregate.Errors import AggregateDateParsingError
+from recidiviz.ingest.aggregate.errors import AggregateDateParsingError
 from recidiviz.persistence.database.schema import GaCountyAggregate
 
 DATE_PARSE_ANCHOR = 'DATA SUMMARY'
@@ -94,7 +94,7 @@ def _parse_table(filename: str) -> pd.DataFrame:
         lattice=use_lattice,
         pandas_options={
             'names': column_names,
-            'skiprows': _every_43,  # Skip header rows at the top of each page
+            'skiprows': _header_on_each_page,
             'skipfooter': 1  # The last row is the grand totals
         })
 
@@ -115,5 +115,6 @@ def _parse_table(filename: str) -> pd.DataFrame:
     return result
 
 
-def _every_43(index: int) -> bool:
+def _header_on_each_page(index: int) -> bool:
+    # Every 43rd row is the header on a new page
     return index % 43 == 0

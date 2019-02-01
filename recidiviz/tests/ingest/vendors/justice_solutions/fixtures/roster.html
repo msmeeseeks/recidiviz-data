@@ -1,0 +1,98 @@
+<html>
+<body>
+<center>
+    <select id="SortName" name="SortName">
+        <option value=""></option>
+        <option value="INFO_7"
+        >Age
+        </option>
+        <option value="BOOK_DTE"
+        >Booking Date (On or After)
+        </option>
+        <option value="INFO_3"
+        >Booking Date (On or Before)
+        </option>
+        <option value="@ID"
+        >Booking Number
+        </option>
+        <option value="CHRG.DESC"
+        >Charge (Offense)
+        </option>
+        <option value="INFO_5"
+                selected
+        >Name
+        </option>
+        <option value="INFO_8"
+        >Race
+        </option>
+        <option value="INFO_13"
+        >Sex (M or F)
+        </option>
+        <option value="INFO_2"
+        >S.O. Number
+        </option>
+    </select>
+    <input type=text onkeypress="EnterPressed(event);" value="" name="SortValue"
+           id="SortValue">
+    <input type=hidden value="INFO_5" name="SortBy" id="SortBy">
+    <input type=hidden value="DESC" name="SortDirection" id="SortDirection">
+    <input type=hidden value="/GSASYS/CLIENTS/HOSTED.POLK_WEB.CRIME"
+           name="AccPth" id="AccPth">
+    <input type=hidden value="inq_polk.css" name="cssId" id="cssId">
+    <input type="button" onClick="loadTheData();" value="Search">
+    <br>
+    <table id="InmateList" name="InmateList" class="InmateList">
+        <tr class="DataRowHeader">
+            <td class="NameField"
+                onClick="SortData('INFO_5','1');">Name
+            </td>
+            <td
+                    onClick="SortData('INFO_3','0');">Booking Date
+            </td>
+            <td
+                    onClick="SortData('INFO_7','0');">Age
+            </td>
+            <td
+                    onClick="SortData('INFO_8','0');">Race
+            </td>
+            <td
+                    onClick="SortData('INFO_13','0');">Sex
+            </td>
+        <tr class="DataRowOdd" onClick="LoadInmateData('18-0123');">
+            <td class="NameField">
+                ART,DIMPSON
+            </td>
+            <td>
+                01/01/1111
+            </td>
+            <td>
+                51
+            </td>
+            <td>
+                W
+            </td>
+            <td>
+                M
+            </td>
+        </tr>
+        <tr class="DataRowEven" onClick="LoadInmateData('18-0456');">
+            <td class="NameField">
+                BART,SIMPSON
+            </td>
+            <td>
+                02/02/2222
+            </td>
+            <td>
+                38
+            </td>
+            <td>
+                W
+            </td>
+            <td>
+                M
+            </td>
+        </tr>
+    </table>
+    <center>
+</body>
+</html>
