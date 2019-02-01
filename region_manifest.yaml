@@ -194,7 +194,6 @@ regions:
     queue: us-nc-buncombe-scraper
     base_url: https://bcsdp2c.buncombecounty.org
     scraper_package: us_nc_buncombe
->>>>>>> master
     timezone: America/New_York
   us_ms_desoto:
     agency_name: Desoto county

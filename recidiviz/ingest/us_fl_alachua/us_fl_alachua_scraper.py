@@ -18,13 +18,14 @@
 """Scraper implementation for us_fl_alachua."""
 from typing import Optional, List
 
+from recidiviz.common.constants.charge import ChargeDegree
 from recidiviz.ingest.html_5_base_scraper import Html5BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest import constants
 import os
 import logging
 
-from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.models.ingest_info import IngestInfo, Bond, Hold
 from recidiviz.ingest.task_params import Task, ScrapedData
 
 
@@ -41,107 +42,53 @@ class UsFlAlachuaScraper(Html5BaseScraper):
     def set_initial_vars(self, content, params):
         pass
 
-    # def populate_data(self, content, params, ingest_info):
-    #     data_extractor = HtmlDataExtractor(self.mapping_filepath)
-    #     ingest_info = data_extractor.extract_and_populate_data(content,
-    #                                                            ingest_info)
-    #
-    #     for person in ingest_info.people:
-    #         if len(person.bookings) != 1 or len(person.bookings[0].charges) > 1:
-    #             logging.error("Data extraction did not produce a single "
-    #                           "booking with at most one charge, as it should")
-    #         if person.bookings[0].charges:
-    #             print("person.bookings")
-    #             print(person.bookings)
-    #             # sometime there isn't a charge name if the case table doesn't exist on the page
-    #             for i in range(0, len(person.bookings[0].charges)):
-    #                 print(i)
-    #                 print(person.bookings[0].charges[i])
-    #                 if person.bookings[0].charges[i].name:
-    #                     charge_names = person.bookings[0].charges[i].name.split('\n')
-    #                     # person.bookings[0].charges = []
-    #                     for charge_name in charge_names:
-    #                         person.bookings[0].create_charge(name=charge_name)
-    #         else:
-    #             logging.error("there is no bookings table in %s, the following is the ingest info: %s",
-    #                           content, ingest_info)
-    #     return ScrapedData(ingest_info = ingest_info)
-    # MOST RECENT COMMENT
-    # def populate_data(self, content, task: Task,
-    #                   ingest_info: IngestInfo) -> Optional[ScrapedData]:
-    #
-    #     data_extractor = HtmlDataExtractor(self.mapping_filepath)
-    #     ingest_info = data_extractor.extract_and_populate_data(content,
-    #                                                            ingest_info)
-    #
-    #     print("ingest_info")
-    #     print(ingest_info)
-
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[ScrapedData]:
         tables = content.xpath('//table')
         person_table, charge_tables = tables[0], tables[1:]
-
         extractor = HtmlDataExtractor(self.mapping_filepath)
+
         person_info = extractor.extract_and_populate_data(person_table,
                                                           ingest_info)
-
+        person_info.people[0].create_booking()
+        hold_federal = extractor.get_value('Federal')
+        hold_other = extractor.get_value('Other County')
+        hold_bool = extractor.get_value('Hold')
+        hold = 'No'
+        if hold_federal=='Y':
+            hold = 'Federal'
+        elif hold_other=='Y':
+            hold = 'Other County'
+        elif hold_bool=='Y':
+            hold = 'Unknown'
+        if hold != 'No':
+            hold = Hold(jurisdiction_name = hold)
+            person_info.people[0].bookings[0].holds.append(hold)
+        person_info.people[0].bookings[0].admission_date = task.custom['Booking Date']
         for charge_table in charge_tables:
             charges_info = extractor.extract_and_populate_data(charge_table)
-            bond = extractor.get_value('Bond Amount')
+            bond_amount = extractor.get_value('Bond Amount')
+            bond = Bond(amount= bond_amount)
             agency = extractor.get_value('Agency')
             status = extractor.get_value('Status')
             case_no = extractor.get_value('Case #')
+            if not charges_info:
+                continue
             for charge in charges_info.people[0].bookings[0].charges:
-                charge.create_bond(amount=bond)
+                if charge.charge_class == 'C':
+                    charge.charge_class = None
+                if charge.degree and not ChargeDegree.can_parse(charge.degree, self.get_enum_overrides()):
+                    charge.level = charge.degree
+                    charge.degree = None
+                charge.bond = bond
                 charge.charging_entity = agency
                 charge.status = status
                 charge.case_number = case_no
                 person_info.people[0].bookings[0].charges.append(charge)
-
-
-        # for person in ingest_info.people:
-        #     if len(person.bookings) != 1 or len(person.bookings[0].charges) > 1:
-        #         logging.error("Data extraction did not produce a single "
-        #                       "booking with at most one charge, as it should")
-        #     # for i in range(0, len(person.bookings)):
-        #     #     if person.bookings[i].charges:
-        #     #         for j in range(0, len(person.bookings[i].charges)):
-        #     #             charge_name = person.bookings[i].charges[j].name
-        #     #             if charge_name:
-        #     #                 person.bookings[i].crea
-        #     #             if charge_names_raw:
-        #     #                 charge_names = charge_names_raw.split('\n')
-        #     #                 person.bookings[i].charges = []
-        #     #                 for charge_name in charge_names:
-        #     #                     person.bookings[i].create_charge(name=charge_name)
-
         return ScrapedData(ingest_info=ingest_info, persist=True)
-
-    # def get_more_tasks(self, content, task: Task):
-    #     """
-    #     Gets more tasks based on the content and params passed in.  This
-    #     function should determine which task params, if any, should be
-    #     added to the queue
-    #
-    #     Args:
-    #         content: An lxml html tree.
-    #         taks: object of parameters passed from the last scrape session.
-    #
-    #     Returns:
-    #         A list of params containing endpoint and task_type at minimum.
-    #     """
-    #     task_type = task.task_type
-    #     params_list = []
-    #     if self.is_initial_task(task_type) or self.should_get_more_tasks(
-    #             task_type):
-    #         content.make_links_absolute(self.region.base_url)
-    #         params_list.extend(self._get_person_params(content))
-    #     return params_list
 
     def get_more_tasks(self, content, task: Task) -> List[Task]:
         content.make_links_absolute(self.get_region().base_url)
-
         params_list = []
         params_list.extend(self._get_person_tasks(content))
         params_list.extend(self._get_next_page_if_exists_tasks(content))
@@ -161,27 +108,17 @@ class UsFlAlachuaScraper(Html5BaseScraper):
             ))
         return task_list
 
-    # def _get_person_params(self, content):
-    #     links = content.xpath('//a')
-    #     person_links = [link.xpath('./@href')[0] for link in links if link.text_content() != "Image"]
-    #     params_list = []
-    #     for person_link in person_links:
-    #         params_list.append(
-    #             Task(endpoint = person_link, task_type=constants.TaskType.SCRAPE_DATA)
-    #         )
-    #     return params_list
-
     def _get_person_tasks(self, content) -> List[Task]:
-        links = content.xpath('//a')
-        person_links = [link.xpath('./@href')[0] for link in links if link.text_content() != "Image"]
         task_list = []
-        for person_link in person_links:
+        for row in content.xpath('//tr')[1:]:
+            person_link = row[0][0].xpath('./@href')[0]
+            booking_date = [row[2].text][0]
             task_list.append(Task(
                 task_type=constants.TaskType.SCRAPE_DATA,
                 endpoint=person_link,
+                custom = {'Booking Date': booking_date}
             ))
         return task_list
 
-
     def get_enum_overrides(self):
-        return {'C': None, 'L': None}
+        return {'N': None, 'F': ChargeDegree.FIRST, 'S': ChargeDegree.SECOND, 'T': ChargeDegree.THIRD}
