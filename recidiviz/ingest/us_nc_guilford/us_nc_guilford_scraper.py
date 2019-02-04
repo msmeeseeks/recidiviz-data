@@ -31,10 +31,7 @@ class UsNcGuilfordScraper(SuperionScraper):
 
     def get_enum_overrides(self):
         return {
-            '': BondType.NO_BOND,
             'CUSTODY RELEASE': BondType.NO_BOND,
-            'FEDERAL INMATE': None,  # TODO remove after #542 is addressed.
-            'IMMIGRATION': None,  # TODO remove after #542 is addressed.
             'PAROLE HEARING PENDING': ChargeStatus.PENDING,
             'PRE-SENTENCED QUICK DIPS': ChargeStatus.SENTENCED,
             'RELEASE PER JUDGE': ChargeStatus.DROPPED,

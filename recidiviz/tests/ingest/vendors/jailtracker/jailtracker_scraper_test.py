@@ -24,7 +24,7 @@ implement the following:
         return RegionScraper()
 """
 
-import unittest
+import abc
 from lxml import html
 
 from recidiviz.ingest import constants
@@ -37,7 +37,8 @@ _LANDING_HTML = html.fromstring(
     fixtures.as_string('vendors/jailtracker', 'landing_page.html'))
 _ROSTER_JSON = fixtures.as_dict('vendors/jailtracker', 'roster.json')
 _PERSON_PROBATION_JSON = fixtures.as_dict('vendors/jailtracker', 'person.json')
-_PERSON_AGENCIES_JSON = fixtures.as_dict('vendors/jailtracker', 'person_agencies.json')
+_PERSON_AGENCIES_JSON = fixtures.as_dict('vendors/jailtracker',
+                                         'person_agencies.json')
 _CHARGES_JSON = fixtures.as_dict('vendors/jailtracker', 'charges.json')
 
 
@@ -45,8 +46,10 @@ class JailTrackerScraperTest(BaseScraperTest):
 
     SESSION_TOKEN = 'y1n3ohdxid0gx02sgu3o1vsx'
 
+    @abc.abstractmethod
     def _get_scraper(self):
-        raise NotImplementedError
+        """Gets the child vendor scraper type.
+        """
 
     def _init_scraper_and_yaml(self):
         # The scraper to be tested. Required.

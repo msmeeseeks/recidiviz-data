@@ -201,8 +201,10 @@ class SuperionScraper(BaseScraper):
                 # Check for hold information in the charge.
                 hold_values = [
                     'FEDERAL',
-                    'WRIT',
+                    'FEDERAL INMATE',
+                    'IMMIGRATION',
                     'OTHER COUNTY HOUSING',
+                    'WRIT',
                 ]
                 if charge.status and (charge.status.upper() in hold_values):
                     booking.create_hold(jurisdiction_name=charge.status)

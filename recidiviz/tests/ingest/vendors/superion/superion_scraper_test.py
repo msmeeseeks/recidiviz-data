@@ -14,10 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
-"""Scraper tests for us_pa_greene."""
+"""Scraper tests for the Superion vendor.
 
-import unittest
+Any region scraper test class that inherits from SuperionScraperTest must
+implement the following:
 
+    def _get_scraper(self):
+        return RegionScraper()
+"""
+
+import abc
 from lxml import html
 from recidiviz.ingest import constants
 
@@ -36,16 +42,22 @@ _PERSON_HTML = html.fromstring(
     fixtures.as_string('vendors/superion', 'person_page.html'))
 
 
-class SuperionScraperTest(BaseScraperTest, unittest.TestCase):
+class SuperionScraperTest(BaseScraperTest):
     """Scraper tests for the Superion vendor scraper."""
 
+    @abc.abstractmethod
+    def _get_scraper(self):
+        """Gets a child superion scraper child object.
+        """
+
     def _init_scraper_and_yaml(self):
-        self.scraper = SuperionScraper('us_nc_guilford')
+        # The scraper to be tested. Required.
+        self.scraper = self._get_scraper()
         self.yaml = None
 
     def test_get_num_people(self):
         expected_result = [Task(
-            endpoint='http://p2c.guilfordcountysheriff.com/jailinmates.aspx',
+            endpoint=self.scraper._session_endpoint,
             task_type=constants.TaskType.GET_MORE_TASKS,
             custom={
                 'num_people': 916,
