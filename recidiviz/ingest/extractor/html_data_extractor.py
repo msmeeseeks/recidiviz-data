@@ -152,7 +152,7 @@ class HtmlDataExtractor(DataExtractor):
         """Cleans up the provided content."""
         # Remove <script> elements
         _remove_from_content(content, '//script')
-        # _remove_from_content(content, '//comment()')
+        _remove_from_content(content, '//comment()')
         # for script in content.xpath('//script'):
         #     parent = script.getparent()
         #     if parent is not None:
