@@ -306,13 +306,7 @@ class UsNyScraper(BaseScraper):
 
         sentence_extractor = HtmlDataExtractor(self.sentence_mapping_filepath)
         sentence_info = sentence_extractor.extract_and_populate_data(content)
-        if len(sentence_info.people) != 1 or \
-                len(sentence_info.people[0].bookings) != 1 or \
-                len(sentence_info.people[0].bookings[0].charges) != 1 or \
-                sentence_info.people[0].bookings[0].charges[0].sentence is None:
-            logging.error("Data extraction did not produce a single "
-                          "sentence, as it should")
-        sentence = sentence_info.people[0].bookings[0].charges[0].sentence
+        sentence = scraper_utils.one('sentence', sentence_info)
 
         # Handle empty sentence lengths.
         empty_length = 'Years,Months,Days'
