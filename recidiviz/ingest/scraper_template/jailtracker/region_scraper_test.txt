@@ -15,13 +15,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper tests for us_in_vigo."""
+"""Scraper tests for ${region}."""
 import unittest
 
-from recidiviz.ingest.us_in_vigo.us_in_vigo_scraper import UsInVigoScraper
+from recidiviz.ingest.${region}.${region}_scraper import ${class_name}Scraper
 from recidiviz.tests.ingest.vendors.jailtracker.jailtracker_scraper_test import \
     JailTrackerScraperTest
 
-class TestUsInVigoScraper(JailTrackerScraperTest, unittest.TestCase):
+
+class Test${class_name}Scraper(JailTrackerScraperTest, unittest.TestCase):
     def _get_scraper(self):
-        return UsInVigoScraper()
+        return ${class_name}Scraper()
