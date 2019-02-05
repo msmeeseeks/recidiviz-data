@@ -30,8 +30,6 @@ from recidiviz.tests.ingest.vendors.zuercher.zuercher_scraper_test import \
 
 _INIT_JSON = fixtures.as_dict('us_ga_douglas', 'init.json')
 _LOAD_JSON = fixtures.as_dict('us_ga_douglas', 'load.json')
-_LOAD_JSON_INVALID_SUFFIX = fixtures.as_dict('us_ga_douglas',
-                                             'load.invalid_suffix.json')
 
 
 class TestUsGaDouglasScraper(ZuercherScraperTest, unittest.TestCase):
@@ -204,8 +202,3 @@ class TestUsGaDouglasScraper(ZuercherScraperTest, unittest.TestCase):
         charge.offense_date = '01/10/2019'
 
         self.validate_and_return_populate_data(_LOAD_JSON, expected_info)
-
-    def test_populate_data_invalid_suffix(self):
-        with self.assertRaises(ValueError):
-            self.validate_and_return_populate_data(_LOAD_JSON_INVALID_SUFFIX,
-                                                   IngestInfo())

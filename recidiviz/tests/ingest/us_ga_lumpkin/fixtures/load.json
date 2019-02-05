@@ -1,0 +1,44 @@
+{
+    "records": [
+        {
+            "name": "CHARGES, BASIC",
+            "dob": 21,
+            "is_juvenile": false,
+            "sex": "Male",
+            "cell_block": "A",
+            "release_date": "",
+            "held_for_agency": "",
+            "race": "White",
+            "arrest_date": "2019-01-19",
+            "mugshot": "",
+            "hold_reasons": "Warrant: Arrest warrant 18-526A,B,C issued by Lumpkin County, GA (42-8-38 - Probation Violation); Arrest Date 01/19/2019;"
+        },
+        {
+            "name": "CHARGES, UNSPECIFIED KEY",
+            "dob": 62,
+            "is_juvenile": false,
+            "sex": "Male",
+            "cell_block": "A",
+            "release_date": "",
+            "held_for_agency": "",
+            "race": "White",
+            "arrest_date": "2019-01-18",
+            "mugshot": "",
+            "hold_reasons": "19-13-6 - ; Arrest Date 12/29/1999; Bond - Other, $1050.00;"
+        },
+        {
+            "name": "HOLD, NEW TYPE",
+            "dob": 32,
+            "is_juvenile": false,
+            "sex": "Male",
+            "cell_block": "A",
+            "release_date": "",
+            "held_for_agency": "",
+            "race": "White",
+            "arrest_date": "2019-01-08",
+            "mugshot": "",
+            "hold_reasons": "DRC Sanction for Lumpkin County Sheriff's Office; Arrest Date 02/01/2019;"
+        }
+    ],
+    "total_record_count": 3
+}

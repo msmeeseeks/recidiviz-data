@@ -15,31 +15,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper implementation for us_ga_douglas."""
-from recidiviz.common.constants.bond import BondType
-from recidiviz.common.constants.charge import ChargeStatus
+"""Scraper implementation for us_ga_lumpkin."""
 from recidiviz.ingest.vendors.zuercher.zuercher_scraper import ZuercherScraper
 
 
-class UsGaDouglasScraper(ZuercherScraper):
-    """Scraper implementation for us_ga_douglas."""
+class UsGaLumpkinScraper(ZuercherScraper):
+    """Scraper implementation for us_ga_lumpkin."""
 
-    WARRANT_KEY = 'Warrant Charge:'
-    UNSPECIFIED_WARRANT_KEY = 'Warrant:'
+    CHARGE_KEY = 'Citation:'
+
+    BOARDER_KEY = 'Housed'
 
     def __init__(self):
-        super(UsGaDouglasScraper, self).__init__(region_name='us_ga_douglas')
+        super(UsGaLumpkinScraper, self).__init__(region_name='us_ga_lumpkin')
 
     @staticmethod
     def get_jurisdiction_name():
-        return 'Douglas County, GA'
-
-    def get_enum_overrides(self):
-        return {
-            **super(UsGaDouglasScraper, self).get_enum_overrides(),
-            # Charge Statuses
-            'NEG PLEA': ChargeStatus.PRETRIAL,
-
-            # Bond Types
-            'BONDING COMPANY': BondType.UNSECURED,
-        }
+        return 'Lumpkin County, GA'

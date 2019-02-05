@@ -146,7 +146,14 @@ class TestUsGaFloydScraper(ZuercherScraperTest, unittest.TestCase):
             race='White',
             bookings=[Booking(
                 admission_date='2018-12-05',
-                # Here we lose the arrest date of 10/16/2018 and the re-book.
+                charges=[Charge(
+                    offense_date='10/16/2018',
+                    name='RE-BOOK for Floyd County Sheriff\'s Office',
+                    bond=Bond(
+                        bond_type='No Bond',
+                    ),
+                ),],
+                # Here we lose the arrest date of 10/16/2018.
                 holds=[Hold(
                     jurisdiction_name='Georgia Department of Corrections',
                 ),],

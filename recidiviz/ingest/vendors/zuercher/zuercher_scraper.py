@@ -33,7 +33,7 @@ import html
 import os
 import re
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 import pytz
 
@@ -55,11 +55,13 @@ class ZuercherScraper(BaseScraper):
 
     # Start of line keys
     CHARGE_KEY = 'Charge:'
+    COURT_ORDER_KEY = 'Court Order:'
+    DRUG_COURT_SANCTION_KEY = 'Drug Court Sanction:'
+
     WARRANT_KEY = 'Warrant:'
     PROBATION_REVOCATION_KEY = 'Probation Revocation:'
 
     UNSPECIFIED_WARRANT_KEY = 'Unspecified Warrant:'
-    COURT_ORDER_KEY = 'Court Order:'
     FELONY_PROBATION_KEY = 'Probation-F'
     PAROLE_KEY = 'Parole'
     SENTENCED_KEY = 'Sentenced:'
@@ -72,6 +74,7 @@ class ZuercherScraper(BaseScraper):
     EXTRADITION_KEY = 'Extraditon'  # Missing 'i' is purposeful
     BOARDER_KEY = 'Boarder'
     RE_BOOK_KEY = 'RE-BOOK'
+    DRC_SANCTION_KEY = 'DRC Sanction'  # Day Reporting Center
 
     # Middle of line keys
     ARREST_DATE_KEY = 'Arrest Date'
@@ -84,6 +87,16 @@ class ZuercherScraper(BaseScraper):
 
     def __init__(self, region_name):
         super(ZuercherScraper, self).__init__(region_name)
+        self.plain_charge_keys = {
+            self.CHARGE_KEY, self.COURT_ORDER_KEY, self.DRUG_COURT_SANCTION_KEY,
+        }
+        self.warrant_with_charge_keys = {
+            self.WARRANT_KEY, self.PROBATION_REVOCATION_KEY,
+        }
+        self.hold_keys = {
+            self.BOARDER_KEY, self.ADDITIONAL_HOLD_KEY, self.HOLD_KEY,
+            self.EXTRADITION_KEY, self.DRC_SANCTION_KEY, self.RE_BOOK_KEY,
+        }
 
     @staticmethod
     @abc.abstractmethod
@@ -180,140 +193,94 @@ class ZuercherScraper(BaseScraper):
 
         # Split the charge on ';', strip any whitespace, and filter out any
         # empty strings.
-        charge_kvs = list(filter(None, map(str.strip, charge_text.split(';'))))
+        first_kv, *later_kvs = filter(None, map(str.strip,
+                                                charge_text.split(';')))
 
-        # Sometimes a ';' ends up in the charge description. To handle this we
-        # iterate backwards and if we don't recognize information we keep it
-        # around and stick it in the charge description.
-        suffix = ''
-        for charge_kv in reversed(charge_kvs):
-            suffix_added = False
-            if (charge_kv.startswith(self.CHARGE_KEY) or
-                    charge_kv.startswith(self.COURT_ORDER_KEY)):
-                if suffix:
-                    charge_kv += suffix
-                    suffix = ''
-
-                if charge_kv.startswith(self.CHARGE_KEY):
-                    key = self.CHARGE_KEY
-                elif charge_kv.startswith(self.COURT_ORDER_KEY):
-                    key = self.COURT_ORDER_KEY
-                charge_info = charge_kv[len(key):].strip()
-
-                self._parse_charge(charge_info, charge)
-
-            elif (charge_kv.startswith(self.WARRANT_KEY) or
-                  charge_kv.startswith(self.PROBATION_REVOCATION_KEY)):
-                if suffix:
-                    charge_kv += suffix
-                    suffix = ''
-
-                if charge_kv.startswith(self.WARRANT_KEY):
-                    key = self.WARRANT_KEY
-                elif charge_kv.startswith(self.PROBATION_REVOCATION_KEY):
-                    key = self.PROBATION_REVOCATION_KEY
-                charge_info = charge_kv[len(key):].strip()
-
-                warrant_info, charge_info = charge_info.split('(', maxsplit=1)
-                charge_info = charge_info[:-1]
-
-                _, jurisdiction = _split_by_substring(warrant_info, 'issued by')
-                if (jurisdiction and
-                        self.get_jurisdiction_name() not in jurisdiction):
-                    # If it is a different jurisdiction, get rid of the charge
-                    # info and just create a hold.
-                    _clear_charge(charge)
-                    booking.create_hold(jurisdiction_name=jurisdiction)
-                else:
-                    self._parse_charge(charge_info, charge)
-                    charge.charge_notes = warrant_info.strip()
-            elif charge_kv.startswith(self.SENTENCED_KEY):
-                if suffix:
-                    charge_kv += suffix
-                    suffix = ''
-
-                charge_info = charge_kv[len(self.SENTENCED_KEY):].strip()
-                self._parse_charge(charge_info, charge)
-
-                charge.status = 'SENTENCED'
-            elif charge_kv.startswith(self.BONDSMAN_OFF_BOND_KEY):
-                # Note: Must be placed above BOND_KEY check.
-                # Skip these
-                _clear_charge(charge)
-            elif charge_kv.startswith(self.UNSPECIFIED_WARRANT_KEY):
-                if 'Unspecified' not in charge_kv:
-                    raise ValueError(
-                        'Unexpected warrant: "{}"'.format(charge_kv))
-                charge.name = charge_kv
-            elif charge_kv.startswith(self.WEEKENDER_SENTENCE_KEY):
-                info = charge_kv[len(self.WEEKENDER_SENTENCE_KEY):]
-                length, _relationship_type = map(str.strip, info.split(' - '))
-                if length.startswith('Serving'):
-                    length = length[len('Serving'):].strip()
-
-                # TODO(#441): Add sentence relationship once in `IngestInfo`
-                charge.create_sentence(min_length=length, max_length=length)
-                print(charge)
-            elif charge_kv.startswith(self.ARREST_DATE_KEY):
-                charge.offense_date = charge_kv[len(
-                    self.ARREST_DATE_KEY):].strip()
-            elif charge_kv.startswith(self.BOND_KEY):
-                _parse_bond(charge_kv, booking, charge)
-            elif charge_kv.startswith(self.SET_BY_KEY):
-                set_by = charge_kv[len(self.SET_BY_KEY):].strip()
+        for kv in later_kvs:
+            if _starts_with_key(kv, {self.ARREST_DATE_KEY}):
+                charge.offense_date = _skip_key_prefix(kv,
+                                                       {self.ARREST_DATE_KEY})
+            elif _starts_with_key(kv, {self.BOND_KEY}):
+                _parse_bond(kv, booking, charge)
+            elif _starts_with_key(kv, {self.SET_BY_KEY}):
+                set_by = _skip_key_prefix(kv, {self.SET_BY_KEY})
                 if set_by.startswith('Judge'):
                     judge_name = set_by[len('Judge'):].strip()
                     if judge_name:
                         charge.judge_name = judge_name
-            elif charge_kv.startswith(self.OTHER_KEY):
-                # Skip 'Other' charges but ensure they are related to our county
-                if self.get_region().agency_name not in charge_kv:
-                    raise ValueError(
-                        'Unexpected other charge: "{}"'.format(charge_kv))
-                _clear_charge(charge)
-            elif (charge_kv.startswith(self.BOARDER_KEY) or
-                  charge_kv.startswith(self.ADDITIONAL_HOLD_KEY) or
-                  charge_kv.startswith(self.HOLD_KEY) or
-                  charge_kv.startswith(self.EXTRADITION_KEY) or
-                  charge_kv.startswith(self.RE_BOOK_KEY)):
-                if charge_kv.startswith(self.BOARDER_KEY):
-                    key = self.BOARDER_KEY
-                elif charge_kv.startswith(self.ADDITIONAL_HOLD_KEY):
-                    key = self.ADDITIONAL_HOLD_KEY
-                elif charge_kv.startswith(self.HOLD_KEY):
-                    key = self.HOLD_KEY
-                elif charge_kv.startswith(self.EXTRADITION_KEY):
-                    key = self.EXTRADITION_KEY
-                elif charge_kv.startswith(self.RE_BOOK_KEY):
-                    key = self.RE_BOOK_KEY
-                hold_info = charge_kv[len(key):]
-                _jurisdiction_type, jurisdiction_name = _split_by_substring(
-                    hold_info, 'for')
-                # Only create a hold if it is for a different jurisdiction
-                if (jurisdiction_name and
-                        self.get_region().agency_name not in jurisdiction_name):
-                    booking.create_hold(jurisdiction_name=jurisdiction_name)
-                _clear_charge(charge)
-            elif charge_kv.startswith(self.PAROLE_KEY):
-                if self.get_region().agency_name not in charge_kv:
-                    raise ValueError(
-                        'Unexpected parole violation: "{}"'.format(charge_kv))
-                charge.name = charge_kv
-            elif charge_kv.startswith(self.FELONY_PROBATION_KEY):
-                if 'Unspecified' not in charge_kv:
-                    raise ValueError(
-                        'Unexpected felony parole: "{}"'.format(charge_kv))
-                charge.name = charge_kv
             else:
-                suffix = '; ' + charge_kv + suffix
-                suffix_added = True
+                # If it doesn't match, then a ';' was in the charge description
+                # so add it back to the first.
+                first_kv += '; ' + kv
 
-            if suffix and not suffix_added:
-                break
+        if _starts_with_key(first_kv, self.plain_charge_keys):
+            charge_info = _skip_key_prefix(first_kv, self.plain_charge_keys)
+            self._parse_charge(charge_info, charge)
+        elif _starts_with_key(first_kv, self.warrant_with_charge_keys):
+            info = _skip_key_prefix(first_kv, self.warrant_with_charge_keys)
+            warrant_info, [charge_info] = _paren_tokenize(info)
 
-        if suffix:
-            raise ValueError('Suffix "{}" was not used: "{}"'.format(
-                suffix, charge_text))
+            _, jurisdiction = _split_by_substring(warrant_info, 'issued by')
+            if (jurisdiction and
+                    self.get_jurisdiction_name() not in jurisdiction):
+                # If it is a different jurisdiction, get rid of the charge
+                # info and just create a hold.
+                _clear_charge(charge)
+                booking.create_hold(jurisdiction_name=jurisdiction)
+            else:
+                self._parse_charge(charge_info, charge)
+                charge.charge_notes = warrant_info.strip()
+        elif _starts_with_key(first_kv, {self.SENTENCED_KEY}):
+            charge_info = _skip_key_prefix(first_kv, {self.SENTENCED_KEY})
+            self._parse_charge(charge_info, charge)
+            charge.status = 'SENTENCED'
+        elif _starts_with_key(first_kv, {self.BONDSMAN_OFF_BOND_KEY}):
+            # Note: Must be placed above BOND_KEY check.
+            # Skip these
+            _clear_charge(charge)
+        elif _starts_with_key(first_kv, {self.UNSPECIFIED_WARRANT_KEY}):
+            if 'Unspecified' not in first_kv:
+                raise ValueError(
+                    'Unexpected warrant: "{}"'.format(first_kv))
+            charge.name = first_kv
+        elif _starts_with_key(first_kv, {self.WEEKENDER_SENTENCE_KEY}):
+            info = _skip_key_prefix(first_kv, {self.WEEKENDER_SENTENCE_KEY})
+            length, _relationship_type = map(str.strip, info.split(' - '))
+            if length.startswith('Serving'):
+                length = length[len('Serving'):].strip()
+
+            # TODO(#441): Add sentence relationship once in `IngestInfo`
+            charge.create_sentence(min_length=length, max_length=length)
+        elif _starts_with_key(first_kv, {self.OTHER_KEY}):
+            # Skip 'Other' charges but ensure they are related to our county
+            if self.get_region().agency_name not in first_kv:
+                raise ValueError(
+                    'Unexpected other charge: "{}"'.format(first_kv))
+            _clear_charge(charge)
+        elif _starts_with_key(first_kv, self.hold_keys):
+            hold_info = _skip_key_prefix(first_kv, self.hold_keys)
+            _jurisdiction_type, jurisdiction_name = _split_by_substring(
+                hold_info, 'for')
+            # Only create a hold if it is for a different jurisdiction
+            if (jurisdiction_name and
+                    self.get_region().agency_name not in jurisdiction_name):
+                booking.create_hold(jurisdiction_name=jurisdiction_name)
+                _clear_charge(charge)
+            else:
+                charge.name = first_kv
+        elif _starts_with_key(first_kv, {self.PAROLE_KEY}):
+            if self.get_region().agency_name not in first_kv:
+                raise ValueError(
+                    'Unexpected parole violation: "{}"'.format(first_kv))
+            charge.name = first_kv
+        elif _starts_with_key(first_kv, {self.FELONY_PROBATION_KEY}):
+            if 'Unspecified' not in first_kv:
+                raise ValueError(
+                    'Unexpected felony parole: "{}"'.format(first_kv))
+            charge.name = first_kv
+        else:
+            # If we don't know what it is then just parse it as a charge.
+            self._parse_charge(first_kv, charge)
 
     def _parse_charge(self, charge_info: str, charge: Charge):
         """Parse out the information from `charge_info` to fill `charge`."""
@@ -379,12 +346,29 @@ class ZuercherScraper(BaseScraper):
 
     def get_enum_overrides(self):
         return {
+            # Races
+            'NOT SPECIFIED': None,
+
             # Charge Classes
             'MISD': ChargeClass.MISDEMEANOR,
 
             # Bond Types
             'CASH ONLY': BondType.CASH,
+            'OTHER': None,
         }
+
+def _starts_with_key(text: str, keys: Set[str]) -> bool:
+    for key in keys:
+        if re.match(key, text, re.I):
+            return True
+    return False
+
+def _skip_key_prefix(text: str, keys: Set[str]) -> str:
+    for key in keys:
+        if re.match(key, text, re.I):
+            return text[len(key):].strip()
+    raise ValueError(
+        'Text "{}" does not start with any key: {}'.format(text, keys))
 
 def _clear_charge(charge):
     # Clear the charge
