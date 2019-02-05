@@ -43,12 +43,12 @@ from urllib.parse import urljoin
 
 import more_itertools
 
-from recidiviz.ingest.base_scraper import BaseScraper
-from recidiviz.ingest.constants import TaskType, ResponseType
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
+from recidiviz.ingest.scrape.constants import TaskType, ResponseType
 from recidiviz.ingest.errors import ScraperError
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import ScrapedData, Task
+from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
 _BASE_URL = 'http://findtheinmate.com'
 _WEBSHELL_URL = urljoin(_BASE_URL, 'cgi-bin/webshell.asp')

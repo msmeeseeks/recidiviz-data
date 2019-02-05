@@ -27,10 +27,10 @@ from copy import copy
 from lxml import html
 
 from recidiviz.common.constants.bond import BondStatus
-from recidiviz.ingest import constants
+from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.models import ingest_info
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.scrape.task_params import Task
 from recidiviz.ingest.scrape.vendors.brooks_jeffrey.brooks_jeffrey_scraper \
     import _parse_total_bond_if_necessary
 from recidiviz.tests.ingest import fixtures

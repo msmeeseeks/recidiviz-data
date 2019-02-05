@@ -18,10 +18,10 @@
 
 import unittest
 from lxml import html
-from recidiviz.ingest import constants
+from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo, Person, Booking, \
     Charge, Sentence
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.scrape.task_params import Task
 from recidiviz.ingest.scrape.regions.us_ny.us_ny_scraper import UsNyScraper
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest

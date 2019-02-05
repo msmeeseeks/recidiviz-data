@@ -26,9 +26,9 @@ import cattr
 from lxml import html
 from mock import patch
 
-from recidiviz.ingest.constants import TaskType, ResponseType
+from recidiviz.ingest.scrape.constants import TaskType, ResponseType
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.scrape.task_params import Task
 from recidiviz.ingest.scrape.vendors.justice_solutions. \
     justice_solutions_scraper import _Redirect
 from recidiviz.tests.ingest import fixtures

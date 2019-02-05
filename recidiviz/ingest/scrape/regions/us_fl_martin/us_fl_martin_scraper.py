@@ -20,11 +20,11 @@ import os
 from typing import Optional
 from typing import List
 
-from recidiviz.ingest.base_scraper import BaseScraper
-from recidiviz.ingest import constants
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
+from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import ScrapedData, Task
+from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
 class UsFlMartinScraper(BaseScraper):
     """Scraper implementation for us_fl_martin."""

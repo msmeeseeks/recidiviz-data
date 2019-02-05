@@ -41,10 +41,10 @@ from typing import List, Optional
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.common.constants.hold import HoldStatus
-from recidiviz.ingest import constants
-from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.models.ingest_info import IngestInfo, Bond
-from recidiviz.ingest.task_params import ScrapedData, Task
+from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
 
 class UsCoMesaScraper(BaseScraper):

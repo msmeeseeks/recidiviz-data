@@ -50,11 +50,11 @@ Background scraping procedure:
 import re
 from typing import List, Optional
 
-from recidiviz.ingest import constants, scraper_utils
-from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.scrape import scraper_utils, constants
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import ScrapedData, Task
+from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
 
 class ArchonixScraper(BaseScraper):

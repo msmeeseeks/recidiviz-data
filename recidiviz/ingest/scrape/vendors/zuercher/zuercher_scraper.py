@@ -39,12 +39,12 @@ import pytz
 
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeClass, ChargeStatus
-from recidiviz.ingest import constants
-from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
 from recidiviz.ingest.models.ingest_info import (Bond, Booking, Charge,
                                                  IngestInfo)
-from recidiviz.ingest.task_params import ScrapedData, Task
+from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 from recidiviz.persistence.converter import converter_utils
 
 _BATCH_SIZE = 100

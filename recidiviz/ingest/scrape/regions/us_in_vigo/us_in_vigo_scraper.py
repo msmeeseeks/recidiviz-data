@@ -23,7 +23,7 @@ from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.common.constants.charge import ChargeStatus
 from recidiviz.common.constants.charge import CourtType
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import ScrapedData, Task
+from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 from recidiviz.ingest.scrape.vendors.jailtracker import\
     JailTrackerScraper
 

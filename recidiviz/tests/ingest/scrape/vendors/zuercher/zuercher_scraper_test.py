@@ -27,8 +27,8 @@ from datetime import datetime
 import pytz
 from mock import patch
 
-from recidiviz.ingest import constants
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape.task_params import Task
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
 

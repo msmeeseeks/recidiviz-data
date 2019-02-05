@@ -24,12 +24,12 @@ from typing import List, Optional, Tuple
 import more_itertools
 
 from recidiviz.common.constants.bond import BondStatus
-from recidiviz.ingest import constants
-from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.errors import ScraperError
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo, Booking, Charge
-from recidiviz.ingest.task_params import ScrapedData, Task
+from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
 
 class BrooksJeffreyScraper(BaseScraper):

@@ -39,12 +39,12 @@ from typing import Optional, List
 import more_itertools
 from lxml import etree, html
 
-from recidiviz.ingest import constants
-from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.errors import ScraperError
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo, Booking
-from recidiviz.ingest.task_params import Task, ScrapedData
+from recidiviz.ingest.scrape.task_params import Task, ScrapedData
 
 _BOOKING_ID_KEY = 'ARREST NO'
 _PAGE_TYPE_KEY = 'page_type'

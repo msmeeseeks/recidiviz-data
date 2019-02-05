@@ -20,7 +20,7 @@ import unittest
 
 from mock import patch
 
-from recidiviz.ingest import constants
+from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape.regions.us_ga_douglas.us_ga_douglas_scraper \
     import UsGaDouglasScraper

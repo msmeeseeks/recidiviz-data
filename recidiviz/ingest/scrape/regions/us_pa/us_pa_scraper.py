@@ -27,10 +27,10 @@ import re
 from typing import Optional
 from typing import List
 
-from recidiviz.ingest import constants
-from recidiviz.ingest.base_scraper import BaseScraper
+from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import ScrapedData, Task
+from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
 _SEARCH_RESULTS_PAGE = 'https://captorapi.cor.pa.gov/InmLocAPI/' + \
     'api/v1/InmateLocator/SearchResults'

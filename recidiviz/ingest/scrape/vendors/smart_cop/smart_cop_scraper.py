@@ -25,11 +25,11 @@ from typing import Optional, List
 from lxml import html
 
 from recidiviz.common.constants.person import Race
-from recidiviz.ingest.base_scraper import BaseScraper
-from recidiviz.ingest.constants import ResponseType, TaskType
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
+from recidiviz.ingest.scrape.constants import ResponseType, TaskType
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task, ScrapedData
+from recidiviz.ingest.scrape.task_params import Task, ScrapedData
 
 # TypeJailSearch options ("Search For" dropdown):
 #   0: "Current Inmates Only"

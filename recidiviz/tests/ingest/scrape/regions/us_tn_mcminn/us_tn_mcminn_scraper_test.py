@@ -18,10 +18,10 @@
 """Scraper tests for us_tn_mcminn."""
 import unittest
 
-from recidiviz.ingest import constants
-from recidiviz.ingest.constants import TaskType, ResponseType
+from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape.constants import TaskType, ResponseType
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.scrape.task_params import Task
 from recidiviz.ingest.scrape.regions.us_tn_mcminn.us_tn_mcminn_scraper import \
     UsTnMcminnScraper
 from recidiviz.tests.ingest import fixtures

@@ -18,9 +18,9 @@
 """Scraper tests for us_ga_gwinnett."""
 import unittest
 
-from recidiviz.ingest.constants import TaskType
+from recidiviz.ingest.scrape.constants import TaskType
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
+from recidiviz.ingest.scrape.task_params import Task
 from recidiviz.ingest.scrape.regions.us_ga_gwinnett.us_ga_gwinnett_scraper \
     import UsGaGwinnettScraper
 from recidiviz.tests.ingest import fixtures

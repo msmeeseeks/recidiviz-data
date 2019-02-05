@@ -19,7 +19,7 @@
 from typing import Optional
 
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import ScrapedData, Task
+from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 from recidiviz.ingest.scrape.vendors.smart_cop.smart_cop_scraper import \
     SmartCopScraper
 
