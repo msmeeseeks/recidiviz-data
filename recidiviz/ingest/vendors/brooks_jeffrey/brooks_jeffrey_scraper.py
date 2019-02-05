@@ -19,11 +19,12 @@
 """
 
 import os
+from copy import copy, deepcopy
 from typing import List, Optional, Tuple
 
 import more_itertools
 
-from recidiviz.common.constants.bond import BondStatus
+from recidiviz.common.constants.bond import BondStatus, BondType
 from recidiviz.common.constants.charge import ChargeStatus
 from recidiviz.ingest import constants
 from recidiviz.ingest.base_scraper import BaseScraper
@@ -44,6 +45,7 @@ class BrooksJeffreyScraper(BaseScraper):
         super(BrooksJeffreyScraper, self).__init__(region_name)
 
     def get_more_tasks(self, content, task: Task) -> List[Task]:
+        content = deepcopy(content)
         content.make_links_absolute(self.get_region().base_url)
 
         params_list = []
@@ -54,18 +56,31 @@ class BrooksJeffreyScraper(BaseScraper):
     def populate_data(self, content, task: Task, ingest_info: IngestInfo) \
             -> Optional[ScrapedData]:
         data_extractor = HtmlDataExtractor(self.mapping_filepath)
+        content = _preprocess(content)
         ingest_info = data_extractor.extract_and_populate_data(
             content, ingest_info)
+        # import ipdb; ipdb.set_trace()
         person = more_itertools.one(ingest_info.people)
         booking = more_itertools.one(person.bookings)
 
-        split_bonds, bond_status, charge_status = _parse_total_bond_if_necessary(booking)
-        if any([split_bonds, bond_status, charge_status]):
+        split_bonds, bond_status, charge_status, bond_type = \
+            _parse_total_bond_if_necessary(booking)
+        if any([split_bonds, bond_status, charge_status, bond_type]):
             booking.total_bond_amount = None
 
-        booking.charges = _split_charges(booking, split_bonds, bond_status, charge_status)
+        booking.charges = _split_charges(booking, split_bonds, bond_status,
+                                         charge_status, bond_type)
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
+
+
+def _preprocess(content):
+    content = deepcopy(content)
+    for cell in content.xpath('//*[contains(@class, "row")]'):
+        cell.tag = 'tr'
+    for cell in content.xpath('//*[contains(@class, "cell")]'):
+        cell.tag = 'td'
+    return content
 
 
 def _get_next_page_if_exists_tasks(content) -> List[Task]:
@@ -97,34 +112,37 @@ def _get_person_tasks(content) -> List[Task]:
 
 
 def _parse_total_bond_if_necessary(booking: Booking) \
-        -> Tuple[Optional[List[str]], Optional[BondStatus], Optional[ChargeStatus]]:
+        -> Tuple[
+            Optional[List[str]], Optional[BondStatus], Optional[ChargeStatus],
+            Optional[BondType]]:
     """Looks at booking.total_bond_amount and, if necessary, parses it into a
     list of individual bond amounts or bond status."""
+    charge_names = None
+    bond_status = None
+    charge_status = None
+    bond_type = None
     if booking.total_bond_amount:
         normalized = booking.total_bond_amount.lower()
-        if normalized.startswith('denied'):
-            return None, BondStatus.DENIED, None
-        if normalized.startswith('no bond'):
-            return None, BondStatus.DENIED, None
-        if normalized.startswith('none'):
-            return None, BondStatus.DENIED, None
-        if normalized.startswith('must see judge'):
-            return None, BondStatus.PENDING, None
-        if normalized.startswith('parole'):
-            return None, BondStatus.DENIED, None
-        if normalized.startswith('sentenced'):
-            return None, None, ChargeStatus.SENTENCED
-
         split_bonds = _split(booking.total_bond_amount)
         if len(split_bonds) > 1:
-            return split_bonds, None, None
-    return None, None, None
+            charge_names = split_bonds
+        elif any([normalized.startswith(s) for s in
+                {'denied', 'no bond', 'none', 'parole'}]):
+            bond_status = BondStatus.DENIED
+        elif normalized.startswith('must see judge'):
+            bond_status = BondStatus.PENDING
+        elif normalized.startswith('sentenced'):
+            charge_status = ChargeStatus.SENTENCED
+        elif normalized.startswith('child sup'):
+            bond_type = BondType.CASH
+    return charge_names, bond_status, charge_status, bond_type
 
 
 def _split_charges(
         booking: Booking, split_bond_amounts: Optional[List[str]],
         bond_status: Optional[BondStatus],
-        charge_status: Optional[ChargeStatus]) -> List[Charge]:
+        charge_status: Optional[ChargeStatus],
+        bond_type: Optional[BondType]) -> List[Charge]:
     """Splits the found charge into multiple charges and returns the split
     charges. Adds bond amounts and bond_statuses based on the provided
     values."""
@@ -143,13 +161,15 @@ def _split_charges(
     for idx, charge_name in enumerate(split_charge_names):
         split_charge = Charge(name=charge_name)
         if charge_status:
-            split_charge.status = charge_status
+            split_charge.status = charge_status.value
         if split_bond_amounts or bond_status:
             bond = split_charge.create_bond()
             if split_bond_amounts:
                 bond.amount = split_bond_amounts[idx]
             if bond_status:
                 bond.status = bond_status.value
+            if bond_type:
+                bond.bond_type = bond_type.value
         split_charges.append(split_charge)
 
     return split_charges
