@@ -9,6 +9,8 @@ key_mappings:
   records.charges: charge.name
 
 keys_to_ignore:
+  # TODO(#769): Potentially ingest sub-facility (cell block) information based
+  # on the `init.json`.
   - records.cell_block
   - records.is_juvenile
   - records.mugshot

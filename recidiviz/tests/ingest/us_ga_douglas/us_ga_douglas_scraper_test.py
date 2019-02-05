@@ -17,66 +17,31 @@
 
 """Scraper tests for us_ga_douglas."""
 import unittest
-from datetime import datetime
 
-import pytz
 from mock import patch
 
 from recidiviz.ingest import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.task_params import Task
 from recidiviz.ingest.us_ga_douglas.us_ga_douglas_scraper import \
     UsGaDouglasScraper
 from recidiviz.tests.ingest import fixtures
-from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
+from recidiviz.tests.ingest.vendors.zuercher.zuercher_scraper_test import \
+    ZuercherScraperTest
 
 _INIT_JSON = fixtures.as_dict('us_ga_douglas', 'init.json')
 _LOAD_JSON = fixtures.as_dict('us_ga_douglas', 'load.json')
 _LOAD_JSON_INVALID_SUFFIX = fixtures.as_dict('us_ga_douglas',
                                              'load.invalid_suffix.json')
 
-_DATETIME = datetime(2019, 1, 1, 12, 0, 0, 0, tzinfo=pytz.utc)
-_DATETIME_STR = '2019-01-01T12:00:00+00:00'
 
-class TestUsGaDouglasScraper(BaseScraperTest, unittest.TestCase):
+class TestUsGaDouglasScraper(ZuercherScraperTest, unittest.TestCase):
 
     def _init_scraper_and_yaml(self):
-        # The scraper to be tested. Required.
         self.scraper = UsGaDouglasScraper()
-        # The path to the yaml mapping. Optional.
-        self.yaml = None
-
-    @staticmethod
-    def _make_task(task_type, count, start):
-        return Task(
-            task_type=task_type,
-            endpoint='https://douglas-so-ga.zuercherportal.com/api/portal/'
-            'inmates/load',
-            json={
-                'name': '',
-                'race': 'all',
-                'sex': 'all',
-                'cell_block': 'all',
-                'held_for_agency': 'any',
-                'in_custody': _DATETIME_STR,
-                'paging': {
-                    'count': count,
-                    'start': start,
-                },
-                'sorting': {
-                    'sort_by_column_tag': 'name',
-                    'sort_descending': False,
-                },
-            },
-            custom={
-                'search_time': _DATETIME_STR,
-            },
-            response_type=constants.ResponseType.JSON,
-        )
 
     @patch('recidiviz.ingest.vendors.zuercher.zuercher_scraper.datetime')
-    def test_get_more_tasks_initial(self, mock_datetime):
-        mock_datetime.now.return_value = _DATETIME
+    def test_init(self, mock_datetime):
+        mock_datetime.now.return_value = self._DATETIME
 
         task = self.scraper.get_initial_task()
         expected_result = [self._make_task(
@@ -85,39 +50,6 @@ class TestUsGaDouglasScraper(BaseScraperTest, unittest.TestCase):
 
         self.validate_and_return_get_more_tasks(
             _INIT_JSON, task, expected_result)
-
-
-    @patch('recidiviz.ingest.vendors.zuercher.zuercher_scraper.datetime')
-    def test_get_more_tasks_middle(self, mock_datetime):
-        mock_datetime.now.return_value = _DATETIME
-
-        content = {'total_record_count': 450}
-        task = self._make_task(
-            task_type=constants.TaskType.SCRAPE_DATA_AND_MORE,
-            count=100, start=100)
-        expected_result = [self._make_task(
-            task_type=constants.TaskType.SCRAPE_DATA_AND_MORE,
-            count=100, start=200)]
-
-        self.validate_and_return_get_more_tasks(
-            content, task, expected_result)
-
-
-    @patch('recidiviz.ingest.vendors.zuercher.zuercher_scraper.datetime')
-    def test_get_more_tasks_end(self, mock_datetime):
-        mock_datetime.now.return_value = _DATETIME
-
-        content = {'total_record_count': 450}
-        task = self._make_task(
-            task_type=constants.TaskType.SCRAPE_DATA_AND_MORE,
-            count=100, start=300)
-        expected_result = [self._make_task(
-            task_type=constants.TaskType.SCRAPE_DATA,
-            count=100, start=400)]
-
-        self.validate_and_return_get_more_tasks(
-            content, task, expected_result)
-
 
     def test_populate_data(self):
         expected_info = IngestInfo()
@@ -221,12 +153,6 @@ class TestUsGaDouglasScraper(BaseScraperTest, unittest.TestCase):
         charge.charge_class = 'F'
         charge.charge_notes = 'Failure to Comply warrant 13CR00998'
 
-        charge = booking.create_charge()
-        charge.name = 'Probation Violation'
-        charge.statute = '42-8-38'
-        charge.charge_notes = ('Violation of Probation warrant 16CR00064R1 '
-                               'issued by Fayette County, GA')
-
         booking.create_hold(jurisdiction_name='Fayette County, GA')
 
         charge = booking.create_charge()
@@ -236,8 +162,7 @@ class TestUsGaDouglasScraper(BaseScraperTest, unittest.TestCase):
         charge.number_of_counts = '3'
         charge.charge_notes = 'Pending Warrant warrant 18MJD01824'
 
-        charge = booking.create_charge()
-        charge.name = 'Extraditon for extradition'
+        booking.create_hold(jurisdiction_name='extradition')
 
         charge = booking.create_charge()
         charge.name = 'Probation-F: Unspecified warrant 18-12-14-3416'
@@ -262,7 +187,21 @@ class TestUsGaDouglasScraper(BaseScraperTest, unittest.TestCase):
                        'license; probationary license')
         charge.statute = '40-5-58(c)(1)'
         charge.offense_date = '11/14/2018'
-        charge.create_bond(amount='$4000.00')
+        charge.create_bond(amount='$4000.00', bond_type='Bonding Company')
+
+        # seventh
+        person = expected_info.create_person()
+        person.full_name = 'WARRANT, UNSPECIFIED'
+        person.age = '32'
+        person.gender = 'Female'
+        person.race = 'Black'
+
+        booking = person.create_booking()
+        booking.admission_date = '2019-01-10'
+
+        charge = booking.create_charge()
+        charge.name = 'Warrant: Unspecified warrant'
+        charge.offense_date = '01/10/2019'
 
         self.validate_and_return_populate_data(_LOAD_JSON, expected_info)
 

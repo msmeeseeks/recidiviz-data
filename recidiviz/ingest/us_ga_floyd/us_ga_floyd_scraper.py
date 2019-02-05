@@ -15,35 +15,35 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper implementation for us_ga_douglas."""
+"""Scraper implementation for us_ga_floyd."""
 from recidiviz.common.constants.bond import BondType
-from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.constants.charge import ChargeClass, ChargeStatus
 from recidiviz.ingest.vendors.zuercher.zuercher_scraper import ZuercherScraper
 
 
-class UsGaDouglasScraper(ZuercherScraper):
-    """Scraper implementation for us_ga_douglas."""
-
-    WARRANT_KEY = 'Warrant Charge:'
-    UNSPECIFIED_WARRANT_KEY = 'Warrant:'
+class UsGaFloydScraper(ZuercherScraper):
+    """Scraper implementation for us_ga_floyd."""
 
     def __init__(self):
-        super(UsGaDouglasScraper, self).__init__(region_name='us_ga_douglas')
+        super(UsGaFloydScraper, self).__init__(region_name='us_ga_floyd')
 
     @staticmethod
     def get_jurisdiction_name():
-        return 'Douglas County, GA'
+        return 'Floyd County, GA'
 
     def get_enum_overrides(self):
         return {
-            **super(UsGaDouglasScraper, self).get_enum_overrides(),
-            # Races
-            'NOT SPECIFIED': None,
+            **super(UsGaFloydScraper, self).get_enum_overrides(),
+            # Charge Status
+            'NOLLE PROSSED (CCH-300)': ChargeStatus.DROPPED,
+            'DISMISSED (CCH-305)': ChargeStatus.DROPPED,
+            'GUILTY (CCH-310)': ChargeStatus.CONVICTED,
 
-            # Charge Statuses
-            'NEG PLEA': ChargeStatus.PRETRIAL,
+            # Charge Classes
+            'FEL': ChargeClass.FELONY,
+            'FEL.': ChargeClass.FELONY,
+            'MISD.': ChargeClass.MISDEMEANOR,
 
             # Bond Types
-            'BONDING COMPANY': BondType.UNSECURED,
-            'OTHER': None,
+            'PROPERTY': BondType.SECURED,
         }

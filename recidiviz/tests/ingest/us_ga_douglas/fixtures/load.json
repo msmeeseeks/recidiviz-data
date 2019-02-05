@@ -63,7 +63,7 @@
             "race": "White",
             "arrest_date": "2018-12-31",
             "mugshot": "",
-            "hold_reasons": "Charge: 999.999 - Off Bond; Arrest Date 12/18/2018; Bond - No Bond;<br />Charge: 16-11-37 - Terroristic Threats and Acts - Felony (Pending)<br />Warrant Charge: Failure to Comply warrant 13CR00998 (15-6-8 - Contempt of Superior Court (F))<br />Warrant: Unspecified warrant<br />Other for Douglas County Sheriff's Office<br />Warrant Charge: Violation of Probation warrant 16CR00064R1 issued by Fayette County, GA (42-8-38 - Probation Violation)<br />Warrant Charge: Pending Warrant warrant 18MJD01824 (16-5-70 - Cruelty to Children 3 rd Degree-Misd - 3 Counts)<br />Extraditon for extradition<br />Probation-F: Unspecified warrant 18-12-14-3416; Arrest Date 12/14/2018;<br />Parole for Douglas County Sheriff's Office; Arrest Date 12/20/2018;<br />"
+            "hold_reasons": "Charge: 999.999 - Off Bond; Arrest Date 12/18/2018; Bond - No Bond;<br />Charge: 16-11-37 - Terroristic Threats and Acts - Felony (Pending)<br />Warrant Charge: Failure to Comply warrant 13CR00998 (15-6-8 - Contempt of Superior Court (F))<br />Other for Douglas County Sheriff's Office<br />Warrant Charge: Violation of Probation warrant 16CR00064R1 issued by Fayette County, GA (42-8-38 - Probation Violation)<br />Warrant Charge: Pending Warrant warrant 18MJD01824 (16-5-70 - Cruelty to Children 3 rd Degree-Misd - 3 Counts)<br />Extraditon for extradition<br />Probation-F: Unspecified warrant 18-12-14-3416; Arrest Date 12/14/2018;<br />Parole for Douglas County Sheriff's Office; Arrest Date 12/20/2018;<br />"
         },
         {
             "name": "SUFFIX, WITH",
@@ -76,7 +76,20 @@
             "race": "White",
             "arrest_date": "2019-01-17",
             "mugshot": "",
-            "hold_reasons": "Charge: 40-5-58(c)(1) - Determination of habitual violators; revocation of license; probationary license; Arrest Date 11/14/2018; Bond - $4000.00; Set By Judge;"
+            "hold_reasons": "Charge: 40-5-58(c)(1) - Determination of habitual violators; revocation of license; probationary license; Arrest Date 11/14/2018; Bond - Bonding Company, $4000.00; Set By Judge;"
+        },
+        {
+            "name": "WARRANT, UNSPECIFIED",
+            "dob": 32,
+            "is_juvenile": false,
+            "sex": "Female",
+            "cell_block": "",
+            "release_date": "",
+            "held_for_agency": "",
+            "race": "Black",
+            "arrest_date": "2019-01-10",
+            "mugshot": "",
+            "hold_reasons": "Warrant: Unspecified warrant ; Arrest Date 01/10/2019;"
         }
     ],
     "total_record_count": 658
