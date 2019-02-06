@@ -22,11 +22,11 @@ implement the following:
      _init_scraper_and_yaml(self):
        self.scraper = RegionScraperCls()
 """
-from copy import copy
 
 from lxml import html
 
-from recidiviz.common.constants.bond import BondStatus
+from recidiviz.common.constants.bond import BondStatus, BondType
+from recidiviz.common.constants.charge import ChargeStatus
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.models import ingest_info
 from recidiviz.ingest.models.ingest_info import IngestInfo
@@ -42,6 +42,9 @@ _FRONT_PAGE_HTML = html.fromstring(
 _PERSON_PAGE_HTML = html.fromstring(
     fixtures.as_string('vendors/brooks_jeffrey', 'person_page.html'))
 
+_PERSON_PAGE_DIV_HTML = html.fromstring(
+    fixtures.as_string('vendors/brooks_jeffrey', 'person_page_div.html'))
+
 _PERSON_PAGE_MULTIPLE_BONDS_HTML = html.fromstring(
     fixtures.as_string('vendors/brooks_jeffrey',
                        'person_page_multiple_bonds.html'))
@@ -49,6 +52,10 @@ _PERSON_PAGE_MULTIPLE_BONDS_HTML = html.fromstring(
 _PERSON_PAGE_NO_BOND_AVAILABLE_HTML = html.fromstring(
     fixtures.as_string('vendors/brooks_jeffrey',
                        'person_page_no_bond_available.html'))
+
+_PERSON_PAGE_SENTENCED = html.fromstring(
+    fixtures.as_string('vendors/brooks_jeffrey',
+                       'person_page_sentenced.html'))
 
 
 class BrooksJeffreyScraperTest(BaseScraperTest):
@@ -80,7 +87,7 @@ class BrooksJeffreyScraperTest(BaseScraperTest):
             ),
         ]
         self.validate_and_return_get_more_tasks(
-            _get_front_page(),
+            _FRONT_PAGE_HTML,
             Task(task_type=constants.TaskType.INITIAL, endpoint=''),
             expected_result)
 
@@ -105,8 +112,54 @@ class BrooksJeffreyScraperTest(BaseScraperTest):
         arrest = booking.create_arrest()
         arrest.agency = "Agency"
 
+        self.validate_and_return_populate_data(_PERSON_PAGE_HTML, expected_info)
+
+    def test_populate_data_div_format(self):
+        expected_info = IngestInfo()
+
+        person = expected_info.create_person()
+        person.full_name = "First Middle Last"
+        person.gender = "M"
+        person.age = "100"
+        person.race = "W"
+
+        booking = person.create_booking()
+        booking.booking_id = "123"
+        booking.admission_date = "1-1-2048- 12:30 am"
+        booking.total_bond_amount = "$695.00"
+
+        booking.create_charge(name="Charge 1")
+        booking.create_charge(name="Charge 2")
+        booking.create_charge(name="Charge 3")
+
+        arrest = booking.create_arrest()
+        arrest.agency = "Agency"
+
+        self.validate_and_return_populate_data(_PERSON_PAGE_DIV_HTML,
+                                               expected_info)
+
+    def test_populate_data_sentenced(self):
+        expected_info = IngestInfo()
+
+        person = expected_info.create_person()
+        person.full_name = "First Middle Last"
+        person.gender = "M"
+        person.age = "100"
+        person.race = "W"
+
+        booking = person.create_booking()
+        booking.booking_id = "123"
+        booking.admission_date = "1-1-2048- 12:30 am"
+
+        booking.create_charge(name="Charge 1", status='SENTENCED')
+        booking.create_charge(name="Charge 2", status='SENTENCED')
+        booking.create_charge(name="Charge 3", status='SENTENCED')
+
+        arrest = booking.create_arrest()
+        arrest.agency = "Agency"
+
         self.validate_and_return_populate_data(
-            _get_person_page(), expected_info)
+            _PERSON_PAGE_SENTENCED, expected_info)
 
     def test_populate_data_no_bond_available(self):
         expected_info = IngestInfo()
@@ -132,7 +185,7 @@ class BrooksJeffreyScraperTest(BaseScraperTest):
         arrest.agency = "Agency"
 
         self.validate_and_return_populate_data(
-            _get_person_page_no_bond_available(), expected_info)
+            _PERSON_PAGE_NO_BOND_AVAILABLE_HTML, expected_info)
 
     def test_populate_data_multiple_bonds(self):
         expected_info = IngestInfo()
@@ -158,43 +211,34 @@ class BrooksJeffreyScraperTest(BaseScraperTest):
         arrest.agency = "Agency"
 
         self.validate_and_return_populate_data(
-            _get_person_page_multiple_bonds(), expected_info)
+            _PERSON_PAGE_MULTIPLE_BONDS_HTML, expected_info)
 
     def test_parse_total_bond_denied(self):
         booking = ingest_info.Booking(total_bond_amount='DENIED.')
         assert _parse_total_bond_if_necessary(booking) \
-               == (None, BondStatus.DENIED)
+               == (None, BondStatus.DENIED, None, None)
 
     def test_parse_total_bond_no_bond(self):
         booking = ingest_info.Booking(total_bond_amount='No Bond.')
         assert _parse_total_bond_if_necessary(booking) \
-               == (None, BondStatus.DENIED)
+               == (None, BondStatus.DENIED, None, None)
 
     def test_parse_total_bond_must_see_judge(self):
         booking = ingest_info.Booking(total_bond_amount='Must See Judge')
         assert _parse_total_bond_if_necessary(booking) \
-               == (None, BondStatus.PENDING)
+               == (None, BondStatus.PENDING, None, None)
 
     def test_parse_total_bond_multiple_bonds(self):
         booking = ingest_info.Booking(total_bond_amount='500 \n 600')
-        assert _parse_total_bond_if_necessary(booking) == (['500', '600'], None)
+        assert _parse_total_bond_if_necessary(booking) \
+               == (['500', '600'], None, None, None)
 
+    def test_parse_total_bond_sentenced(self):
+        booking = ingest_info.Booking(total_bond_amount='sentenced')
+        assert _parse_total_bond_if_necessary(booking) \
+               == (None, None, ChargeStatus.SENTENCED, None)
 
-def _get_person_page_no_bond_available():
-    # Make defensive copy since content is mutable
-    return copy(_PERSON_PAGE_NO_BOND_AVAILABLE_HTML)
-
-
-def _get_person_page_multiple_bonds():
-    # Make defensive copy since content is mutable
-    return copy(_PERSON_PAGE_MULTIPLE_BONDS_HTML)
-
-
-def _get_person_page():
-    # Make defensive copy since content is mutable
-    return copy(_PERSON_PAGE_HTML)
-
-
-def _get_front_page():
-    # Make defensive copy since content is mutable
-    return copy(_FRONT_PAGE_HTML)
+    def test_parse_child_sup(self):
+        booking = ingest_info.Booking(total_bond_amount='child sup')
+        assert _parse_total_bond_if_necessary(booking) \
+               == (None, None, None, BondType.CASH)
