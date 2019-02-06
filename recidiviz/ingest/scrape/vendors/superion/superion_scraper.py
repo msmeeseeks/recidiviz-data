@@ -187,33 +187,35 @@ class SuperionScraper(BaseScraper):
                     # Transfer the bond type to charge status, if we
                     # detect that the bond type field contains a charge
                     # status enum value.
-                    if (bond.bond_type and
-                            ChargeStatus.can_parse(bond.bond_type,
-                                                   self.get_enum_overrides())):
-                        charge.status = bond.bond_type
-                        bond.bond_type = None
-
-                # Bond type is listed as 'PAID' when status is posted.
-                if bond.bond_type == 'PAID':
-                    bond.status = BondStatus.POSTED.value
-                    bond.bond_type = None
+                    if bond.bond_type:
+                        if ChargeStatus.can_parse(bond.bond_type,
+                                                  self.get_enum_overrides()):
+                            charge.status = bond.bond_type
+                            bond.bond_type = None
+                        elif (bond.bond_type.startswith('SECURED') or
+                              bond.bond_type.startswith('SECRUED')):
+                            bond.bond_type = 'SECURED'
+                        elif bond.bond_type == 'PAID':
+                            # Bond type is listed as 'PAID' when
+                            # status is posted.
+                            # TODO (#816) remove this when crosstype
+                            # mappings are possible
+                            bond.status = BondStatus.POSTED.value
+                            bond.bond_type = None
 
                 # Check for hold information in the charge.
                 hold_values = [
                     'FEDERAL',
                     'FEDERAL INMATE',
+                    'HOLD OTHER AGENCY',
                     'IMMIGRATION',
+                    'INS DETAINER',
                     'OTHER COUNTY HOUSING',
                     'WRIT',
                 ]
                 if charge.status and (charge.status.upper() in hold_values):
                     booking.create_hold(jurisdiction_name=charge.status)
                     charge.status = None
-
-                # Bond type is listed as 'PAID' when status is posted.
-                if bond.bond_type == 'PAID':
-                    bond.status = 'POSTED'
-                    bond.bond_type = None
 
                 # Fill in charge class, if it's in the name
                 if charge.name:
@@ -235,6 +237,10 @@ class SuperionScraper(BaseScraper):
                 booking.projected_release_date = \
                     ' '.join(booking.release_date.split()[:-1])
                 booking.release_date = None
+
+        # Empty bond objects can be left dangling when charge status
+        # are taken out of them.
+        person.prune()
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
 

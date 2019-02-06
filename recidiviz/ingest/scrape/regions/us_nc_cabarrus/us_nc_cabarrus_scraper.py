@@ -1,5 +1,5 @@
 # Recidiviz - a platform for tracking granular recidivism metrics in real time
-# Copyright (C) 2018 Recidiviz, Inc.
+# Copyright (C) 2019 Recidiviz, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,7 +14,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
-"""Tests for scrape.vendors."""
 
-from recidiviz.tests.ingest.scrape.vendors.superion.superion_scraper_test \
-    import SuperionScraperTest
+"""Scraper implementation for us_nc_cabarrus."""
+from recidiviz.common.constants.bond import BondType
+from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.ingest.scrape.vendors.superion.superion_scraper import \
+    SuperionScraper
+
+
+class UsNcCabarrusScraper(SuperionScraper):
+    """Scraper implementation for us_nc_cabarrus."""
+    def __init__(self):
+        super(UsNcCabarrusScraper, self).__init__('us_nc_cabarrus')
+
+    def get_enum_overrides(self):
+        return {
+            'OTHER SEE NOTES': BondType.EXTERNAL_UNKNOWN,
+            'WAITING TRANSPORT TO DAC': ChargeStatus.SENTENCED,
+            'COMPLIANCE': None,
+        }

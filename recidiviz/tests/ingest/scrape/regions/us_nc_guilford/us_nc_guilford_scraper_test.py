@@ -20,8 +20,8 @@ import unittest
 
 from recidiviz.ingest.scrape.regions.us_nc_guilford.us_nc_guilford_scraper \
     import UsNcGuilfordScraper
-from recidiviz.tests.ingest.scrape.vendors import \
-    SuperionScraperTest
+from recidiviz.tests.ingest.scrape.vendors.superion.superion_scraper_test \
+    import SuperionScraperTest
 
 
 class TestUsNcGuilfordScraper(SuperionScraperTest, unittest.TestCase):

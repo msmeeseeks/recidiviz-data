@@ -103,18 +103,18 @@ class SuperionScraperTest(BaseScraperTest, unittest.TestCase):
                               status='PRE-TRIAL',
                               case_number='18CR 089385',
                               bond=Bond(amount='5,000.00',
-                                        bond_type='SECURED '))
+                                        bond_type='SECURED'))
         booking.create_charge(name='FELONY PROBATION VIOLATION',
                               charge_class='FELONY',
                               status='PRE-TRIAL',
                               case_number='17CRS093084',
                               bond=Bond(amount='5,000.00',
-                                        bond_type='SECURED '))
+                                        bond_type='SECURED'))
         booking.create_charge(name='MAINTN VEH/DWELL/PLACE CS (F)',
                               status='PRE-TRIAL',
                               case_number='18CRS000669',
                               bond=Bond(amount='10,000.00',
-                                        bond_type='SECURED '))
+                                        bond_type='SECURED'))
         booking.create_charge(name='FELONY POSSESSION SCH II CS',
                               charge_class='FELONY',
                               status='PRE-TRIAL',
