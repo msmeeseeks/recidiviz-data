@@ -45,7 +45,7 @@ import more_itertools
 
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.scrape.constants import TaskType, ResponseType
-from recidiviz.ingest.errors import ScraperError
+from recidiviz.ingest.scrape.errors import ScraperError
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
