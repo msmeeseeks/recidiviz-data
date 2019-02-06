@@ -24,7 +24,7 @@ from recidiviz.common.constants.charge import ChargeStatus
 from recidiviz.common.constants.charge import CourtType
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
-from recidiviz.ingest.scrape.vendors.jailtracker import\
+from recidiviz.ingest.scrape.vendors.jailtracker import \
     JailTrackerScraper
 
 
@@ -56,11 +56,22 @@ class UsInVigoScraper(JailTrackerScraper):
         for person in scraped_data.ingest_info.people:
             for booking in person.bookings:
                 for charge in booking.charges:
-                    # Chop 'DIVISION <N> ' off the court type string
-                    if (charge.court_type and
-                            charge.court_type.upper().startswith('DIVISION')):
-                        charge.court_type = ' '.join(
-                            charge.court_type.split()[2:])
+                    if charge.court_type:
+                        # Chop 'DIVISION <N> ' off the court type string
+                        if charge.court_type.upper().startswith('DIVISION'):
+                            charge.court_type = ' '.join(
+                                charge.court_type.split()[2:])
+
+                        # Look for holds in court type
+                        court_hold_keys = [
+                            'DEPARTMENT OF CORRECTIONS',
+                            'INDIANA OUT OF COUNTY',
+                            'OUT OF STATE COURTS',
+                        ]
+                        if charge.court_type in court_hold_keys:
+                            booking.create_hold(
+                                jurisdiction_name=charge.court_type)
+                            charge.court_type = None
 
                     # Look for level of charges in charge_class
                     if charge.charge_class and charge.charge_class.isnumeric():
@@ -80,6 +91,8 @@ class UsInVigoScraper(JailTrackerScraper):
             'BOND SET': ChargeStatus.PRETRIAL,
             'GENERAL': None,
             'RELEASED BY COURT': ChargeStatus.PRETRIAL,
+            'IV-D SUPPORT COURT': CourtType.CIVIL,
+            'SC': ChargeClass.CIVIL,
             'COUNTY COURT': CourtType.DISTRICT,
             'COURT TYPE': CourtType.DISTRICT,
             'TERRE HAUTE CITY COURT': CourtType.DISTRICT,
