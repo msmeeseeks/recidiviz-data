@@ -36,6 +36,7 @@ Background scraping procedure:
     3. A details page for a person's current booking
 """
 import enum
+import html
 from typing import List, Optional
 
 from recidiviz.common.constants.bond import BondType
@@ -94,6 +95,8 @@ class UsCoMesaScraper(BaseScraper):
 
         # Get person status
         person_status = get_person_status(table[0].text_content())
+        if person_status is _PersonStatus.DOES_NOT_EXIST:
+            return None
         if person_status is _PersonStatus.HOLD:
             booking.create_hold(status=HoldStatus.ACTIVE.value)
 
@@ -257,11 +260,13 @@ class _PersonStatus(enum.Enum):
     OPEN_CHARGES = 'open'                        # TODO(616): bond -> pending
     ELIGIBLE_AFTER_POST = 'eligible_after_post'  # No effect
     HOLD = 'hold'                                # Sets hold on booking
+    DOES_NOT_EXIST = 'does_not_exist'            # Skips person
 
 
 STATUS_SUFFIX = ('Please contact the Mesa County Sheriff\'s Office at 970 '
                  '244-3500 for more information.')
-def get_person_status(status_text):
+def get_person_status(status_text: str) -> Optional[_PersonStatus]:
+    """Parses the text to determine the person's status."""
     status_text = status_text.strip()
     if status_text.endswith(STATUS_SUFFIX):
         status_text = status_text[:-len(STATUS_SUFFIX)]
@@ -282,5 +287,10 @@ def get_person_status(status_text):
     if status_text == ('The inmate currently has a hold that could prevent him '
                        'from being eligible for release after posting bond.'):
         return _PersonStatus.HOLD
+    if status_text == html.unescape(
+            'A current inmate with the information you entered could not be '
+            'found.&nbsp;&nbsp;You may also try your search using a different '
+            'identifier.'):
+        return _PersonStatus.DOES_NOT_EXIST
     raise ValueError(
         'Unexpected status text in us_co_mesa: "{}"'.format(status_text))

@@ -29,6 +29,8 @@ _DETAILS_TYPICAL_HTML = html.fromstring(
     fixtures.as_string('us_co_mesa', 'details_typical.html'))
 _DETAILS_EDGE_HTML = html.fromstring(
     fixtures.as_string('us_co_mesa', 'details_edge.html'))
+_DETAILS_DNE_HTML = html.fromstring(
+    fixtures.as_string('us_co_mesa', 'details_dne.html'))
 
 
 class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
@@ -254,3 +256,6 @@ class TestScraperDetailsPage(BaseScraperTest, unittest.TestCase):
 
         self.validate_and_return_populate_data(
             _DETAILS_EDGE_HTML, expected_info)
+
+    def test_parse_dne(self):
+        self.validate_and_return_populate_data(_DETAILS_DNE_HTML, None)

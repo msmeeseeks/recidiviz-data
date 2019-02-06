@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+	<title>Mesa County Sheriff's Office</title>
+</head>
+
+<body>
+<div align="center"><a href="http://sheriff.mesacounty.us/"><img src="./details_dne_files/so-logo2.jpg" border="0"></a></div>
+
+	<table width="600" align="center" style="padding:0; margin:0">
+	<tr><td style="color: Red;">
+	A current inmate with the information you entered could not be found.&nbsp;&nbsp;You may also try your search using a different identifier.
+	</td></tr>
+	</table>
+
+<br>
+<table align="center" style="padding:0; margin:0">
+<tr><td>
+To locate an inmate you must provide either their Last Name, Date of Birth or Booking Number.
+</td></tr>
+</table>
+<br>
+<div align="center" style="padding:0; margin:0">
+<form action="http://inmateinfo.mesacounty.us/default.asp" method="post" style="padding:0; margin:0">
+How do you wish to find the inmate: 
+<select id="SearchField" name="SearchField">
+		<option value="LName" selected="">Last Name</option>
+		<option value="DOB">Date of Birth</option>
+		<option value="BookingNo" selected="">Booking Number</option>
+</select>	
+&nbsp;&nbsp;<input type="text" id="SearchVal" name="SearchVal" value="2019-00000819" size="12" onkeypress="return CheckNums()">
+&nbsp;&nbsp;<input type="submit" value="Search" onclick="return Validate()">
+</form>
+</div>
+<script language="JavaScript" type="text/javascript">
+function Validate()
+{
+	return true;
+	var fValid=true;
+	if (document.getElementById("SearchField").value=="SSN")
+	{
+		if (document.getElementById("SearchVal").value.length != 9)
+		{
+			alert("SSN must be 9 digits.")
+			document.getElementById("SearchVal").focus()
+			fValid=false
+		}
+	}
+	if (document.getElementById("SearchField").value=="BookingNo")
+	{
+		if (document.getElementById("SearchVal").value.length != 12)
+		{
+			alert("Booking Number must be 12 digits.")
+			document.getElementById("SearchVal").focus()
+			fValid=false
+		}
+	}				
+
+	if (document.getElementById("SearchField").value=="DOB")
+	{
+		if (document.getElementById("SearchVal").value.length != 6)
+		{
+			alert("DOB must be 6 digits (MMDDYY).")
+			document.getElementById("SearchVal").focus()
+			fValid=false
+		}
+		else
+		{
+			if (IsValid(document.getElementById("SearchVal").value))
+			{
+				
+			}
+			else
+			{
+				alert("That is an invalid date!")
+				document.getElementById("SearchField").focus()
+				fValid= false
+			}
+		}
+	}		
+	return fValid
+}
+function IsValid(str)
+{
+	return true;
+	var m=parseInt(String(str).substring(0,2),10);
+	var d=parseInt(String(str).substring(2,4),10);
+	var y=parseInt(String(str).substring(4,6),10);
+	var n=new Date(y,m-1,d)
+	if ((n.getDate()==d) && (n.getMonth()==(m-1)) && (n.getYear()==y))
+	{return true} else {return false}
+}
+function CheckNums()
+{
+   return true;
+   if (document.getElementById("SearchField").options[0].selected == false)
+   {
+	   if ( ((event.keyCode>=48) && (event.keyCode<=57)) || (event.keyCode==13) )
+	   {}
+	   else
+	   {
+	   	alert("That is an invalid key.  Only digits are allowed.")
+		return false;
+	   }
+	}
+}
+document.getElementById("SearchVal").focus()
+</script>
+
+
+</body></html>
