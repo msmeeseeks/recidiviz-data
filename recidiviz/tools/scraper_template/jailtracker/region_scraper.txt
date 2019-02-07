@@ -16,7 +16,8 @@
 # =============================================================================
 
 """Scraper implementation for $region."""
-from recidiviz.ingest.jailtracker_scraper import JailTrackerScraper
+from recidiviz.ingest.scrape.vendors.jailtracker.jailtracker_scraper import \
+    JailTrackerScraper
 
 
 class ${class_name}Scraper(JailTrackerScraper):

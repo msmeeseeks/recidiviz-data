@@ -18,9 +18,10 @@
 """Scraper tests for ${region}."""
 import unittest
 
-from recidiviz.ingest.${region}.${region}_scraper import ${class_name}Scraper
-from recidiviz.tests.ingest.vendors.jailtracker.jailtracker_scraper_test import \
-    JailTrackerScraperTest
+from recidiviz.ingest.scrape.regions.${region}.${region}_scraper import \
+    ${class_name}Scraper
+from recidiviz.tests.ingest.scrape.vendors.jailtracker.jailtracker_scraper_test \
+    import JailTrackerScraperTest
 
 
 class Test${class_name}Scraper(JailTrackerScraperTest, unittest.TestCase):
