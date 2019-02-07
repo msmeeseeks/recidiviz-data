@@ -91,6 +91,12 @@ BQ_LOAD_COMMANDS = {
     for table in TABLE_EXPORT_SCHEMA
 }
 
+# Changes '\\' to '\' to format escapes properly for BigQuery.
+BQ_FORMAT_COMMAND = (
+    "find . -name '*_export.json' -type f -exec "
+    "sed -i 's/\\\\\\\\/\\\\/g' {} \\;"
+)
+
 PSQL_EXPORT_COMMAND = (
     'psql "sslmode=verify-ca sslrootcert=server-ca.pem '
     'sslcert=client-cert.pem sslkey=client-key.pem '
@@ -120,4 +126,5 @@ if __name__ == '__main__':
         output_file.write(PSQL_EXPORT_COMMAND.format(sql_file=SQL_FILENAME))
 
     with open('bq_load.sh', 'w') as output_file:
+        output_file.write('{}\n'.format(BQ_FORMAT_COMMAND))
         output_file.write('\n'.join(BQ_LOAD_COMMANDS.values()))
