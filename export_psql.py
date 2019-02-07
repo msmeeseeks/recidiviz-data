@@ -23,7 +23,16 @@ TABLES_TO_EXPORT = [
     schema.Arrest,
     schema.Bond,
     schema.Sentence,
-    schema.Charge
+    schema.Charge,
+    schema.CaFacilityAggregate,
+    schema.FlCountyAggregate,
+    schema.FlFacilityAggregate,
+    schema.GaCountyAggregate,
+    schema.HiFacilityAggregate,
+    schema.KyFacilityAggregate,
+    schema.NyFacilityAggregate,
+    schema.TxCountyAggregate,
+    schema.DcFacilityAggregate
 ]
 
 TABLES_TO_EXPORT = [table.__table__ for table in TABLES_TO_EXPORT]
