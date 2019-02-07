@@ -803,3 +803,11 @@ regions:
     base_url: http://p2c.wakeso.net
     scraper_package: us_nc_wake
     timezone: America/New_York
+  us_in_washington:
+    agency_name: $agency
+    region_code: us_in_washington
+    agency_type: jail
+    queue: us-in-washington-scraper
+    base_url: https://omsweb.public-safety-cloud.com/jtclientweb/(S(i2y5guobyh2xxs0bkueduzrj))/jailtracker/index/Washington_County_IN
+    scraper_package: us_in_washington
+    timezone: America/Indiana/Indianapolis

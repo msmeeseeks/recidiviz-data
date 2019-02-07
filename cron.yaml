@@ -1742,3 +1742,21 @@ cron:
       min_backoff_seconds: 2.5
       max_doublings: 5
       job_age_limit: 9h
+
+  - description: Start IN Washington scraper every day at 9pm
+    url: /scraper/start?region=us_in_washington&scrape_type=background
+    schedule: every day 21:00
+    timezone: America/Indiana/Indianapolis
+    retry_parameters:
+      min_backoff_seconds: 2.5
+      max_doublings: 5
+      job_age_limit: 9h
+
+  - description: Stop IN Washington scraper every day at 9am
+    url: /scraper/stop?region=us_in_washington&scrape_type=background
+    schedule: every day 09:00
+    timezone: America/Indiana/Indianapolis
+    retry_parameters:
+      min_backoff_seconds: 2.5
+      max_doublings: 5
+      job_age_limit: 9h
