@@ -191,9 +191,9 @@ class ZuercherScraper(BaseScraper):
         charge_text = html.unescape(charge.name)
         charge.name = None
 
-        # Split the charge on ';', strip any whitespace, and filter out any
-        # empty strings.
-        first_kv, *later_kvs = filter(None, map(str.strip,
+        # Split the charge on ';', strip any leading whitespace, and filter out
+        # any empty strings.
+        first_kv, *later_kvs = filter(None, map(str.lstrip,
                                                 charge_text.split(';')))
 
         for kv in later_kvs:
@@ -242,7 +242,7 @@ class ZuercherScraper(BaseScraper):
             if 'Unspecified' not in first_kv:
                 raise ValueError(
                     'Unexpected warrant: "{}"'.format(first_kv))
-            charge.name = first_kv
+            charge.name = first_kv.strip()
         elif _starts_with_key(first_kv, {self.WEEKENDER_SENTENCE_KEY}):
             info = _skip_key_prefix(first_kv, {self.WEEKENDER_SENTENCE_KEY})
             length, _relationship_type = map(str.strip, info.split(' - '))
@@ -309,8 +309,6 @@ class ZuercherScraper(BaseScraper):
                                        self.get_enum_overrides()):
                 charge_name, charge.charge_class = charge_name_split
 
-        charge.name = charge_name
-
         for item in reversed(rest):
             item, dash_extra = self._parse_parentheses(item, charge)
             extra.extend(dash_extra)
@@ -322,9 +320,9 @@ class ZuercherScraper(BaseScraper):
             elif item.endswith(self.DEGREE_SUFFIX.upper()):
                 charge.degree = item[:-len(self.DEGREE_SUFFIX)].strip()
             else:
-                charge.name += ' - ' + item
+                charge_name += ' - ' + item
 
-        charge.name = ' '.join([charge.name] + extra)
+        charge.name = ' '.join([charge_name] + extra)
 
     def _parse_parentheses(self, charge_text: str, charge: Charge) \
             -> Tuple[str, List[str]]:

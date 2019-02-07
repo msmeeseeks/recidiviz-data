@@ -63,7 +63,7 @@ class TestUsGaLumpkinScraper(ZuercherScraperTest, unittest.TestCase):
                 admission_date='2019-01-18',
                 charges=[Charge(
                     offense_date='12/29/1999',
-                    name='19-13-6 -',
+                    statute='19-13-6',
                     bond=Bond(
                         amount='$1050.00',
                         bond_type='Other',
