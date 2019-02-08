@@ -46,6 +46,9 @@ class UsFlMartinScraper(BaseScraper):
 
     def get_more_tasks(self, content, task: Task) -> List[Task]:
         return [Task(
-            endpoint=self.get_region().base_url+"?RunReport=Run+Report",
-            task_type=constants.TaskType.SCRAPE_DATA
+            endpoint=self.get_region().base_url,
+            task_type=constants.TaskType.SCRAPE_DATA,
+            params={
+                'RunReport': 'Run Report',
+            }
         )]

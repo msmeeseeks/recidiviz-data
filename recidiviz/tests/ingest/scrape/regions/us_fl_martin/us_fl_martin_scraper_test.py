@@ -51,11 +51,11 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
             endpoint=None,
         )
 
-        endpoint = self.scraper.get_region().base_url + '?RunReport=Run+Report'
         expected_result = [
             Task(
                 task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint=endpoint,
+                endpoint=self.scraper.get_region().base_url,
+                params={'RunReport': 'Run Report'}
             )
         ]
 
