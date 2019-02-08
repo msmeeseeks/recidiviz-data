@@ -116,6 +116,7 @@ class TestUsGaDouglasScraper(ZuercherScraperTest, unittest.TestCase):
         charge.statute = '999.999'
         charge.status = 'Pending'
         charge.offense_date = '01/21/2019'
+        charge.judge_name = 'Preset'
 
         # fourth
         person = expected_info.create_person()
@@ -165,11 +166,17 @@ class TestUsGaDouglasScraper(ZuercherScraperTest, unittest.TestCase):
 
         charge = booking.create_charge()
         charge.name = 'Probation-F: Unspecified warrant 18-12-14-3416'
+        charge.charge_class = 'PROBATION_VIOLATION'
+        charge.status = 'SENTENCED'
         charge.offense_date = '12/14/2018'
 
         charge = booking.create_charge()
         charge.name = 'Parole for Douglas County Sheriff\'s Office'
+        charge.charge_class = 'PAROLE_VIOLATION'
+        charge.status = 'SENTENCED'
         charge.offense_date = '12/20/2018'
+
+        booking.admission_reason = 'PAROLE_VIOLATION'
 
         # sixth
         person = expected_info.create_person()
@@ -199,7 +206,7 @@ class TestUsGaDouglasScraper(ZuercherScraperTest, unittest.TestCase):
         booking.admission_date = '2019-01-10'
 
         charge = booking.create_charge()
-        charge.name = 'Warrant: Unspecified warrant'
+        charge.name = 'Unspecified warrant'
         charge.offense_date = '01/10/2019'
 
         self.validate_and_return_populate_data(_LOAD_JSON, expected_info)

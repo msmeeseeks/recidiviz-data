@@ -15,22 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper implementation for us_ga_lumpkin."""
-from recidiviz.ingest.scrape.vendors.zuercher import ZuercherScraper
-
-
-class UsGaLumpkinScraper(ZuercherScraper):
-    """Scraper implementation for us_ga_lumpkin."""
-
-    CHARGE_KEY = 'Citation:'
-    WARRANT_CHARGE_KEY = 'Warrant:'
-    PLAIN_WARRANT_KEY = 'Plain Warrant:'
-
-    BOARDER_KEY = 'Housed'
-
-    def __init__(self):
-        super(UsGaLumpkinScraper, self).__init__(region_name='us_ga_lumpkin')
-
-    @staticmethod
-    def get_jurisdiction_name():
-        return 'Lumpkin County, GA'
+"""us_ga_toombs specific regional functionality.
+"""
+from recidiviz.ingest.scrape.regions.us_ga_toombs import us_ga_toombs_scraper

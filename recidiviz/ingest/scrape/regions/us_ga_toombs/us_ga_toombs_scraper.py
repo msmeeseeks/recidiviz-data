@@ -15,38 +15,39 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper implementation for us_ga_floyd."""
+"""Scraper implementation for us_ga_toombs."""
 from recidiviz.common.constants.bond import BondType
-from recidiviz.common.constants.charge import ChargeClass, ChargeStatus
 from recidiviz.ingest.scrape.vendors.zuercher import ZuercherScraper
 
 
-class UsGaFloydScraper(ZuercherScraper):
-    """Scraper implementation for us_ga_floyd."""
+class UsGaToombsScraper(ZuercherScraper):
+    """Scraper implementation for us_ga_toombs."""
 
-    WARRANT_CHARGE_KEY = 'Warrant:'
-    PLAIN_WARRANT_KEY = 'Plain Warrant:'
+    WARRANT_CHARGE_KEY = 'New Charge:'
+    PLAIN_WARRANT_KEY = 'Bench Warrant:'
+    PAROLE_KEY = 'Parole Hold:'
+    HOLD_KEY = 'Outside Agency'
+    ADDITIONAL_HOLD_KEY = 'Out of State'
+    FELONY_PROBATION_KEY = 'Fe Probation:'
+    MISDEMEANOR_PROBATION_KEY = 'Mi Probation:'
+
+    BONDSMAN_OFF_BOND_KEY = 'Off Bond'
 
     def __init__(self):
-        super(UsGaFloydScraper, self).__init__(region_name='us_ga_floyd')
+        super(UsGaToombsScraper, self).__init__(region_name='us_ga_toombs')
 
     @staticmethod
     def get_jurisdiction_name():
-        return 'Floyd County, GA'
+        return 'Toombs County, GA'
 
     def get_enum_overrides(self):
         return {
-            **super(UsGaFloydScraper, self).get_enum_overrides(),
-            # Charge Status
-            'NOLLE PROSSED CCH 300': ChargeStatus.DROPPED,
-            'DISMISSED CCH 305': ChargeStatus.DROPPED,
-            'GUILTY CCH 310': ChargeStatus.CONVICTED,
-
-            # Charge Classes
-            'FEL': ChargeClass.FELONY,
-            'FEL.': ChargeClass.FELONY,
-            'MISD.': ChargeClass.MISDEMEANOR,
+            **super(UsGaToombsScraper, self).get_enum_overrides(),
 
             # Bond Types
-            'PROPERTY': BondType.SECURED,
+            'PROPERTY Bond': BondType.SECURED,
+            'REVOKED BOND': BondType.NO_BOND,
+            'CHILD SUPPORT RELEASE PAYMENT': BondType.CASH,
+            'OR PER JUDGE': BondType.NO_BOND,
+            'NA': None,
         }

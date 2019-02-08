@@ -37,6 +37,7 @@ from typing import List, Optional, Set, Tuple
 
 import pytz
 
+from recidiviz.common.constants.booking import AdmissionReason
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeClass, ChargeStatus
 from recidiviz.ingest.scrape import constants
@@ -57,17 +58,23 @@ class ZuercherScraper(BaseScraper):
     CHARGE_KEY = 'Charge:'
     COURT_ORDER_KEY = 'Court Order:'
     DRUG_COURT_SANCTION_KEY = 'Drug Court Sanction:'
+    CHILD_SUPPORT_KEY = 'Child Support:'
+    PLAIN_WARRANT_KEY = 'Warrant:'
 
-    WARRANT_KEY = 'Warrant:'
+    WARRANT_CHARGE_KEY = 'Warrant Charge:'
     PROBATION_REVOCATION_KEY = 'Probation Revocation:'
 
-    UNSPECIFIED_WARRANT_KEY = 'Unspecified Warrant:'
-    FELONY_PROBATION_KEY = 'Probation-F'
-    PAROLE_KEY = 'Parole'
-    SENTENCED_KEY = 'Sentenced:'
+    SENTENCED_CHARGE_KEY = 'Sentenced:'
     WEEKENDER_SENTENCE_KEY = 'Weekender Sentence:'
-    BONDSMAN_OFF_BOND_KEY = 'Bondsman off Bond:'
+    FELONY_PROBATION_KEY = 'Probation-F'
+    MISDEMEANOR_PROBATION_KEY = 'Probation-M'
+    PAROLE_KEY = 'Parole'
     OTHER_KEY = 'Other'
+    SENTENCED_COURT_KEY = 'Sentenced for'
+
+    BONDSMAN_OFF_BOND_KEY = 'Bondsman off Bond:'
+    REVOKED_BOND_KEY = 'Revoked Bond'
+    NO_BOND_KEY = 'No Bond-'
 
     ADDITIONAL_HOLD_KEY = 'Additional Hold'
     HOLD_KEY = 'Hold for'
@@ -75,6 +82,7 @@ class ZuercherScraper(BaseScraper):
     BOARDER_KEY = 'Boarder'
     RE_BOOK_KEY = 'RE-BOOK'
     DRC_SANCTION_KEY = 'DRC Sanction'  # Day Reporting Center
+    GRAND_JURY_KEY = 'Grand Jury'
 
     # Middle of line keys
     ARREST_DATE_KEY = 'Arrest Date'
@@ -88,14 +96,22 @@ class ZuercherScraper(BaseScraper):
     def __init__(self, region_name):
         super(ZuercherScraper, self).__init__(region_name)
         self.plain_charge_keys = {
-            self.CHARGE_KEY, self.COURT_ORDER_KEY, self.DRUG_COURT_SANCTION_KEY,
+            self.CHARGE_KEY, self.PLAIN_WARRANT_KEY, self.COURT_ORDER_KEY,
+            self.DRUG_COURT_SANCTION_KEY, self.CHILD_SUPPORT_KEY,
         }
         self.warrant_with_charge_keys = {
-            self.WARRANT_KEY, self.PROBATION_REVOCATION_KEY,
+            self.WARRANT_CHARGE_KEY, self.PROBATION_REVOCATION_KEY,
         }
         self.hold_keys = {
             self.BOARDER_KEY, self.ADDITIONAL_HOLD_KEY, self.HOLD_KEY,
             self.EXTRADITION_KEY, self.DRC_SANCTION_KEY, self.RE_BOOK_KEY,
+            self.PAROLE_KEY, self.GRAND_JURY_KEY,
+        }
+        self.probation_keys = {
+            self.FELONY_PROBATION_KEY, self.MISDEMEANOR_PROBATION_KEY,
+        }
+        self.bond_keys = {
+            self.BONDSMAN_OFF_BOND_KEY, self.NO_BOND_KEY, self.REVOKED_BOND_KEY,
         }
 
     @staticmethod
@@ -201,13 +217,12 @@ class ZuercherScraper(BaseScraper):
                 charge.offense_date = _skip_key_prefix(kv,
                                                        {self.ARREST_DATE_KEY})
             elif _starts_with_key(kv, {self.BOND_KEY}):
-                _parse_bond(kv, booking, charge)
+                self._parse_bond(kv, booking, charge)
             elif _starts_with_key(kv, {self.SET_BY_KEY}):
-                set_by = _skip_key_prefix(kv, {self.SET_BY_KEY})
-                if set_by.startswith('Judge'):
-                    judge_name = set_by[len('Judge'):].strip()
-                    if judge_name:
-                        charge.judge_name = judge_name
+                charge.judge_name = _skip_key_prefix(
+                    kv, {self.SET_BY_KEY}).strip()
+                if charge.judge_name.startswith('Judge'):
+                    charge.judge_name = charge.judge_name[len('Judge'):].strip()
             else:
                 # If it doesn't match, then a ';' was in the charge description
                 # so add it back to the first.
@@ -217,6 +232,9 @@ class ZuercherScraper(BaseScraper):
             charge_info = _skip_key_prefix(first_kv, self.plain_charge_keys)
             self._parse_charge(charge_info, charge)
         elif _starts_with_key(first_kv, self.warrant_with_charge_keys):
+            if _starts_with_key(first_kv, {self.PROBATION_REVOCATION_KEY}):
+                charge.status = ChargeStatus.SENTENCED.value
+
             info = _skip_key_prefix(first_kv, self.warrant_with_charge_keys)
             warrant_info, [charge_info] = _paren_tokenize(info)
 
@@ -230,19 +248,18 @@ class ZuercherScraper(BaseScraper):
             else:
                 self._parse_charge(charge_info, charge)
                 charge.charge_notes = warrant_info.strip()
-        elif _starts_with_key(first_kv, {self.SENTENCED_KEY}):
-            charge_info = _skip_key_prefix(first_kv, {self.SENTENCED_KEY})
+        elif _starts_with_key(first_kv, {self.SENTENCED_CHARGE_KEY}):
+            charge_info = _skip_key_prefix(first_kv,
+                                           {self.SENTENCED_CHARGE_KEY})
             self._parse_charge(charge_info, charge)
-            charge.status = 'SENTENCED'
-        elif _starts_with_key(first_kv, {self.BONDSMAN_OFF_BOND_KEY}):
+            charge.status = ChargeStatus.SENTENCED.value
+        elif _starts_with_key(first_kv, {self.SENTENCED_COURT_KEY}):
+            charge.name = first_kv
+            charge.status = ChargeStatus.SENTENCED.value
+        elif _starts_with_key(first_kv, self.bond_keys):
             # Note: Must be placed above BOND_KEY check.
-            # Skip these
-            _clear_charge(charge)
-        elif _starts_with_key(first_kv, {self.UNSPECIFIED_WARRANT_KEY}):
-            if 'Unspecified' not in first_kv:
-                raise ValueError(
-                    'Unexpected warrant: "{}"'.format(first_kv))
             charge.name = first_kv.strip()
+            charge.status = ChargeStatus.PRETRIAL.value
         elif _starts_with_key(first_kv, {self.WEEKENDER_SENTENCE_KEY}):
             info = _skip_key_prefix(first_kv, {self.WEEKENDER_SENTENCE_KEY})
             length, _relationship_type = map(str.strip, info.split(' - '))
@@ -259,6 +276,7 @@ class ZuercherScraper(BaseScraper):
             _clear_charge(charge)
         elif _starts_with_key(first_kv, self.hold_keys):
             hold_info = _skip_key_prefix(first_kv, self.hold_keys)
+
             _jurisdiction_type, jurisdiction_name = _split_by_substring(
                 hold_info, 'for')
             # Only create a hold if it is for a different jurisdiction
@@ -267,17 +285,17 @@ class ZuercherScraper(BaseScraper):
                 booking.create_hold(jurisdiction_name=jurisdiction_name)
                 _clear_charge(charge)
             else:
+                if _starts_with_key(first_kv, {self.PAROLE_KEY}):
+                    booking.admission_reason = \
+                        AdmissionReason.PAROLE_VIOLATION.value
+                    charge.charge_class = ChargeClass.PAROLE_VIOLATION.value
+                    charge.status = ChargeStatus.SENTENCED.value
                 charge.name = first_kv
-        elif _starts_with_key(first_kv, {self.PAROLE_KEY}):
-            if self.get_region().agency_name not in first_kv:
-                raise ValueError(
-                    'Unexpected parole violation: "{}"'.format(first_kv))
-            charge.name = first_kv
-        elif _starts_with_key(first_kv, {self.FELONY_PROBATION_KEY}):
-            if 'Unspecified' not in first_kv:
-                raise ValueError(
-                    'Unexpected felony parole: "{}"'.format(first_kv))
-            charge.name = first_kv
+        elif _starts_with_key(first_kv, self.probation_keys):
+            booking.admission_reason = AdmissionReason.PROBATION_VIOLATION.value
+            charge.charge_class = ChargeClass.PROBATION_VIOLATION.value
+            charge.status = ChargeStatus.SENTENCED.value
+            charge.name = first_kv.strip()
         else:
             # If we don't know what it is then just parse it as a charge.
             self._parse_charge(first_kv, charge)
@@ -323,6 +341,46 @@ class ZuercherScraper(BaseScraper):
                 charge_name += ' - ' + item
 
         charge.name = ' '.join([charge_name] + extra)
+
+    def _parse_bond(self, text: str, booking: Booking, charge: Charge):
+        """Parse out any bond related information from `text`."""
+        _, bond_text = text.split(' - ')
+        bond_text_split = list(map(str.strip, bond_text.split(',')))
+        bond_type = bond_amount = None
+        if len(bond_text_split) == 1:
+            if bond_text_split[0].startswith('$'):
+                bond_amount = bond_text_split[0]
+            else:
+                bond_type = bond_text_split[0]
+        elif len(bond_text_split) == 2:
+            bond_type, bond_amount = bond_text_split
+        else:
+            raise ValueError('Unexpected bond: "{}"'.format(text))
+
+        if bond_type:
+            if '-' in bond_type:
+                bond_type, _ = bond_type.split('-')
+            if 'Blanket' in bond_type:
+                # Make all the charges point to the single blanket bond.
+                for other_charge in booking.charges:
+                    if other_charge.bond:
+                        charge.bond = other_charge.bond
+            elif 'Bound Over to Superior Court' in bond_type:
+                charge.status = ChargeStatus.PRETRIAL.value
+                return
+
+        if not charge.bond:
+            charge.bond = Bond()
+
+        if bond_type:
+            bond_type, _ = _paren_tokenize(bond_type)
+            # 'Blanket' isn't a bond type so if that's all we have, skip it.
+            if bond_type != 'Blanket':
+                charge.bond.bond_type = bond_type
+        if bond_amount and \
+                (not charge.bond.amount or \
+                 not converter_utils.parse_dollars(charge.bond.amount)):
+            charge.bond.amount = bond_amount
 
     def _parse_parentheses(self, charge_text: str, charge: Charge) \
             -> Tuple[str, List[str]]:
@@ -373,45 +431,6 @@ def _clear_charge(charge):
     charge.offense_date = None
     charge.judge_name = None
     charge.bond = None
-
-def _parse_bond(text: str, booking: Booking, charge: Charge):
-    """Parse out any bond related information from `text`."""
-    _, bond_text = text.split(' - ')
-    bond_text_split = list(map(str.strip, bond_text.split(',')))
-    bond_type = bond_amount = None
-    if len(bond_text_split) == 1:
-        if bond_text_split[0].startswith('$'):
-            bond_amount = bond_text_split[0]
-        else:
-            bond_type = bond_text_split[0]
-    elif len(bond_text_split) == 2:
-        bond_type, bond_amount = bond_text_split
-    else:
-        raise ValueError('Unexpected bond: "{}"'.format(text))
-
-    if bond_type:
-        if 'Blanket' in bond_type:
-            # Make all the charges point to the single blanket bond.
-            for other_charge in booking.charges:
-                if other_charge.bond:
-                    charge.bond = other_charge.bond
-        elif 'Bound Over to Superior Court' in bond_type:
-            charge.status = 'PRETRIAL'
-            return
-        elif 'Own Recognizance' in bond_type:
-            return
-
-    if not charge.bond:
-        charge.bond = Bond()
-
-    if bond_type:
-        bond_type, _ = _paren_tokenize(bond_type)
-        # 'Blanket' isn't a bond type so if that's all we have, skip it.
-        if bond_type != 'Blanket':
-            charge.bond.bond_type = bond_type
-    if bond_amount and (not charge.bond.amount or \
-                        not converter_utils.parse_dollars(charge.bond.amount)):
-        charge.bond.amount = bond_amount
 
 def _paren_tokenize(text: str) -> Tuple[str, List[str]]:
     """Pulls out any information in first level parentheses and between them.

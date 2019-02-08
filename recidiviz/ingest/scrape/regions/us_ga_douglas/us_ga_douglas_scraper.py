@@ -24,9 +24,6 @@ from recidiviz.ingest.scrape.vendors.zuercher import ZuercherScraper
 class UsGaDouglasScraper(ZuercherScraper):
     """Scraper implementation for us_ga_douglas."""
 
-    WARRANT_KEY = 'Warrant Charge:'
-    UNSPECIFIED_WARRANT_KEY = 'Warrant:'
-
     def __init__(self):
         super(UsGaDouglasScraper, self).__init__(region_name='us_ga_douglas')
 
