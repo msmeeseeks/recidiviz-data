@@ -48,6 +48,9 @@ class InmateSearchScraper(BaseScraper):
 
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[ScrapedData]:
+        # "No record found."
+        if content.cssselect('.WADANoResultsMessage'):
+            return None
 
         # Modify duplicate fields so dataextractor can differentiate
         headers = content.xpath("//th/div[text()=\"Release Date:\"]")
