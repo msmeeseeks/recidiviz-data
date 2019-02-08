@@ -17,4 +17,5 @@
 
 """us_in_washington specific regional functionality.
 """
-from recidiviz.ingest.scrape.regions.us_in_washington import us_in_washington_scraper
+from recidiviz.ingest.scrape.regions.us_in_washington import \
+    us_in_washington_scraper
