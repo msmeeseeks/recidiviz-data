@@ -50,6 +50,8 @@ class NewWorldScraper(BaseScraper):
 
         for booking in ingest_info.people[0].bookings:
             for charge in booking.charges:
+                if charge.offense_date == "No data":
+                    charge.offense_date = None
                 if charge.bond and charge.bond.bond_id == "No data":
                     charge.bond = None
 
