@@ -1,4 +1,3 @@
-
 # Recidiviz - a platform for tracking granular recidivism metrics in real time
 # Copyright (C) 2018 Recidiviz, Inc.
 #
@@ -16,16 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper implementation for us_fl_hendry."""
+
+"""Base functionality for regions using inmate search.
+"""
 from recidiviz.ingest.scrape.vendors.inmate_search.inmate_search_scraper \
     import InmateSearchScraper
-
-class UsFlHendryScraper(InmateSearchScraper):
-    """Scraper implementation for us_fl_hendry."""
-
-    def __init__(self, mapping_filepath=None):
-        super(UsFlHendryScraper, self)\
-            .__init__('us_fl_hendry',
-                      "/inmate_search/INMATE_Results.php",
-                      "/inmate_search/",
-                      mapping_filepath)
