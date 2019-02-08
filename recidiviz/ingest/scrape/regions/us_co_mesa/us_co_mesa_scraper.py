@@ -187,12 +187,12 @@ class UsCoMesaScraper(BaseScraper):
             'TI': ChargeClass.CIVIL,  # Traffic Infraction
 
             # Bond Types
-            '(CASH) CASH': BondType.CASH,
-            '(CS) CASH/SURETY': BondType.UNSECURED,
-            '(CSP) CASH/SURETY/PROPERTY': BondType.UNSECURED,
-            '(SURETY) SURETY': BondType.UNSECURED,
-            '(PR) PERSONAL RECOGNIZANCE': BondType.NO_BOND,
-            '(PRS) PERSONAL RECOGNIZANCE CO-SIGN': BondType.NO_BOND,
+            'CASH CASH': BondType.CASH,
+            'CS CASH SURETY': BondType.UNSECURED,
+            'CSP CASH SURETY PROPERTY': BondType.UNSECURED,
+            'SURETY SURETY': BondType.UNSECURED,
+            'PR PERSONAL RECOGNIZANCE': BondType.NO_BOND,
+            'PRS PERSONAL RECOGNIZANCE CO SIGN': BondType.NO_BOND,
         }
 
 

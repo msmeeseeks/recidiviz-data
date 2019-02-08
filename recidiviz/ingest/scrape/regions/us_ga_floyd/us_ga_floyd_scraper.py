@@ -35,9 +35,9 @@ class UsGaFloydScraper(ZuercherScraper):
         return {
             **super(UsGaFloydScraper, self).get_enum_overrides(),
             # Charge Status
-            'NOLLE PROSSED (CCH-300)': ChargeStatus.DROPPED,
-            'DISMISSED (CCH-305)': ChargeStatus.DROPPED,
-            'GUILTY (CCH-310)': ChargeStatus.CONVICTED,
+            'NOLLE PROSSED CCH 300': ChargeStatus.DROPPED,
+            'DISMISSED CCH 305': ChargeStatus.DROPPED,
+            'GUILTY CCH 310': ChargeStatus.CONVICTED,
 
             # Charge Classes
             'FEL': ChargeClass.FELONY,

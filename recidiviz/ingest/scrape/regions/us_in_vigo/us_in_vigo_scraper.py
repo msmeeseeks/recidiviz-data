@@ -85,19 +85,19 @@ class UsInVigoScraper(JailTrackerScraper):
 
     def get_enum_overrides(self):
         return {
-            'CASH ONLY -- NO 10% -- NO PROFESSIONAL BONDSMAN': BondType.CASH,
-            'WITH 10% ALLOWED': BondType.CASH,
+            'CASH ONLY NO 10 NO PROFESSIONAL BONDSMAN': BondType.CASH,
+            'WITH 10 ALLOWED': BondType.CASH,
             'BAIL CONSOLIDATED TO ONE CHARGE': None,
             'BOND SET': ChargeStatus.PRETRIAL,
             'GENERAL': None,
             'RELEASED BY COURT': ChargeStatus.PRETRIAL,
-            'IV-D SUPPORT COURT': CourtType.CIVIL,
+            'IV D SUPPORT COURT': CourtType.CIVIL,
             'SC': ChargeClass.CIVIL,
             'COUNTY COURT': CourtType.DISTRICT,
             'COURT TYPE': CourtType.DISTRICT,
             'TERRE HAUTE CITY COURT': CourtType.DISTRICT,
-            'OTHER (NOT CLASSIFIED)': CourtType.EXTERNAL_UNKNOWN,
+            'OTHER NOT CLASSIFIED': CourtType.EXTERNAL_UNKNOWN,
             '*': None,
             '.': None,
-            'PAROLE VIOLATION (STATE ONLY)': None,
+            'PAROLE VIOLATION STATE ONLY': None,
         }
