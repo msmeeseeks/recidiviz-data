@@ -804,7 +804,7 @@ regions:
     scraper_package: us_nc_wake
     timezone: America/New_York
   us_in_washington:
-    agency_name: $agency
+    agency_name: Washington County Sheriff's Dept
     region_code: us_in_washington
     agency_type: jail
     queue: us-in-washington-scraper
