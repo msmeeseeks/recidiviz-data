@@ -185,8 +185,9 @@ class JailTrackerScraper(BaseScraper):
         return re.search(r"JailTracker.Web.Settings.init\('(.*)'",
                          body_script).group(1)
 
-    def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
+    def populate_data(
+            self, content, task: Task,
+            ingest_info: IngestInfo) -> Optional[ScrapedData]:
         data_extractor = JsonDataExtractor(self.yaml)
         facility, parole_agency = self.extract_agencies(
             task.custom[self._PERSON]['data'])
@@ -308,7 +309,10 @@ class JailTrackerScraper(BaseScraper):
             roster_request_endpoint = "/".join(
                 [self._URL_BASE, roster_request_suffix])
 
-            next_tasks.append(Task(
+            # Prepend roster task for debugging purposes.
+            # When running create_scraper for Jailtracker, `--lifo` flag will
+            # fetch people before fetching the entire roster.
+            next_tasks.insert(0, Task(
                 task_type=constants.TaskType.GET_MORE_TASKS,
                 endpoint=roster_request_endpoint,
                 response_type=constants.ResponseType.JSON,
