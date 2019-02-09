@@ -236,7 +236,8 @@ class ZuercherScraper(BaseScraper):
                 charge.status = ChargeStatus.SENTENCED.value
 
             info = _skip_key_prefix(first_kv, self.warrant_with_charge_keys)
-            warrant_info, [charge_info] = _paren_tokenize(info)
+            warrant_info, [*others, charge_info] = _paren_tokenize(info)
+            warrant_info += ''.join(map(' ({})'.format, others))
 
             _, jurisdiction = _split_by_substring(warrant_info, 'issued by')
             if (jurisdiction and

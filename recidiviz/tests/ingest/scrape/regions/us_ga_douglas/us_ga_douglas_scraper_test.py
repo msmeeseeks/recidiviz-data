@@ -209,4 +209,27 @@ class TestUsGaDouglasScraper(ZuercherScraperTest, unittest.TestCase):
         charge.name = 'Unspecified warrant'
         charge.offense_date = '01/10/2019'
 
+        # eighth
+        person = expected_info.create_person()
+        person.full_name = 'WARRANT, PARENTHESES'
+        person.gender = 'Male'
+        person.age = '23'
+        person.race = 'Black'
+
+        booking = person.create_booking()
+        booking.admission_date = '2019-02-01'
+
+        charge = booking.create_charge()
+        charge.offense_date = '12/18/2017'
+        charge.statute = '16-10-24(a)'
+        charge.name = 'Obstruction of Officers-'
+        charge.charge_class = 'M'
+        charge.status = 'Pending'
+
+        charge = booking.create_charge()
+        charge.offense_date = '12/18/2017'
+        charge.statute = '42-8-38'
+        charge.name = 'Probation Violation'
+        charge.charge_notes = 'Violation of Probation warrant 09SR01306 (R3)'
+
         self.validate_and_return_populate_data(_LOAD_JSON, expected_info)

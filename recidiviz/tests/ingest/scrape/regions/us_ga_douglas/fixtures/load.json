@@ -90,6 +90,19 @@
             "arrest_date": "2019-01-10",
             "mugshot": "",
             "hold_reasons": "Warrant: Unspecified warrant ; Arrest Date 01/10/2019;"
+        },
+        {
+            "name": "WARRANT, PARENTHESES",
+            "dob": 23,
+            "is_juvenile": false,
+            "sex": "Male",
+            "cell_block": "",
+            "release_date": "",
+            "held_for_agency": "",
+            "race": "Black",
+            "arrest_date": "2019-02-01",
+            "mugshot": "",
+            "hold_reasons": "Charge: 16-10-24(a) - Obstruction of Officers-(M) (Pending); Arrest Date 12/18/2017;<br />Warrant Charge: Violation of Probation warrant 09SR01306 (R3)  (42-8-38 - Probation Violation); Arrest Date 12/18/2017;"
         }
     ],
     "total_record_count": 658
