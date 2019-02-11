@@ -44,6 +44,7 @@ from typing import List
 
 from lxml import html
 
+from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.booking import CustodyStatus, ReleaseReason
 from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.ingest.scrape import constants
@@ -213,6 +214,9 @@ class JailTrackerScraper(BaseScraper):
     def get_enum_overrides(self):
         return {
             'O': ChargeClass.PROBATION_VIOLATION,
+            'NO BAIL': BondType.NO_BOND,
+            # This is overloaded in the bond and means there is no bond.
+            'SERVING_TIME': None,
         }
 
     def _process_landing_page_and_get_next_task(

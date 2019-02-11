@@ -170,6 +170,7 @@ class JailTrackerScraperTest(BaseScraperTest):
         charge.number_of_counts = '2'
         charge.charge_class = 'M'
         charge.case_number = '11'
+        charge.statute = '123'
         bond = charge.create_bond()
         bond.amount = '500'
         bond.bond_type = 'CASH'
@@ -182,6 +183,7 @@ class JailTrackerScraperTest(BaseScraperTest):
         charge.charge_class = 'M'
         charge.number_of_counts = '1'
         charge.case_number = '12'
+        charge.statute = '123'
         bond = charge.create_bond()
         bond.amount = '500'
         bond.bond_type = 'CASH'
@@ -225,6 +227,7 @@ class JailTrackerScraperTest(BaseScraperTest):
         charge.number_of_counts = '2'
         charge.charge_class = 'M'
         charge.case_number = '11'
+        charge.statute = '123'
         bond = charge.create_bond()
         bond.amount = '500'
         bond.bond_type = 'CASH'
@@ -237,6 +240,7 @@ class JailTrackerScraperTest(BaseScraperTest):
         charge.charge_class = 'M'
         charge.number_of_counts = '1'
         charge.case_number = '12'
+        charge.statute = '123'
         bond = charge.create_bond()
         bond.amount = '500'
         bond.bond_type = 'CASH'

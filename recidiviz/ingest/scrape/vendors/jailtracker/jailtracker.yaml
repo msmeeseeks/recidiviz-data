@@ -11,6 +11,11 @@ key_mappings:
   booking.Custody Status: booking.custody_status
   booking.Release Reason: booking.release_reason
   booking.Facility: booking.facility
+  booking.Sched Release: booking.projected_release_date
+
+  booking.Arresting Agency: arrest.agency
+  booking.Arrest Date: arrest.date
+  booking.Arresting Officer: arrest.officer_name
 
   charges.ChargeId: charge.charge_id
   charges.CaseNo: charge.case_number
@@ -20,6 +25,9 @@ key_mappings:
   charges.Counts: charge.number_of_counts
   charges.CrimeType: charge.charge_class
   charges.ChargeDescription: charge.name
+  charges.ArrestCode: charge.statute
 
   charges.BondAmount: bond.amount
   charges.BondType: bond.bond_type
+  # TODO #944 Add bondsmen to jailtracker.
+  # TODO #944 add cases information, Sentence and Status (sentence status)
