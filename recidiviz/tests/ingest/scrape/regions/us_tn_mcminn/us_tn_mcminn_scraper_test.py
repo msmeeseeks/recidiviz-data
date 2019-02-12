@@ -108,7 +108,7 @@ class TestUsTnMcminnScraper(BaseScraperTest, unittest.TestCase):
                                            birthdate='1989', gender='M',
                                            place_of_residence='123 PLACE PLACE')
         b1 = p1.create_booking(custody_status='CURRENTLY BOOKED')
-        b1.create_arrest(date='1/1/1111')
+        b1.create_arrest(arrest_date='1/1/1111')
         b1.create_charge(charge_id='16',
                          statute='TITLE',
                          name='VIOLATION',
@@ -124,7 +124,7 @@ class TestUsTnMcminnScraper(BaseScraperTest, unittest.TestCase):
                                            gender='M',
                                            place_of_residence='SPRINGFIELD')
         b2 = p2.create_booking(custody_status='CURRENTLY BOOKED')
-        b2.create_arrest(date='1/1/1111')
+        b2.create_arrest(arrest_date='1/1/1111')
         charge2 = b2.create_charge(charge_id='17',
                                    statute='TITLE',
                                    name='VIOLATIONOF PROBATION',

@@ -6,7 +6,7 @@ key_mappings:
   Sex: person.gender
   Date of Birth: person.birthdate
   Arresting Agency: arrest.agency
-  Arrest Date: arrest.date
+  Arrest Date: arrest.arrest_date
 
 keys_to_ignore:
   - Suffix
