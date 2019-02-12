@@ -19,11 +19,11 @@
 import unittest
 
 from recidiviz.ingest.scrape.regions.${region}.${region}_scraper import \
-    ${class_name}Scraper
+    ${class_name}
 from recidiviz.tests.ingest.scrape.vendors.jailtracker.jailtracker_scraper_test \
     import JailTrackerScraperTest
 
 
-class Test${class_name}Scraper(JailTrackerScraperTest, unittest.TestCase):
+class Test${class_name}(JailTrackerScraperTest, unittest.TestCase):
     def _get_scraper(self):
-        return ${class_name}Scraper()
+        return ${class_name}()
