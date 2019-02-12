@@ -23,6 +23,8 @@ class UsGaLumpkinScraper(ZuercherScraper):
     """Scraper implementation for us_ga_lumpkin."""
 
     CHARGE_KEY = 'Citation:'
+    WARRANT_CHARGE_KEY = 'Warrant:'
+    PLAIN_WARRANT_KEY = 'Plain Warrant:'
 
     BOARDER_KEY = 'Housed'
 

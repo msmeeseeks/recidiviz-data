@@ -121,6 +121,7 @@ hold_status_values = (enum_strings.hold_status_active,
 bond_type_values = (enum_strings.external_unknown,
                     enum_strings.bond_type_cash,
                     enum_strings.bond_type_no_bond,
+                    enum_strings.bond_type_partial_cash,
                     enum_strings.bond_type_secured,
                     enum_strings.bond_type_unsecured)
 
@@ -130,6 +131,7 @@ bond_status_values = (enum_strings.bond_status_denied,
                       enum_strings.bond_status_not_required,
                       enum_strings.bond_status_pending,
                       enum_strings.bond_status_posted,
+                      enum_strings.bond_status_revoked,
                       enum_strings.unknown_removed_from_source,
                       enum_strings.bond_status_set)
 
@@ -257,7 +259,7 @@ class PersonHistory(Base, DatabaseEntity, _PersonSharedColumns):
     # requires every table to have a unique primary key.
     person_history_id = Column(Integer, primary_key=True)
 
-    person_id = Column(Integer, nullable=False, index=True)
+    person_id = Column(Integer, ForeignKey('person.person_id'), nullable=False)
     valid_from = Column(DateTime, nullable=False)
     valid_to = Column(DateTime)
 
@@ -314,7 +316,8 @@ class BookingHistory(Base, DatabaseEntity, _BookingSharedColumns):
     # requires every table to have a unique primary key.
     booking_history_id = Column(Integer, primary_key=True)
 
-    booking_id = Column(Integer, nullable=False, index=True)
+    booking_id = Column(
+        Integer, ForeignKey('booking.booking_id'), nullable=False)
     valid_from = Column(DateTime, nullable=False)
     valid_to = Column(DateTime)
     person_id = Column(Integer, nullable=False, index=True)
@@ -354,7 +357,7 @@ class HoldHistory(Base, DatabaseEntity, _HoldSharedColumns):
     # requires every table to have a unique primary key.
     hold_history_id = Column(Integer, primary_key=True)
 
-    hold_id = Column(Integer, nullable=False, index=True)
+    hold_id = Column(Integer, ForeignKey('hold.hold_id'), nullable=False)
     valid_from = Column(DateTime, nullable=False)
     valid_to = Column(DateTime)
     booking_id = Column(Integer, nullable=False, index=True)
@@ -396,7 +399,7 @@ class ArrestHistory(Base, DatabaseEntity, _ArrestSharedColumns):
     # requires every table to have a unique primary key.
     arrest_history_id = Column(Integer, primary_key=True)
 
-    arrest_id = Column(Integer, nullable=False, index=True)
+    arrest_id = Column(Integer, ForeignKey('arrest.arrest_id'), nullable=False)
     valid_from = Column(DateTime, nullable=False)
     valid_to = Column(DateTime)
     booking_id = Column(Integer, nullable=False, index=True)
@@ -437,7 +440,7 @@ class BondHistory(Base, DatabaseEntity, _BondSharedColumns):
     # requires every table to have a unique primary key.
     bond_history_id = Column(Integer, primary_key=True)
 
-    bond_id = Column(Integer, nullable=False, index=True)
+    bond_id = Column(Integer, ForeignKey('bond.bond_id'), nullable=False)
     valid_from = Column(DateTime, nullable=False)
     valid_to = Column(DateTime)
 
@@ -493,7 +496,8 @@ class SentenceHistory(Base, DatabaseEntity, _SentenceSharedColumns):
     # requires every table to have a unique primary key.
     sentence_history_id = Column(Integer, primary_key=True)
 
-    sentence_id = Column(Integer, nullable=False, index=True)
+    sentence_id = Column(
+        Integer, ForeignKey('sentence.sentence_id'), nullable=False)
     valid_from = Column(DateTime, nullable=False)
     valid_to = Column(DateTime)
 
@@ -549,7 +553,10 @@ class SentenceRelationshipHistory(Base, DatabaseEntity,
     # requires every table to have a unique primary key.
     sentence_relationship_history_id = Column(Integer, primary_key=True)
 
-    sentence_relationship_id = Column(Integer, nullable=False, index=True)
+    sentence_relationship_id = Column(
+        Integer,
+        ForeignKey('sentence_relationship.sentence_relationship_id'),
+        nullable=False)
     valid_from = Column(DateTime, nullable=False)
     valid_to = Column(DateTime)
     sentence_a_id = Column(Integer, nullable=False, index=True)
@@ -612,7 +619,7 @@ class ChargeHistory(Base, DatabaseEntity, _ChargeSharedColumns):
     # requires every table to have a unique primary key.
     charge_history_id = Column(Integer, primary_key=True)
 
-    charge_id = Column(Integer, nullable=False, index=True)
+    charge_id = Column(Integer, ForeignKey('charge.charge_id'), nullable=False)
     valid_from = Column(DateTime, nullable=False)
     valid_to = Column(DateTime)
     booking_id = Column(Integer, nullable=False, index=True)

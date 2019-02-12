@@ -157,6 +157,17 @@ queue:
     max_backoff_seconds: 300
     task_retry_limit: 5
 
+# us-fl-alachua-scraper - Alachua County, Florida
+- name: us-fl-alachua-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_retry_limit: 5
+
 # us-tx-brown-scraper - Brown County, Texas
 - name: us-tx-brown-scraper
   mode: push
@@ -555,6 +566,17 @@ queue:
 
 # us-al-pike-scraper - Pike County, Alabama
 - name: us-al-pike-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_retry_limit: 5
+
+# us-fl-glades-scraper - Glades County, Florida
+- name: us-fl-glades-scraper
   mode: push
   rate: 5/m
   bucket_size: 2
@@ -969,7 +991,6 @@ queue:
   retry_parameters:
     min_backoff_seconds: 5
     max_backoff_seconds: 300
-    task_age_limit: 3d
     task_retry_limit: 5
 
 # us-nc-cleveland-scraper - Cleveland County, North Carolina
@@ -981,7 +1002,6 @@ queue:
   retry_parameters:
     min_backoff_seconds: 5
     max_backoff_seconds: 300
-    task_age_limit: 3d
     task_retry_limit: 5
 
 # us-nc-forsyth-scraper - Forsyth County, North Carolina
@@ -993,7 +1013,6 @@ queue:
   retry_parameters:
     min_backoff_seconds: 5
     max_backoff_seconds: 300
-    task_age_limit: 3d
     task_retry_limit: 5
 
 # us-nc-lincoln-scraper - Lincoln County, North Carolina
@@ -1005,7 +1024,6 @@ queue:
   retry_parameters:
     min_backoff_seconds: 5
     max_backoff_seconds: 300
-    task_age_limit: 3d
     task_retry_limit: 5
 
 # us-nc-new-hanover-scraper - New Hanover County, North Carolina
@@ -1017,7 +1035,6 @@ queue:
   retry_parameters:
     min_backoff_seconds: 5
     max_backoff_seconds: 300
-    task_age_limit: 3d
     task_retry_limit: 5
 
 # us-nc-rowan-scraper - Rowan County, North Carolina
@@ -1029,7 +1046,6 @@ queue:
   retry_parameters:
     min_backoff_seconds: 5
     max_backoff_seconds: 300
-    task_age_limit: 3d
     task_retry_limit: 5
 
 # us-nc-union-scraper - Union County, North Carolina
@@ -1041,7 +1057,6 @@ queue:
   retry_parameters:
     min_backoff_seconds: 5
     max_backoff_seconds: 300
-    task_age_limit: 3d
     task_retry_limit: 5
 
 # us-nc-wake-scraper - Wake County, North Carolina
@@ -1053,7 +1068,104 @@ queue:
   retry_parameters:
     min_backoff_seconds: 5
     max_backoff_seconds: 300
-    task_age_limit: 3d
+    task_retry_limit: 5
+
+# us-ga-toombs-scraper - Toombs County, Georgia
+- name: us-ga-toombs-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_retry_limit: 5
+
+# us-ky-harlan-scraper - Harlan County, Kentucky
+- name: us-ky-harlan-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_retry_limit: 5
+
+# us-ky-campbell-scraper - Campbell County, Kentucky
+- name: us-ky-campbell-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_retry_limit: 5
+
+# us-ky-greenup-scraper - Greenup County, Kentucky
+- name: us-ky-greenup-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_retry_limit: 5
+ 
+- name: us-ky-grant-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_retry_limit: 5
+
+# us-ky-marion-scraper - Marion County, Kentucky
+- name: us-ky-marion-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_retry_limit: 5
+
+# us-ky-crittenden-scraper - Crittenden County, Kentucky
+- name: us-ky-crittenden-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_retry_limit: 5
+
+# us-ky-barren-scraper - Barren County, Kentucky
+- name: us-ky-barren-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
+    task_retry_limit: 5
+
+# us-in-whitley-scraper - Whitley County, Indiana
+- name: us-in-whitley-scraper
+  mode: push
+  rate: 5/m
+  bucket_size: 2
+  max_concurrent_requests: 3
+  retry_parameters:
+    min_backoff_seconds: 5
+    max_backoff_seconds: 300
     task_retry_limit: 5
 
 # us-in-washington-scraper - Washington County, Indiana

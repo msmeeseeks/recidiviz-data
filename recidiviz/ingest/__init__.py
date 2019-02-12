@@ -22,6 +22,7 @@ normalizing, and storing records ingested from various criminal justice data
 sources.
 """
 
+import recidiviz.ingest.scrape.regions.us_fl_glades
 import recidiviz.ingest.scrape.regions.us_al_autauga
 import recidiviz.ingest.scrape.regions.us_al_cherokee
 import recidiviz.ingest.scrape.regions.us_al_dale
@@ -51,6 +52,7 @@ import recidiviz.ingest.scrape.regions.us_ar_st_francis
 import recidiviz.ingest.scrape.regions.us_ar_stone
 import recidiviz.ingest.scrape.regions.us_ar_van_buren
 import recidiviz.ingest.scrape.regions.us_co_mesa
+import recidiviz.ingest.scrape.regions.us_fl_alachua
 import recidiviz.ingest.scrape.regions.us_fl_bradford
 import recidiviz.ingest.scrape.regions.us_fl_columbia
 import recidiviz.ingest.scrape.regions.us_fl_hendry
@@ -62,13 +64,22 @@ import recidiviz.ingest.scrape.regions.us_ga_douglas
 import recidiviz.ingest.scrape.regions.us_ga_floyd
 import recidiviz.ingest.scrape.regions.us_ga_gwinnett
 import recidiviz.ingest.scrape.regions.us_ga_lumpkin
+import recidiviz.ingest.scrape.regions.us_ga_toombs
 import recidiviz.ingest.scrape.regions.us_in_jackson
 import recidiviz.ingest.scrape.regions.us_in_scott
 import recidiviz.ingest.scrape.regions.us_in_vigo
 import recidiviz.ingest.scrape.regions.us_in_washington
+import recidiviz.ingest.scrape.regions.us_in_whitley
 import recidiviz.ingest.scrape.regions.us_ks_cherokee
 import recidiviz.ingest.scrape.regions.us_ks_jefferson
 import recidiviz.ingest.scrape.regions.us_ks_pratt
+import recidiviz.ingest.scrape.regions.us_ky_barren
+import recidiviz.ingest.scrape.regions.us_ky_crittenden
+import recidiviz.ingest.scrape.regions.us_ky_greenup
+import recidiviz.ingest.scrape.regions.us_ky_marion
+import recidiviz.ingest.scrape.regions.us_ky_grant
+import recidiviz.ingest.scrape.regions.us_ky_campbell
+import recidiviz.ingest.scrape.regions.us_ky_harlan
 import recidiviz.ingest.scrape.regions.us_mo_barry
 import recidiviz.ingest.scrape.regions.us_mo_cape_girardeau
 import recidiviz.ingest.scrape.regions.us_mo_johnson

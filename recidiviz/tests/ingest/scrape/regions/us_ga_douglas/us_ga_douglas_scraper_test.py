@@ -116,6 +116,7 @@ class TestUsGaDouglasScraper(ZuercherScraperTest, unittest.TestCase):
         charge.statute = '999.999'
         charge.status = 'Pending'
         charge.offense_date = '01/21/2019'
+        charge.judge_name = 'Preset'
 
         # fourth
         person = expected_info.create_person()
@@ -165,11 +166,17 @@ class TestUsGaDouglasScraper(ZuercherScraperTest, unittest.TestCase):
 
         charge = booking.create_charge()
         charge.name = 'Probation-F: Unspecified warrant 18-12-14-3416'
+        charge.charge_class = 'PROBATION_VIOLATION'
+        charge.status = 'SENTENCED'
         charge.offense_date = '12/14/2018'
 
         charge = booking.create_charge()
         charge.name = 'Parole for Douglas County Sheriff\'s Office'
+        charge.charge_class = 'PAROLE_VIOLATION'
+        charge.status = 'SENTENCED'
         charge.offense_date = '12/20/2018'
+
+        booking.admission_reason = 'PAROLE_VIOLATION'
 
         # sixth
         person = expected_info.create_person()
@@ -199,7 +206,30 @@ class TestUsGaDouglasScraper(ZuercherScraperTest, unittest.TestCase):
         booking.admission_date = '2019-01-10'
 
         charge = booking.create_charge()
-        charge.name = 'Warrant: Unspecified warrant'
+        charge.name = 'Unspecified warrant'
         charge.offense_date = '01/10/2019'
+
+        # eighth
+        person = expected_info.create_person()
+        person.full_name = 'WARRANT, PARENTHESES'
+        person.gender = 'Male'
+        person.age = '23'
+        person.race = 'Black'
+
+        booking = person.create_booking()
+        booking.admission_date = '2019-02-01'
+
+        charge = booking.create_charge()
+        charge.offense_date = '12/18/2017'
+        charge.statute = '16-10-24(a)'
+        charge.name = 'Obstruction of Officers-'
+        charge.charge_class = 'M'
+        charge.status = 'Pending'
+
+        charge = booking.create_charge()
+        charge.offense_date = '12/18/2017'
+        charge.statute = '42-8-38'
+        charge.name = 'Probation Violation'
+        charge.charge_notes = 'Violation of Probation warrant 09SR01306 (R3)'
 
         self.validate_and_return_populate_data(_LOAD_JSON, expected_info)

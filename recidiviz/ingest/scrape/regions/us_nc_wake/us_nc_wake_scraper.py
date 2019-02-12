@@ -57,7 +57,7 @@ class UsNcWakeScraper(SuperionScraper):
     def get_enum_overrides(self):
         return {
             'DISMISSED 234': BondType.NO_BOND,
-            'ELECTRONIC HOUSE ARREST - SECURED BOND': BondType.SECURED,
-            'SECURE BOND - 2ND OR SUBSEQUENT FTA ON THIS CASE':
+            'ELECTRONIC HOUSE ARREST SECURED BOND': BondType.SECURED,
+            'SECURE BOND 2ND OR SUBSEQUENT FTA ON THIS CASE':
                 BondType.SECURED,
         }

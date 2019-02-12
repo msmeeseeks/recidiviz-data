@@ -24,6 +24,9 @@ from recidiviz.ingest.scrape.vendors.zuercher import ZuercherScraper
 class UsGaFloydScraper(ZuercherScraper):
     """Scraper implementation for us_ga_floyd."""
 
+    WARRANT_CHARGE_KEY = 'Warrant:'
+    PLAIN_WARRANT_KEY = 'Plain Warrant:'
+
     def __init__(self):
         super(UsGaFloydScraper, self).__init__(region_name='us_ga_floyd')
 
@@ -35,9 +38,9 @@ class UsGaFloydScraper(ZuercherScraper):
         return {
             **super(UsGaFloydScraper, self).get_enum_overrides(),
             # Charge Status
-            'NOLLE PROSSED (CCH-300)': ChargeStatus.DROPPED,
-            'DISMISSED (CCH-305)': ChargeStatus.DROPPED,
-            'GUILTY (CCH-310)': ChargeStatus.CONVICTED,
+            'NOLLE PROSSED CCH 300': ChargeStatus.DROPPED,
+            'DISMISSED CCH 305': ChargeStatus.DROPPED,
+            'GUILTY CCH 310': ChargeStatus.CONVICTED,
 
             # Charge Classes
             'FEL': ChargeClass.FELONY,

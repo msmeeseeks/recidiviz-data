@@ -175,6 +175,7 @@ class TestUsGaFloydScraper(ZuercherScraperTest, unittest.TestCase):
                     name='Court Order',
                     charge_notes='Probation warrant 18TR03261 issued by ' +
                     'Floyd County, GA',
+                    status='SENTENCED',
                     bond=Bond(
                         bond_type='No Bond',
                     ),

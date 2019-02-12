@@ -17,137 +17,15 @@
 # =============================================================================
 
 """Scraper implementation for us_fl_hendry."""
-import os
-import re
-from typing import List, Optional, Set
+from recidiviz.ingest.scrape.vendors.inmate_search.inmate_search_scraper \
+    import InmateSearchScraper
 
-from recidiviz.ingest.scrape import constants
-from recidiviz.ingest.scrape.base_scraper import BaseScraper
-from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
-from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.scrape.task_params import ScrapedData, Task
-
-
-class UsFlHendryScraper(BaseScraper):
+class UsFlHendryScraper(InmateSearchScraper):
     """Scraper implementation for us_fl_hendry."""
 
     def __init__(self, mapping_filepath=None):
-        if not mapping_filepath:
-            mapping_filepath = os.path.join(
-                os.path.dirname(__file__), 'us_fl_hendry.yaml')
-        self.mapping_filepath = mapping_filepath
-
-        super(UsFlHendryScraper, self).__init__('us_fl_hendry')
-
-    def populate_data(self, content, task: Task,
-                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
-
-        # Modify duplicate fields so dataextractor can differentiate
-        headers = content.xpath("//th/div[text()=\"Release Date:\"]")
-        for header in headers:
-            header.text = "unused:"
-
-        data_extractor = HtmlDataExtractor(self.mapping_filepath)
-        ingest_info = data_extractor.extract_and_populate_data(content,
-                                                               ingest_info)
-
-        if len(ingest_info.people) != 1:
-            raise Exception("Expected only 1 person on page, but found %i" %
-                            len(ingest_info.people))
-
-        person = ingest_info.people[0]
-
-        tables = content.cssselect('table')
-        for table in tables:
-            title = table.cssselect('.WADAPageTitle')
-            if title and title[0].text_content() == "Booking History":
-
-                i = 0
-                for tr in table[1:]:
-                    if len(person.bookings) <= i:
-                        raise Exception("DataExtractor did not create enough "
-                                        "bookings. %i expected, %i found" %
-                                        (len(table[1:]), len(person.bookings)))
-
-                    booking = person.bookings[i]
-
-                    charge_table = tr.cssselect('table')
-                    for charge_td in charge_table[0]:
-                        self._add_charge(charge_td, booking)
-                    i += 1
-
-        return ScrapedData(ingest_info=ingest_info, persist=True)
-
-    def _add_charge(self, charge_td, booking):
-        charge_search = re.search(
-            "Charge:\\W(\\S+\\W*/\\W*.+)\\n" +
-            "\\W+(.+)\\W+Counts:\\W*" +
-            "Bond\\WAmount:\\W*(\\d*)\\W*(\\$\\d*)",
-            charge_td.text_content(), re.I)
-
-        if charge_search:
-            charge = booking.create_charge()
-            charge.statute = charge_search.group(1)
-
-            charge.name = charge_search.group(2)\
-                .replace('\n', '')\
-                .replace('\t', '')\
-                .replace(u'\xa0', u'')\
-                .strip()
-
-            if charge.name == '':
-                charge.name = None
-
-            if charge_search.group(3):
-                charge.number_of_counts = charge_search.group(3)
-
-            charge.create_bond(amount=charge_search.group(4))
-
-    def get_more_tasks(self, content, task: Task) -> List[Task]:
-        if self.is_initial_task(task.task_type):
-            return [self._get_search_page()]
-
-        tasks = []
-        tasks.extend(self._get_next_page(content, task.endpoint))
-        tasks.extend(self._get_profiles(content))
-        return tasks
-
-    def _get_search_page(self) -> Task:
-        return Task(
-            task_type=constants.TaskType.GET_MORE_TASKS,
-            endpoint=self.get_region().base_url +
-            "/inmate_search/INMATE_Results.php",
-        )
-
-    def _get_next_page(self, content, endpoint) -> List[Task]:
-        next_button = content.cssselect('[title="Next"]')
-        if next_button:
-            next_endpoint = self.get_region().base_url + \
-                next_button[0].get('href')
-            if next_endpoint == endpoint:
-                # When endpoint is equal to current enpoint we've reached
-                # the last page
-                return []
-
-            return [Task(
-                task_type=constants.TaskType.GET_MORE_TASKS,
-                endpoint=next_endpoint,
-            )]
-
-        return []
-
-    def _get_profiles(self, content) -> List[Task]:
-        link_elms = content.cssselect('td.WADAResultsTableCell > a')
-
-        tasks = []
-        links: Set[str] = set()
-        for elm in link_elms:
-            if elm.get('href') not in links:
-                links.add(elm.get('href'))
-                tasks.append(Task(
-                    task_type=constants.TaskType.SCRAPE_DATA,
-                    endpoint=self.get_region().base_url +
-                    '/inmate_search/' + elm.get('href'),
-                ))
-
-        return tasks
+        super(UsFlHendryScraper, self)\
+            .__init__('us_fl_hendry',
+                      "/inmate_search/INMATE_Results.php",
+                      "/inmate_search/",
+                      mapping_filepath)

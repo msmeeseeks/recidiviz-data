@@ -408,7 +408,8 @@ class TestFetchPage:
         with patch('requests.get', return_value=response):
             assert scraper.fetch_page(url).content == page
             requests.get.assert_called_with(
-                url, proxies=proxies, headers=headers, cookies=None)
+                url, proxies=proxies, headers=headers, cookies=None,
+                params=None, verify=False)
 
         mock_region.assert_called_with(region)
         mock_proxies.assert_called_with()
@@ -449,7 +450,7 @@ class TestFetchPage:
         mock_headers.assert_called_with()
         mock_requests.assert_called_with(
             url, proxies=proxies, headers=headers, cookies=None,
-            data=body, json=json_data)
+            data=body, json=json_data, verify=False)
 
     @patch("requests.get")
     @patch("recidiviz.ingest.scrape.scraper_utils.get_headers")
@@ -496,7 +497,8 @@ class TestFetchPage:
             mock_proxies.assert_called_with()
             mock_headers.assert_called_with()
             mock_requests.assert_called_with(
-                url, proxies=proxies, headers=headers, cookies=None)
+                url, proxies=proxies, headers=headers, cookies=None,
+                params=None, verify=False)
 
 def mock_region_manifest(region_code, queue_name):
     return {

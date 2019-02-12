@@ -48,8 +48,8 @@ class UsPaGreeneScraper(JailTrackerScraper):
             'SENTENCED BY COMMONWEALTH': ChargeStatus.SENTENCED,
 
             # Bond Types
-            'CASH/SURETY': BondType.UNSECURED,
+            'CASH SURETY': BondType.UNSECURED,
             'STRAIGHT': BondType.CASH,
-            'NO BOND PERMITTED (UNBONDABLE CHARGE)': BondType.NO_BOND,
+            'NO BOND PERMITTED UNBONDABLE CHARGE': BondType.NO_BOND,
             'PERCENTAGE': BondType.CASH,
         }

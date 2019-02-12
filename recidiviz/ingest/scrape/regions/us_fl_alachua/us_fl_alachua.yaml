@@ -1,0 +1,19 @@
+key_mappings:
+  Name: person.full_name
+  Hold:
+  Bond Amount:
+  Agency:
+  Status:
+  "Case #":
+
+keys_to_ignore:
+  - Booking Date/Time
+  - Pod
+  - Federal
+  - Other County
+
+multi_key_mapping:
+  Statute: charge.statute
+  Description: charge.name
+  Degree: charge.degree
+  Level: charge.charge_class

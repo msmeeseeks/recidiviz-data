@@ -161,7 +161,7 @@ class DcnScraper(BaseScraper):
     def get_enum_overrides(self):
         return {
             # This is set on bond type sometimes.
-            'Declined': BondType.NO_BOND,
+            'DECLINED': BondType.NO_BOND,
             'CASH OR SURETY BOND': BondType.UNSECURED,
-            'Purge': BondType.CASH,
+            'PURGE': BondType.CASH,
         }

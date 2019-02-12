@@ -20,8 +20,10 @@
 Regions represent geographic areas/legal jurisdictions from which we ingest
 criminal justice data and calculate metrics.
 """
+from datetime import datetime
 from enum import Enum
 
+import pytz
 import yaml
 
 
@@ -114,13 +116,14 @@ class Region:
         return scraper_class()
 
 
-def get_supported_region_codes(full_manifest=False):
+def get_supported_region_codes(full_manifest=False, timezone=None):
     """Retrieve a list of known scraper regions / region codes
 
     See region_manifest.yaml for full list of fields available for each region.
 
     Args:
         full_manifest: (bool) If True, return full manifest
+        timezone: (str) If set, return only regions in the right timezone
 
     Returns:
         If full_manifest: Dictionary of regions, with each region mapped to a
@@ -129,11 +132,25 @@ def get_supported_region_codes(full_manifest=False):
     """
     manifest = get_full_manifest()
     supported_regions = manifest["regions"]
+    dt = datetime.now()
+
+    if timezone:
+        supported_regions = {
+            region: info
+            for region, info in supported_regions.items()
+            if timezones_share_offset(timezone, info['timezone'], dt)
+        }
 
     if not full_manifest:
         supported_regions = list(supported_regions)
 
     return supported_regions
+
+
+def timezones_share_offset(tz_name1: str, tz_name2: str, dt: datetime) -> bool:
+    tz1 = pytz.timezone(tz_name1)
+    tz2 = pytz.timezone(tz_name2)
+    return tz1.utcoffset(dt) == tz2.utcoffset(dt)
 
 
 def get_supported_regions():

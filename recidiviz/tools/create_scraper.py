@@ -38,7 +38,9 @@ from string import Template
 from typing import Optional
 import us
 
-import recidiviz
+import recidiviz.ingest
+import recidiviz.ingest.scrape.regions
+import recidiviz.tests.ingest.scrape.regions
 
 
 def populate_file(template_path, target_path, subs):
@@ -47,7 +49,6 @@ def populate_file(template_path, target_path, subs):
 
     with open(target_path, 'w') as target:
         target.write(contents)
-
 
 def create_scraper_files(subs, vendor: Optional[str]):
     """Creates __init__.py, region_name_scraper.py, and region_name.yaml files
@@ -62,8 +63,12 @@ def create_scraper_files(subs, vendor: Optional[str]):
         target = os.path.join(target_dir, subs['region'] + '.yaml')
         populate_file(template, target, subs)
 
-    regions_dir = os.path.join(os.path.dirname(recidiviz.__file__),
-                               'ingest/scrape/regions')
+    ingest_init_file = recidiviz.ingest.__file__
+    region_import_statement = 'import {}.{}'.format(
+        recidiviz.ingest.scrape.regions.__name__, subs['region'])
+    _rewrite_init_file(ingest_init_file, region_import_statement)
+
+    regions_dir = os.path.dirname(recidiviz.ingest.scrape.regions.__file__)
     if not os.path.exists(regions_dir):
         raise OSError("Couldn't find directory "
                       "recidiviz/ingest/scrape/regions.")
@@ -86,6 +91,40 @@ def create_scraper_files(subs, vendor: Optional[str]):
         yaml_template = os.path.join(template_dir, 'region.txt')
         create_yaml(yaml_template)
 
+def _rewrite_init_file(filename, import_statement):
+    """rewrites recidiviz/ingest/__init__.py to include the new import
+    statement."""
+    gpl = []
+    docstring = []
+    imports = [import_statement + '\n']
+    with open(filename) as f:
+        stage = 'LICENSE'
+        for line in f.readlines():
+            if line == '\n':
+                continue
+            if line.startswith('#'):
+                gpl.append(line)
+                assert stage == 'LICENSE'
+            elif line.startswith('"""'):
+                if stage == 'LICENSE':
+                    stage = 'DOCSTRING'
+                elif stage == 'DOCSTRING':
+                    stage = 'IMPORTS'
+                docstring.append(line)
+            elif line.startswith('import'):
+                assert stage == 'IMPORTS'
+                imports.append(line)
+            else:
+                assert stage == 'DOCSTRING'
+                docstring.append(line)
+
+    with open(filename, 'w') as f:
+        f.writelines(gpl)
+        f.write('\n')
+        f.writelines(docstring)
+        f.write('\n')
+        f.writelines(sorted(imports))
+
 
 def create_test_files(subs, vendor: Optional[str]):
     def create_test(template):
@@ -93,10 +132,8 @@ def create_test_files(subs, vendor: Optional[str]):
         test_target = os.path.join(target_test_dir, test_target_file_name)
         populate_file(template, test_target, subs)
 
-    ingest_dir = os.path.join(os.path.dirname(recidiviz.__file__),
-                              'ingest/scrape/regions')
-    test_dir = os.path.join(os.path.dirname(recidiviz.__file__),
-                            'tests/ingest/scrape/regions')
+    ingest_dir = os.path.dirname(recidiviz.ingest.scrape.regions.__file__)
+    test_dir = os.path.dirname(recidiviz.tests.ingest.scrape.regions.__file__)
     if not os.path.exists(ingest_dir):
         raise OSError('Couldn\'t find directory '
                       'recidiviz/tests/ingest/scrape/regions.')
@@ -148,30 +185,6 @@ def append_to_config_files(subs):
     manifest_path = os.path.join(top_level_path, 'region_manifest.yaml')
     with open(manifest_path, 'a') as region_file:
         region_file.write(Template(region_text).safe_substitute(subs))
-
-    cron_text = """
-  - description: Start $state_abbr $county scraper every day at 9pm
-    url: /scraper/start?region=$region&scrape_type=background
-    schedule: every day 21:00
-    timezone: $timezone
-    retry_parameters:
-      min_backoff_seconds: 2.5
-      max_doublings: 5
-      job_age_limit: 9h
-
-  - description: Stop $state_abbr $county scraper every day at 9am
-    url: /scraper/stop?region=$region&scrape_type=background
-    schedule: every day 09:00
-    timezone: $timezone
-    retry_parameters:
-      min_backoff_seconds: 2.5
-      max_doublings: 5
-      job_age_limit: 9h
-"""
-
-    cron_path = os.path.join(top_level_path, 'cron.yaml')
-    with open(cron_path, 'a') as cron_file:
-        cron_file.write(Template(cron_text).safe_substitute(subs))
 
 
 if __name__ == '__main__':
