@@ -21,7 +21,6 @@ import math
 import os
 import re
 from typing import Optional, Any, List
-from urllib.parse import urlencode
 
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
@@ -85,15 +84,11 @@ class EagleAdvantageScraper(BaseScraper):
     def get_more_tasks(self, content, task: Task) -> List[Task]:
         total_count = int(content['TotalCount'])
         total_pages = math.ceil(total_count / _PAGE_SIZE)
-        return [
-            Task(endpoint=self._get_next_page_url(page_number),
-                 task_type=constants.TaskType.SCRAPE_DATA,
-                 response_type=constants.ResponseType.JSON)
-            for page_number in range(1, total_pages + 1)
-        ]
+        return [self._get_task_for_page(page_number)
+                for page_number in range(1, total_pages + 1)]
 
-    def _get_next_page_url(self, page_number: int) -> str:
-        post_data = {
+    def _get_task_for_page(self, page_number: int) -> Task:
+        params = {
             'three': 1,
             'fnmeLetters': '',
             'lnmeLetters': '',
@@ -108,12 +103,11 @@ class EagleAdvantageScraper(BaseScraper):
             'page': page_number,
             'pageSize': _PAGE_SIZE
         }
-        # Weirdly, the website doesn't accept POST requests, so encode manually.
-        endpoint = '{}?{}'.format(_ENDPOINT, urlencode(post_data))
-        return endpoint
+        return Task(endpoint=_ENDPOINT,
+                    task_type=constants.TaskType.SCRAPE_DATA,
+                    response_type=constants.ResponseType.JSON,
+                    params=params)
 
     def get_initial_task(self) -> Task:
-        endpoint = self._get_next_page_url(1)
-        return Task(endpoint=endpoint,
-                    task_type=constants.TaskType.INITIAL_AND_MORE,
-                    response_type=constants.ResponseType.JSON)
+        task = self._get_task_for_page(1)
+        return task.evolve(task, task_type=constants.TaskType.INITIAL_AND_MORE)

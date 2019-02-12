@@ -20,7 +20,6 @@ SmartWEB roster."""
 
 import json
 import os
-import urllib
 from typing import Optional, List
 from lxml import html
 
@@ -126,12 +125,10 @@ class SmartCopScraper(BaseScraper):
         shows all the search results on a single page. All scrapers will
         attempt this first; if it fails we fall back on requesting 'more
         results' instead."""
-        query_params = {'preview': True,
-                        'searchvalues': json.dumps(_SEARCH_PARAMS)}
-        query_string = urllib.parse.urlencode(query_params)
-        endpoint = '{}?{}'.format(self.region.base_url, query_string)
-
-        return Task(endpoint=endpoint, task_type=TaskType.SCRAPE_DATA_AND_MORE)
+        params = {'preview': True, 'searchvalues': json.dumps(_SEARCH_PARAMS)}
+        return Task(endpoint=self.region.base_url,
+                    task_type=TaskType.SCRAPE_DATA_AND_MORE,
+                    params=params)
 
     def _is_error_page(self, content: html.HtmlElement) -> bool:
         # The initial task has an HTML response rather than a JSON response;
