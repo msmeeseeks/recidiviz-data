@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "ChargeId": 1,
+      "ChargeDescription": "Charge1",
+      "OffenseDate": "2017-03-10"
+    },
+    {
+      "ChargeId": 2,
+      "CaseNo": "case_id_1",
+      "BondAmount": 0,
+      "ChargeDescription": "Charge2",
+      "OffenseDate": "2017-03-10"
+    },
+    {
+      "ChargeId": 3,
+      "CaseNo": "case_id_2",
+      "BondAmount": 0,
+      "ChargeDescription": "Charge3",
+      "OffenseDate": "2017-03-10"
+    },
+    {
+      "ChargeId": 4,
+      "CaseNo": "case_id_2",
+      "BondType": "CASH",
+      "BondAmount": 500,
+      "ChargeDescription": "Charge4",
+      "OffenseDate": "2017-03-10"
+    }
+  ],
+  "totalCount": 4,
+  "error": "",
+  "success": "true"
+}

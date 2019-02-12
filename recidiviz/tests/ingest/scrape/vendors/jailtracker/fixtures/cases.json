@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "CaseId": 101,
+      "CaseNo": "case_id_1",
+      "Status": "PENDING",
+      "BondType": "CASH",
+      "BondAmount": 1,
+      "FineAmount": 0.00,
+      "Sentence": "1y 0m 0d"
+    },
+    {
+      "CaseId": 102,
+      "CaseNo": "case_id_2",
+      "Status": "OPEN",
+      "BondType": "CASH",
+      "BondAmount": 2,
+      "FineAmount": 0.00,
+      "Sentence": "2y 0m 0d"
+    }
+  ],
+  "totalCount": 2,
+  "error": "",
+  "success": "true"
+}

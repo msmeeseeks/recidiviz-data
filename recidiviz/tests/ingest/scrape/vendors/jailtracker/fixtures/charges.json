@@ -1,11 +1,45 @@
-{"data":[{"ChargeId":1,"CaseNo":"11","CrimeType":"M","Counts":2,
-  "Modifier":null,"ControlNumber":"","WarrantNumber":"","ArrestCode":"123",
-  "ChargeDescription":"DISORDERLY CONDUCT-NOISE","BondType":"CASH",
-  "BondAmount":500,"CourtType":"","CourtTime":null,"ChargeStatus":"Probation",
-  "OffenseDate":"2017-03-10","ArrestDate":"","ArrestingAgency":""},
-  {"ChargeId":2,"CaseNo":"12","CrimeType":"M","Counts":1,"Modifier":null,
-    "ControlNumber":"","WarrantNumber":"","ArrestCode":"123",
-    "ChargeDescription":"DEPRESSANT/STIMULANT/NARCOTIC-POSSESSION \u003c 100X DOSE",
-    "BondType":"CASH","BondAmount":500,"CourtType":"","CourtTime":null,
-    "ChargeStatus":"Probation","OffenseDate":"2017-03-16","ArrestDate":"",
-    "ArrestingAgency":""}],"totalCount":2,"error":"","success":"true"}
+{
+  "data": [
+    {
+      "ChargeId": 1,
+      "CaseNo": "11",
+      "CrimeType": "M",
+      "Counts": 2,
+      "Modifier": null,
+      "ControlNumber": "",
+      "WarrantNumber": "",
+      "ArrestCode": "123",
+      "ChargeDescription": "DISORDERLY CONDUCT-NOISE",
+      "BondType": "CASH",
+      "BondAmount": 500,
+      "CourtType": "",
+      "CourtTime": null,
+      "ChargeStatus": "Probation",
+      "OffenseDate": "2017-03-10",
+      "ArrestDate": "",
+      "ArrestingAgency": ""
+    },
+    {
+      "ChargeId": 2,
+      "CaseNo": "12",
+      "CrimeType": "M",
+      "Counts": 1,
+      "Modifier": null,
+      "ControlNumber": "",
+      "WarrantNumber": "",
+      "ArrestCode": "123",
+      "ChargeDescription": "DEPRESSANT/STIMULANT/NARCOTIC-POSSESSION \u003c 100X DOSE",
+      "BondType": "CASH",
+      "BondAmount": 500,
+      "CourtType": "",
+      "CourtTime": null,
+      "ChargeStatus": "Probation",
+      "OffenseDate": "2017-03-16",
+      "ArrestDate": "",
+      "ArrestingAgency": ""
+    }
+  ],
+  "totalCount": 2,
+  "error": "",
+  "success": "true"
+}

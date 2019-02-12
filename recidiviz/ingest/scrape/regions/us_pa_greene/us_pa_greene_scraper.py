@@ -22,11 +22,11 @@ from recidiviz.common.constants.charge import ChargeStatus
 from recidiviz.ingest.scrape.vendors.jailtracker import\
     JailTrackerScraper
 
+
 class UsPaGreeneScraper(JailTrackerScraper):
     """Scraper for people in Greene County (PA) facilities."""
     def __init__(self):
         super(UsPaGreeneScraper, self).__init__('us_pa_greene')
-
 
     def get_jailtracker_index(self):
         """Returns the index used in the JailTracker URL to request a specific
