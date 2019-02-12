@@ -25,6 +25,7 @@ import logging
 from datetime import datetime
 
 import requests
+import urllib3
 
 from recidiviz.ingest.models.scrape_key import ScrapeKey
 from recidiviz.ingest.scrape import (constants, queues, scraper_utils,
@@ -51,6 +52,10 @@ class Scraper(metaclass=abc.ABCMeta):
             region_name: (string) name of the region of the child scraper.
 
         """
+
+        # Passing verify=False in the requests produces a warning,
+        # disable it here.
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         self.region = regions.get_region(region_name)
         self.fail_counter = (self.get_region().region_code +
