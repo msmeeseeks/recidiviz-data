@@ -44,8 +44,14 @@ class UsGaGwinnettScraper(SmartCopScraper):
         for person in ingest_info.people:
             for booking in person.bookings:
                 for charge in booking.charges:
+                    bond = charge.bond
                     if charge.fee_dollars and \
                             not charge.fee_dollars.startswith('$'):
                         charge.fee_dollars = None
+                        if bond and bond.bond_type:
+                            booking.create_arrest(officer_name=bond.bond_type)
+                            bond.bond_type = None
+                    if bond and bond.amount == 'NO BOND':
+                        bond.bond_type = bond.amount
 
         return ScrapedData(ingest_info)
