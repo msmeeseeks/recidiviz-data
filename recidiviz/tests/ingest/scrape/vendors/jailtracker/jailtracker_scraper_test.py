@@ -30,6 +30,8 @@ from lxml import html
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape.task_params import Task
+from recidiviz.ingest.scrape.vendors.jailtracker.jailtracker_scraper import \
+    JailTrackerRequestRateExceededError
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
@@ -39,7 +41,12 @@ _ROSTER_JSON = fixtures.as_dict('vendors/jailtracker', 'roster.json')
 _PERSON_PROBATION_JSON = fixtures.as_dict('vendors/jailtracker', 'person.json')
 _PERSON_AGENCIES_JSON = fixtures.as_dict('vendors/jailtracker',
                                          'person_agencies.json')
+_CASES_JSON = fixtures.as_dict('vendors/jailtracker', 'cases.json')
 _CHARGES_JSON = fixtures.as_dict('vendors/jailtracker', 'charges.json')
+_CHARGES_WITH_BOND_TYPE_JSON = fixtures.as_dict('vendors/jailtracker',
+                                                'charges_sentenced.json')
+_CHARGES_WITH_CASES_JSON = fixtures.as_dict('vendors/jailtracker',
+                                            'charges_with_cases.json')
 
 
 # pylint:disable=protected-access
@@ -86,6 +93,29 @@ class JailTrackerScraperTest(BaseScraperTest):
 
         self.validate_and_return_get_more_tasks(
             _LANDING_HTML, self.scraper.get_initial_task(), expected_result)
+
+    def test_get_more_tasks_rate_error(self):
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.roster_endpoint,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._REQUEST_TARGET: self.scraper._ROSTER_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+            },
+        )
+
+        rate_error_content = {
+            'data': '',
+            'error': 'max-requests-for-timeperiod',
+            'success': False,
+        }
+
+        expected_result = []
+
+        with self.assertRaises(JailTrackerRequestRateExceededError):
+            self.validate_and_return_get_more_tasks(
+                rate_error_content, task, expected_result)
 
     def test_get_more_tasks_roster(self):
         task = Task(
@@ -190,6 +220,79 @@ class JailTrackerScraperTest(BaseScraperTest):
 
         self.validate_and_return_populate_data(
             _CHARGES_JSON, expected_info, task=task)
+
+    def test_populate_data_cases(self):
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint='test',
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 1,
+                self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+                self.scraper._PERSON: _PERSON_PROBATION_JSON,
+                self.scraper._CASES: _CASES_JSON,
+            }
+        )
+
+        expected_info = IngestInfo()
+        person = expected_info.create_person(
+            surname='Bart', given_names='Simpson', gender='M', age='20',
+            race='White')
+        booking = person.create_booking(
+            booking_id='1', admission_date='12/5/2018 10:21:00 AM',
+            release_reason='PROBATION', custody_status='RELEASED')
+
+        booking.create_charge(
+            charge_id='1', name='Charge1', offense_date='2017-03-10')
+
+        charge = booking.create_charge(
+            charge_id='2', name='Charge2', offense_date='2017-03-10',
+            status='PENDING', case_number='case_id_1')
+        charge.create_bond(amount='1', bond_type='CASH')
+        charge.create_sentence(min_length='1y 0m 0d', max_length='1y 0m 0d')
+
+        charge = booking.create_charge(
+            charge_id='3', name='Charge3', offense_date='2017-03-10',
+            status='OPEN', case_number='case_id_2')
+        charge.create_bond(amount='0')
+        charge.create_sentence(min_length='2y 0m 0d', max_length='2y 0m 0d')
+
+        charge = booking.create_charge(
+            charge_id='4', name='Charge4', offense_date='2017-03-10',
+            status='OPEN', case_number='case_id_2')
+        charge.create_bond(amount='500', bond_type='CASH')
+        charge.create_sentence(min_length='2y 0m 0d', max_length='2y 0m 0d')
+
+        self.validate_and_return_populate_data(
+            _CHARGES_WITH_CASES_JSON, expected_info, task=task)
+
+    def test_populate_data_charge_type_from_bond_type(self):
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint='test',
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 1,
+                self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+                self.scraper._PERSON: _PERSON_PROBATION_JSON,
+                self.scraper._CASES: {},
+            }
+        )
+
+        expected_info = IngestInfo()
+        person = expected_info.create_person(
+            surname='Bart', given_names='Simpson', gender='M', age='20',
+            race='White')
+        booking = person.create_booking(
+            booking_id='1', admission_date='12/5/2018 10:21:00 AM',
+            release_reason='PROBATION', custody_status='RELEASED')
+        booking.create_charge(charge_id='1', name='Charge1',
+                              offense_date='2017-03-10', status='SENTENCED')
+
+        self.validate_and_return_populate_data(
+            _CHARGES_WITH_BOND_TYPE_JSON, expected_info, task=task)
 
     def test_populate_data_facility(self):
         task = Task(

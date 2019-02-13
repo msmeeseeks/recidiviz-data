@@ -80,7 +80,7 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
 
         expected_info.people[0].create_booking().create_arrest(
             agency="AAA",
-            date="01/01/2018")
+            arrest_date="01/01/2018")
         # date="01/01/2018 10:00:00")
 
         expected_info.people[0].bookings[0].create_charge(
@@ -106,7 +106,7 @@ class TestUsFlMartinScraper(BaseScraperTest, unittest.TestCase):
 
         expected_info.people[1].create_booking().create_arrest(
             agency="CCC",
-            date="01/01/2018")
+            arrest_date="01/01/2018")
         # date="01/01/2018 08:00:00")
 
         expected_info.people[1].bookings[0].create_charge(statute="FS*893.147",

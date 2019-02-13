@@ -32,6 +32,7 @@ _PAGE = fixtures.as_dict('us_ga_berrien', 'page.json')
 
 class TestUsGaBerrienScraper(BaseScraperTest, unittest.TestCase):
     """Tests for UsGaBerrienScraper"""
+
     def _init_scraper_and_yaml(self):
         self.scraper = UsGaBerrienScraper()
 
@@ -41,21 +42,43 @@ class TestUsGaBerrienScraper(BaseScraperTest, unittest.TestCase):
             'task_type': constants.TaskType.GET_MORE_TASKS,
         }
         expected_result = [
+            Task(
+                task_type=TaskType.SCRAPE_DATA,
+                endpoint='http://offendermiddleservice.offenderindex.com/'
+                         'api/Values',
+                response_type=ResponseType.JSON,
+                params={
+                    'three': 1,
+                    'fnmeLetters': '',
+                    'lnmeLetters': '',
+                    'needDate': 'false',
+                    'startDate': '',
+                    'stopDate': '',
+                    'getImg': 'false',
+                    'agencyServiceIP': '108.161.95.38',
+                    'agencyServicePort': 9000,
+                    'take': 10,
+                    'skip': 0,
+                    'page': 1,
+                    'pageSize': 10}),
             Task(task_type=TaskType.SCRAPE_DATA,
-                 endpoint='http://offendermiddleservice.offenderindex.com/api'
-                          '/Values?three=1&fnmeLetters=&lnmeLetters=&needDate'
-                          '=false&startDate=&stopDate=&getImg=false'
-                          '&agencyServiceIP=108.161.95.38&agencyServicePort='
-                          '9000&take=10&skip=0&page=1&pageSize=10',
-                 response_type=ResponseType.JSON),
-            Task(task_type=TaskType.SCRAPE_DATA,
-                 endpoint='http://offendermiddleservice.offenderindex.com/api'
-                          '/Values?three=1&fnmeLetters=&lnmeLetters=&needDate'
-                          '=false&startDate=&stopDate=&getImg=false'
-                          '&agencyServiceIP=108.161.95.38&agencyServicePort='
-                          '9000&take=10&skip=10&page=2&pageSize=10',
-                 response_type=ResponseType.JSON),
-        ]
+                 endpoint='http://offendermiddleservice.offenderindex.com/'
+                          'api/Values',
+                 response_type=ResponseType.JSON,
+                 params={
+                     'three': 1,
+                     'fnmeLetters': '',
+                     'lnmeLetters': '',
+                     'needDate': 'false',
+                     'startDate': '',
+                     'stopDate': '',
+                     'getImg': 'false',
+                     'agencyServiceIP': '108.161.95.38',
+                     'agencyServicePort': 9000,
+                     'take': 10,
+                     'skip': 10,
+                     'page': 2,
+                     'pageSize': 10})]
 
         self.validate_and_return_get_more_tasks(content, params,
                                                 expected_result)
@@ -69,7 +92,7 @@ class TestUsGaBerrienScraper(BaseScraperTest, unittest.TestCase):
                                            birthdate='1981', gender='M',
                                            place_of_residence='SPRINGFIELD')
         b1 = p1.create_booking(custody_status='CURRENTLY BOOKED')
-        b1.create_arrest(date='1/1/1111')
+        b1.create_arrest(arrest_date='1/1/1111')
         b1.create_charge(charge_id='CHARGEID', statute='STATUTE',
                          name='PROBATION VIOLATION',
                          charge_class='Misdemeanor', number_of_counts='1',
@@ -83,7 +106,7 @@ class TestUsGaBerrienScraper(BaseScraperTest, unittest.TestCase):
                                            gender='M',
                                            place_of_residence='ADDRESS')
         b2 = p2.create_booking(custody_status='CURRENTLY BOOKED')
-        b2.create_arrest(date='1/1/1111')
+        b2.create_arrest(arrest_date='1/1/1111')
         b2.create_charge(charge_id='ID2',
                          statute='CODE',
                          name='POSSESSION',

@@ -66,7 +66,7 @@ def scraper_start():
         scrape_key = ScrapeKey(region, scrape_type)
         logging.info("Starting new scraper for: %s", scrape_key)
 
-        scraper = regions.Region(region).get_scraper()
+        scraper = regions.get_region(region).get_scraper()
 
         sessions.create_session(scrape_key)
 
@@ -93,7 +93,7 @@ def scraper_start():
         # Wait for the docket to be loaded
         load_docket_thread.join()
 
-    timezone = request.args.get("timezone")
+    timezone = ingest_utils.lookup_timezone(request.args.get("timezone"))
     scrape_regions = ingest_utils.validate_regions(
         get_values("region", request.args), timezone=timezone)
     scrape_types = ingest_utils.validate_scrape_types(get_values("scrape_type",
@@ -159,7 +159,7 @@ def scraper_stop():
     Returns:
         N/A
     """
-    timezone = request.args.get("timezone")
+    timezone = ingest_utils.lookup_timezone(request.args.get("timezone"))
     scrape_regions = ingest_utils.validate_regions(
         get_values("region", request.args), timezone=timezone)
     scrape_types = ingest_utils.validate_scrape_types(get_values("scrape_type",
@@ -169,7 +169,7 @@ def scraper_stop():
         for scrape_type in scrape_types:
             sessions.end_session(ScrapeKey(region, scrape_type))
 
-        region_scraper = regions.Region(region).get_scraper()
+        region_scraper = regions.get_region(region).get_scraper()
         region_scraper.stop_scrape(scrape_types)
 
     if not scrape_regions or not scrape_types:
@@ -234,7 +234,7 @@ def scraper_resume():
             # vs updating that w/first task.
             time.sleep(5)
 
-            scraper = regions.Region(region).get_scraper()
+            scraper = regions.get_region(region).get_scraper()
             scraper.resume_scrape(scrape_type)
 
     return ('', HTTPStatus.OK)

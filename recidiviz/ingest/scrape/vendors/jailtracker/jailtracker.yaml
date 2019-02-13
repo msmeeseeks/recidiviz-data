@@ -14,7 +14,7 @@ key_mappings:
   booking.Sched Release: booking.projected_release_date
 
   booking.Arresting Agency: arrest.agency
-  booking.Arrest Date: arrest.date
+  booking.Arrest Date: arrest.arrest_date
   booking.Arresting Officer: arrest.officer_name
 
   charges.ChargeId: charge.charge_id

@@ -3,7 +3,7 @@ key_mappings:
   Inmates.FirstName: person.given_names
   Inmates.LastName: person.surname
   Inmates.Dob: person.birthdate
-  Inmates.ArrestDate: arrest.date
+  Inmates.ArrestDate: arrest.arrest_date
   Inmates.ArrestingOfficer: arrest.officer_name
   Inmates.ArrestingAgency: arrest.agency
   Inmates.Sex: person.gender

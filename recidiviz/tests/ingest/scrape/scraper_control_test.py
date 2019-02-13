@@ -17,11 +17,12 @@
 
 """Tests for ingest/scraper_control.py."""
 
+import pytz
 from flask import Flask
 from mock import call, patch
 
-from recidiviz.ingest.scrape import constants, scraper_control
 from recidiviz.ingest.models.scrape_key import ScrapeKey
+from recidiviz.ingest.scrape import constants, scraper_control
 
 APP_ID = "recidiviz-worker-test"
 
@@ -33,7 +34,7 @@ app.config['TESTING'] = True
 def _MockSupported(timezone=None):
     if not timezone:
         regions = ['us_ut', 'us_wy']
-    elif timezone == 'America/New_York':
+    elif timezone == pytz.timezone('America/New_York'):
         regions = ['us_ut']
     else:
         regions = ['us_wy']
@@ -49,7 +50,7 @@ class TestScraperStart:
         self.client = app.test_client()
 
     @patch("recidiviz.utils.regions.get_supported_region_codes")
-    @patch("recidiviz.utils.regions.Region")
+    @patch("recidiviz.utils.regions.get_region")
     @patch("recidiviz.ingest.scrape.sessions.create_session")
     @patch("recidiviz.ingest.scrape.tracker.purge_docket_and_session")
     @patch("recidiviz.ingest.scrape.docket.load_target_list")
@@ -80,7 +81,7 @@ class TestScraperStart:
         mock_supported.assert_called_with(timezone=None)
 
     @patch("recidiviz.utils.regions.get_supported_region_codes")
-    @patch("recidiviz.utils.regions.Region")
+    @patch("recidiviz.utils.regions.get_region")
     @patch("recidiviz.ingest.scrape.sessions.create_session")
     @patch("recidiviz.ingest.scrape.tracker.purge_docket_and_session")
     @patch("recidiviz.ingest.scrape.docket.load_target_list")
@@ -109,7 +110,8 @@ class TestScraperStart:
         mock_tracker.assert_called_with(scrape_key)
         mock_sessions.assert_called_with(scrape_key)
         mock_region.assert_called_with('us_wy')
-        mock_supported.assert_called_with(timezone='America/Los_Angeles')
+        mock_supported.assert_called_with(
+            timezone=pytz.timezone('America/Los_Angeles'))
 
     @patch("recidiviz.utils.regions.get_supported_region_codes")
     def test_start_unsupported_region(self, mock_supported):
@@ -135,7 +137,7 @@ class TestScraperStop:
         self.client = app.test_client()
 
     @patch("recidiviz.utils.regions.get_supported_region_codes")
-    @patch("recidiviz.utils.regions.Region")
+    @patch("recidiviz.utils.regions.get_region")
     @patch("recidiviz.ingest.scrape.sessions.end_session")
     def test_stop(self, mock_sessions, mock_region, mock_supported):
         mock_sessions.return_value = None
@@ -158,7 +160,7 @@ class TestScraperStop:
         mock_supported.assert_called_with(timezone=None)
 
     @patch("recidiviz.utils.regions.get_supported_region_codes")
-    @patch("recidiviz.utils.regions.Region")
+    @patch("recidiviz.utils.regions.get_region")
     @patch("recidiviz.ingest.scrape.sessions.end_session")
     def test_stop_timezone(self, mock_sessions, mock_region, mock_supported):
         mock_sessions.return_value = None
@@ -180,7 +182,8 @@ class TestScraperStop:
             call(ScrapeKey('us_ut', constants.ScrapeType.BACKGROUND)),
             call(ScrapeKey('us_ut', constants.ScrapeType.SNAPSHOT))])
         mock_region.assert_has_calls([call('us_ut')])
-        mock_supported.assert_called_with(timezone='America/New_York')
+        mock_supported.assert_called_with(
+            timezone=pytz.timezone('America/New_York'))
 
     @patch("recidiviz.utils.regions.get_supported_region_codes")
     def test_stop_unsupported_region(self, mock_supported):
@@ -206,7 +209,7 @@ class TestScraperResume:
         self.client = app.test_client()
 
     @patch("recidiviz.utils.regions.get_supported_region_codes")
-    @patch("recidiviz.utils.regions.Region")
+    @patch("recidiviz.utils.regions.get_region")
     @patch("recidiviz.ingest.scrape.sessions.create_session")
     def test_resume(self, mock_sessions, mock_region, mock_supported):
         mock_sessions.return_value = None

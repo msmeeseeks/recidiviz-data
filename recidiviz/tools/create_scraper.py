@@ -18,14 +18,15 @@
 """Usage: python create_scraper.py <county> <state> <agency_type>
   - agency_type: one of 'jail', 'prison', 'unified'
 
-Creates __init__.py, region_name_scraper.py, and region_name.yaml files in
-recidiviz/ingest/region_name, and updates queue.yaml and region_manifest.yaml.
+Creates __init__.py, region_name_scraper.py, region_name.yaml, and manifest.yaml
+files in recidiviz/ingest/scrape/regions/region_name.
 Also accepts the following optional arguments:
   - agency: the name of the agency
   - names_file: a file with a names list for this scraper
   - timezone: the timezone, e.g. America/New York
   - url: the initial url of the roster
   - vendor: create a vendor scraper. Available vendors:
+    - `brooks_jeffrey`
     - `jailtracker`
     - `superion`
 
@@ -41,11 +42,14 @@ import us
 import recidiviz.ingest
 import recidiviz.ingest.scrape.regions
 import recidiviz.tests.ingest.scrape.regions
+from recidiviz.utils import regions
 
 
-def populate_file(template_path, target_path, subs):
+def populate_file(template_path, target_path, subs, allow_missing_keys=False):
     with open(template_path) as template:
-        contents = Template(template.read()).substitute(subs)
+        template = Template(template.read())
+        contents = template.safe_substitute(subs) if allow_missing_keys \
+                   else template.substitute(subs)
 
     with open(target_path, 'w') as target:
         target.write(contents)
@@ -59,14 +63,13 @@ def create_scraper_files(subs, vendor: Optional[str]):
         target = os.path.join(target_dir, subs['region'] + '_scraper.py')
         populate_file(template, target, subs)
 
-    def create_yaml(template):
+    def create_extractor_yaml(template):
         target = os.path.join(target_dir, subs['region'] + '.yaml')
         populate_file(template, target, subs)
 
-    ingest_init_file = recidiviz.ingest.__file__
-    region_import_statement = 'import {}.{}'.format(
-        recidiviz.ingest.scrape.regions.__name__, subs['region'])
-    _rewrite_init_file(ingest_init_file, region_import_statement)
+    def create_manifest_yaml(template):
+        target = os.path.join(target_dir, 'manifest.yaml')
+        populate_file(template, target, subs, allow_missing_keys=True)
 
     regions_dir = os.path.dirname(recidiviz.ingest.scrape.regions.__file__)
     if not os.path.exists(regions_dir):
@@ -86,44 +89,11 @@ def create_scraper_files(subs, vendor: Optional[str]):
         template_dir = os.path.join(template_dir, vendor)
     scraper_template = os.path.join(template_dir, 'region_scraper.txt')
     create_scraper(scraper_template)
+    create_manifest_yaml(os.path.join(template_dir, 'manifest.txt'))
 
     if not vendor:
         yaml_template = os.path.join(template_dir, 'region.txt')
-        create_yaml(yaml_template)
-
-def _rewrite_init_file(filename, import_statement):
-    """rewrites recidiviz/ingest/__init__.py to include the new import
-    statement."""
-    gpl = []
-    docstring = []
-    imports = [import_statement + '\n']
-    with open(filename) as f:
-        stage = 'LICENSE'
-        for line in f.readlines():
-            if line == '\n':
-                continue
-            if line.startswith('#'):
-                gpl.append(line)
-                assert stage == 'LICENSE'
-            elif line.startswith('"""'):
-                if stage == 'LICENSE':
-                    stage = 'DOCSTRING'
-                elif stage == 'DOCSTRING':
-                    stage = 'IMPORTS'
-                docstring.append(line)
-            elif line.startswith('import'):
-                assert stage == 'IMPORTS'
-                imports.append(line)
-            else:
-                assert stage == 'DOCSTRING'
-                docstring.append(line)
-
-    with open(filename, 'w') as f:
-        f.writelines(gpl)
-        f.write('\n')
-        f.writelines(docstring)
-        f.write('\n')
-        f.writelines(sorted(imports))
+        create_extractor_yaml(yaml_template)
 
 
 def create_test_files(subs, vendor: Optional[str]):
@@ -149,44 +119,6 @@ def create_test_files(subs, vendor: Optional[str]):
     create_test(test_template)
 
 
-def append_to_config_files(subs):
-    """Updates queue.yaml and region_manifest.yaml with the new region.
-    """
-    top_level_path = os.path.join(os.path.dirname(recidiviz.__file__), "..")
-    queue_text = """
-# $region_dashes-scraper - $county County, $state
-- name: $region_dashes-scraper
-  mode: push
-  rate: 5/m
-  bucket_size: 2
-  max_concurrent_requests: 3
-  retry_parameters:
-    min_backoff_seconds: 5
-    max_backoff_seconds: 300
-    task_retry_limit: 5
-"""
-    with open(os.path.join(top_level_path, 'queue.yaml'), 'a') as queue_file:
-        queue_file.write(Template(queue_text).safe_substitute(subs))
-
-    region_text = """  $region:
-    agency_name: $agency
-    region_code: $region
-    agency_type: $agency_type
-    queue: $region_dashes-scraper
-    base_url: $url
-    scraper_package: $region
-    timezone: $timezone
-"""
-
-    # only include `names_file` if it is provided
-    if 'names_file' in subs:
-        region_text += "    names_file: $names_file\n"
-
-    manifest_path = os.path.join(top_level_path, 'region_manifest.yaml')
-    with open(manifest_path, 'a') as region_file:
-        region_file.write(Template(region_text).safe_substitute(subs))
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('county')
@@ -201,7 +133,7 @@ if __name__ == '__main__':
         parser.add_argument('--' + optional_arg)
     parser.add_argument('--vendor', required=False,
                         help='Create a vendor scraper.',
-                        choices=['jailtracker', 'superion'])
+                        choices=['brooks_jeffrey', 'jailtracker', 'superion'])
     parser.add_argument('-tests_only', required=False, action='store_true',
                         help='If set, only create test files.')
     args = parser.parse_args()
@@ -210,11 +142,12 @@ if __name__ == '__main__':
     if state is None:
         raise ValueError('Couldn\'t parse state "%s"' % args.state)
     region = ('us', state.abbr.lower()) + tuple(args.county.lower().split())
+    region_code = '_'.join(region)
 
     substitutions = {
-        'class_name': ''.join(s.title() for s in region),
+        'class_name': regions.scraper_class_name(region_code),
         'county': args.county.title(),
-        'region': '_'.join(region),
+        'region': region_code,
         'region_dashes': '-'.join(region),
         'agency_type': args.agency_type,
         'state': state.name,
@@ -230,5 +163,4 @@ if __name__ == '__main__':
 
     if not args.tests_only:
         create_scraper_files(substitutions, args.vendor)
-        append_to_config_files(substitutions)
     create_test_files(substitutions, args.vendor)

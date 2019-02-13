@@ -1,0 +1,13 @@
+{
+  "data": [
+    {
+      "ChargeId": 1,
+      "ChargeDescription": "Charge1",
+      "OffenseDate": "2017-03-10",
+      "BondType": "SENTENCED"
+    }
+  ],
+  "totalCount": 2,
+  "error": "",
+  "success": "true"
+}

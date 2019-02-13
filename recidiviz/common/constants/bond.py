@@ -18,10 +18,10 @@
 """Constants related to a bond entity."""
 
 import recidiviz.common.constants.enum_canonical_strings as enum_strings
-from recidiviz.common.constants.mappable_enum import MappableEnum
+from recidiviz.common.constants.entity_enum import EntityEnum, EntityEnumMeta
 
 
-class BondType(MappableEnum):
+class BondType(EntityEnum, metaclass=EntityEnumMeta):
     CASH = enum_strings.bond_type_cash
     EXTERNAL_UNKNOWN = enum_strings.external_unknown
     NO_BOND = enum_strings.bond_type_no_bond
@@ -35,7 +35,7 @@ class BondType(MappableEnum):
         return BOND_TYPE_MAP
 
 
-class BondStatus(MappableEnum):
+class BondStatus(EntityEnum, metaclass=EntityEnumMeta):
     DENIED = enum_strings.bond_status_denied
     INFERRED_SET = enum_strings.bond_status_inferred_set
     NOT_REQUIRED = enum_strings.bond_status_not_required
@@ -62,6 +62,7 @@ BOND_TYPE_MAP = {
     'HOLD WITHOUT BAIL': BondType.NO_BOND,
     'CASH': BondType.CASH,
     'CASH BOND': BondType.CASH,
+    'PAY AND RELEASE': BondType.CASH,
     'PURGE PAYMENT': BondType.CASH,
     'U S CURRENCY': BondType.CASH,
     'N A': BondType.NO_BOND,
@@ -78,11 +79,11 @@ BOND_TYPE_MAP = {
     'WRITTEN PROMISE': BondType.NO_BOND,
     'WRITTEN PROMISE TO APPEAR': BondType.NO_BOND,
     'PARTIAL CASH': BondType.PARTIAL_CASH,
-    '10% BOND': BondType.PARTIAL_CASH,
+    '10 BOND': BondType.PARTIAL_CASH,
     'SECURED': BondType.SECURED,
     'SECURE BOND': BondType.SECURED,
     'SECURED BOND': BondType.SECURED,
-    'CASH, SURETY': BondType.SECURED,
+    'CASH SURETY': BondType.SECURED,
     'CASH OR SURETY': BondType.SECURED,
     'SURETY': BondType.SECURED,
     'SURETY BOND': BondType.SECURED,

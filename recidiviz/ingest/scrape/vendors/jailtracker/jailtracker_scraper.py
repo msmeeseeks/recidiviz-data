@@ -39,19 +39,33 @@ import abc
 import logging
 import os
 import re
+from itertools import groupby
 from typing import Optional
 from typing import List
 
+import more_itertools
 from lxml import html
 
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.booking import CustodyStatus, ReleaseReason
-from recidiviz.common.constants.charge import ChargeClass
+from recidiviz.common.constants.charge import ChargeClass, ChargeStatus
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
-from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.models.ingest_info import IngestInfo, Bond, Sentence, \
+    Charge
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
+
+
+class JailTrackerRequestRateExceededError(Exception):
+    """Raised if we detect that we'ree exceeded thre Jailtracker system
+    request rate.
+    """
+
+    def __init__(self):
+        msg = ('Exceeded the maximum number of requests per minute.'
+               ' Failing to retry.')
+        super().__init__(msg)
 
 
 class JailTrackerScraper(BaseScraper):
@@ -205,15 +219,17 @@ class JailTrackerScraper(BaseScraper):
             'booking': booking_data,
             'charges': content['data'],
         }
-        return ScrapedData(
-            ingest_info=data_extractor.extract_and_populate_data(
-                data, ingest_info),
-            persist=True,
-        )
+        ingest_info = data_extractor.extract_and_populate_data(data,
+                                                               ingest_info)
+        self._add_cases_information(ingest_info, task.custom[self._CASES])
+        self._sanitize_bond_types(ingest_info)
+        ingest_info = ingest_info.prune()
+        return ScrapedData(ingest_info=ingest_info, persist=True)
 
     def get_enum_overrides(self):
         return {
             'O': ChargeClass.PROBATION_VIOLATION,
+            'CLOSED': ChargeStatus.DROPPED,
             'NO BAIL': BondType.NO_BOND,
             # This is overloaded in the bond and means there is no bond.
             'SERVING_TIME': None,
@@ -230,8 +246,6 @@ class JailTrackerScraper(BaseScraper):
         Returns:
             Param dict for first roster request on success or -1 on failure.
         """
-
-        session_token = None
         try:
             session_token = self.find_session_token(content)
         except Exception as exception:
@@ -275,6 +289,10 @@ class JailTrackerScraper(BaseScraper):
         """
 
         next_tasks = []
+
+        if 'error' in response and \
+           response['error'] == 'max-requests-for-timeperiod':
+            raise JailTrackerRequestRateExceededError()
 
         max_index_present = 0
         for roster_entry in response["data"]:
@@ -441,6 +459,69 @@ class JailTrackerScraper(BaseScraper):
                 last_was_agency = False
 
         return facility, parole_agency
+
+    def _add_cases_information(
+            self, ingest_info: IngestInfo, case_content) -> None:
+        """"Looks at the provided |case_content| and updates the found charge
+        information based on the contents of it's corresponding case, if
+        present"""
+        person = more_itertools.one(ingest_info.people)
+        booking = more_itertools.one(person.bookings)
+        charges_by_case = {k: list(cases) for k, cases in
+                           groupby(booking.charges, lambda x: x.case_number)}
+
+        for case in case_content.get('data', []):
+            case_no = case.get('CaseNo', '')
+            if not case_no:
+                continue
+
+            charges = charges_by_case.get(case_no, [])
+            sentence = None
+            bond = None
+            charge_status = None
+
+            # Only use case-level bond information if bond amount not on charges
+            # already.
+            if not self._any_charge_has_bond_amount(charges):
+                bond = Bond(amount=str(case.get('BondAmount', '')),
+                            bond_type=case.get('BondType', ''))
+
+            if 'Sentence' in case:
+                length = case.get('Sentence')
+                sentence = Sentence(min_length=length, max_length=length)
+
+            if 'Status' in case:
+                charge_status = case.get('Status')
+
+            self._add_to_charges(bond, sentence, charge_status, charges)
+
+    def _add_to_charges(
+            self, bond: Optional[Bond], sentence: Optional[Sentence],
+            charge_status: Optional[str],
+            charges: List[Charge]) -> None:
+        for charge in charges:
+            if charge_status and not charge.status:
+                charge.status = charge_status
+            if bond:
+                charge.bond = bond
+            if sentence:
+                charge.sentence = sentence
+
+    def _any_charge_has_bond_amount(self, charges):
+        for charge in charges:
+            if charge.bond and charge.bond.amount and float(charge.bond.amount):
+                return True
+        return False
+
+    def _sanitize_bond_types(self, ingest_info: IngestInfo) -> None:
+        person = more_itertools.one(ingest_info.people)
+        booking = more_itertools.one(person.bookings)
+        for charge in booking.charges:
+            if charge.bond and charge.bond.bond_type in {'SENTENCED',
+                                                         'PROB REVOKED'}:
+                if not charge.status:
+                    charge.status = charge.bond.bond_type
+                charge.bond.bond_type = None
 
     def _field_val_pairs_to_dict(self, field_val_pair):
         """Convert an array of dict entries where each dict consists of only

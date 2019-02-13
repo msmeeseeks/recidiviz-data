@@ -1,0 +1,4 @@
+agency_name: Pennsylvania Department of Corrections
+agency_type: prison
+base_url: http://inmatelocator.cor.pa.gov
+timezone: America/New_York

@@ -20,10 +20,10 @@ from recidiviz.ingest.scrape.vendors.jailtracker.jailtracker_scraper import \
     JailTrackerScraper
 
 
-class ${class_name}Scraper(JailTrackerScraper):
+class ${class_name}(JailTrackerScraper):
     """Scraper implementation for $region."""
     def __init__(self, mapping_filepath=None):
-        super(${class_name}Scraper, self).__init__('$region')
+        super(${class_name}, self).__init__('$region')
 
     
     def get_jailtracker_index(self):

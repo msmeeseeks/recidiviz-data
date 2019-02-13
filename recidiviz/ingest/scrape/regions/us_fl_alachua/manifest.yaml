@@ -1,0 +1,4 @@
+agency_name: Alachua County Sheriffs Office
+agency_type: $agency_type
+base_url: http://oldweb.circuit8.org/inmatelist.php
+timezone: America/New_York

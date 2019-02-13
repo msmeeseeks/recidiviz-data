@@ -15,8 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 """Contains logic related to MappableEnums"""
+import re
 import string
-from enum import Enum
+from enum import Enum, EnumMeta
 from typing import Dict, Optional
 
 from recidiviz.common.common_utils import normalize
@@ -31,7 +32,11 @@ class EnumParsingError(Exception):
         super().__init__(msg)
 
 
-class MappableEnum(Enum):
+class EntityEnumMeta(EnumMeta):
+    """Metaclass for mappable enums."""
+
+
+class EntityEnum(Enum, metaclass=EntityEnumMeta):
     """Enum class that can be mapped from a string.
 
     When extending this class, you must override: _get_default_map
@@ -39,8 +44,8 @@ class MappableEnum(Enum):
 
     @classmethod
     def parse(cls, label: str,
-              override_map: Dict[str, Optional['MappableEnum']]) \
-            -> Optional['MappableEnum']:
+              override_map: Dict[str, Optional['EntityEnum']]) \
+            -> Optional['EntityEnum']:
         """Attempts to parse |label| using the default map of |cls| and the
         provided |override_map|. Ignores punctuation by treating punctuation as
         a separator, e.g. `(N/A)` will map to the same value as `N A`."""
@@ -66,7 +71,7 @@ class MappableEnum(Enum):
     @classmethod
     def can_parse(
             cls, label: str,
-            override_map: Dict[str, Optional['MappableEnum']]) -> bool:
+            override_map: Dict[str, Optional['EntityEnum']]) -> bool:
         """Checks if the given string will parse into this enum.
 
         Convenience method to be used by a child scraper to tell if a given
@@ -79,6 +84,15 @@ class MappableEnum(Enum):
             return False
 
     @classmethod
+    def find_in_string(cls, text: Optional[str]) -> Optional['EntityEnum']:
+        if not text:
+            return None
+        for inst in cls:
+            if re.search(inst.value.replace('_', ' '), text, re.I):
+                return inst
+        return None
+
+    @classmethod
     def _parse_to_enum(cls, label, complete_map):
         try:
             return complete_map[label]
@@ -86,5 +100,5 @@ class MappableEnum(Enum):
             raise EnumParsingError(cls, label)
 
     @staticmethod
-    def _get_default_map() -> Dict[str, 'MappableEnum']:
+    def _get_default_map() -> Dict[str, 'EntityEnum']:
         raise NotImplementedError

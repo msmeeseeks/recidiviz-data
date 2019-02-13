@@ -31,6 +31,7 @@ _PAGE = fixtures.as_dict('us_ga_gwinnett', 'AddMoreTasks.json')
 
 class TestUsGaGwinnettScraper(BaseScraperTest, unittest.TestCase):
     """Tests for UsGaGwinnettScraper"""
+
     def _init_scraper_and_yaml(self):
         self.scraper = UsGaGwinnettScraper()
 
@@ -55,11 +56,16 @@ class TestUsGaGwinnettScraper(BaseScraperTest, unittest.TestCase):
         b1 = p1.create_booking(booking_id='asdfg',
                                admission_date='01/11/1234 15:43:14',
                                custody_status='In Jail')
-        c1 = b1.create_charge(statute='99-99999',
+        b1.create_arrest(officer_name='WIGGUM')
+        c1 = b1.create_charge(statute='88-88888',
                               name='HOLD FOR COURT',
                               fee_dollars='$0.00',
                               case_number='000-0000 (GWINNETT COUNTY SHERIFF)')
         c1.create_bond(amount='NO BOND', bond_type='NO BOND')
+        c2 = b1.create_charge(statute='99-99999',
+                              name='HOLD FOR COURT',
+                              case_number='000-0000 (GWINNETT COUNTY SHERIFF)')
+        c2.create_bond(amount='NO BOND', bond_type='NO BOND')
         p2 = expected_info.create_person(person_id='sfdghjfdg',
                                          full_name='xsqdsfNAME\r',
                                          gender='\t\t\t\t\t\t\t\tFEMALE\r',

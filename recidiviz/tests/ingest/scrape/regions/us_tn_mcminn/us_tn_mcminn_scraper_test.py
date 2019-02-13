@@ -28,10 +28,12 @@ from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
 _PAGE = fixtures.as_dict('us_tn_mcminn', 'page.json')
+_ENDPOINT = 'http://offendermiddleservice.offenderindex.com/api/Values'
 
 
 class TestUsTnMcminnScraper(BaseScraperTest, unittest.TestCase):
     """Tests for UsTnMcminnScraper"""
+
     def _init_scraper_and_yaml(self):
         self.scraper = UsTnMcminnScraper()
 
@@ -42,29 +44,56 @@ class TestUsTnMcminnScraper(BaseScraperTest, unittest.TestCase):
         }
         expected_result = [
             Task(task_type=TaskType.SCRAPE_DATA,
-                 endpoint='http://offendermiddleservice.offenderindex.com/api/'
-                          'Values?three=1&fnmeLetters=&lnmeLetters=&'
-                          'needDate=false&startDate=&stopDate=&getImg=false&'
-                          'agencyServiceIP=mcminnsheriff.serveftp.net&'
-                          'agencyServicePort=9000&take=10&skip=0&page=1&'
-                          'pageSize=10',
-                 response_type=ResponseType.JSON),
+                 endpoint=_ENDPOINT,
+                 response_type=ResponseType.JSON,
+                 params={
+                     'three': 1,
+                     'fnmeLetters': '',
+                     'lnmeLetters': '',
+                     'needDate': 'false',
+                     'startDate': '',
+                     'stopDate': '',
+                     'getImg': 'false',
+                     'agencyServiceIP': 'mcminnsheriff.serveftp.net',
+                     'agencyServicePort': 9000,
+                     'take': 10,
+                     'skip': 0,
+                     'page': 1,
+                     'pageSize': 10}),
             Task(task_type=TaskType.SCRAPE_DATA,
-                 endpoint='http://offendermiddleservice.offenderindex.com/api/'
-                          'Values?three=1&fnmeLetters=&lnmeLetters=&'
-                          'needDate=false&startDate=&stopDate=&getImg=false&'
-                          'agencyServiceIP=mcminnsheriff.serveftp.net&'
-                          'agencyServicePort=9000&take=10&skip=10&page=2&'
-                          'pageSize=10',
-                 response_type=ResponseType.JSON),
+                 endpoint=_ENDPOINT,
+                 response_type=ResponseType.JSON,
+                 params={
+                     'three': 1,
+                     'fnmeLetters': '',
+                     'lnmeLetters': '',
+                     'needDate': 'false',
+                     'startDate': '',
+                     'stopDate': '',
+                     'getImg': 'false',
+                     'agencyServiceIP': 'mcminnsheriff.serveftp.net',
+                     'agencyServicePort': 9000,
+                     'take': 10,
+                     'skip': 10,
+                     'page': 2,
+                     'pageSize': 10}),
             Task(task_type=TaskType.SCRAPE_DATA,
-                 endpoint='http://offendermiddleservice.offenderindex.com/api/'
-                          'Values?three=1&fnmeLetters=&lnmeLetters=&'
-                          'needDate=false&startDate=&stopDate=&getImg=false&'
-                          'agencyServiceIP=mcminnsheriff.serveftp.net&'
-                          'agencyServicePort=9000&take=10&skip=20&page=3&'
-                          'pageSize=10',
-                 response_type=ResponseType.JSON)
+                 endpoint=_ENDPOINT,
+                 response_type=ResponseType.JSON,
+                 params={
+                     'three': 1,
+                     'fnmeLetters': '',
+                     'lnmeLetters': '',
+                     'needDate': 'false',
+                     'startDate': '',
+                     'stopDate': '',
+                     'getImg': 'false',
+                     'agencyServiceIP': 'mcminnsheriff.serveftp.net',
+                     'agencyServicePort': 9000,
+                     'take': 10,
+                     'skip': 20,
+                     'page': 3,
+                     'pageSize': 10})
         ]
 
         self.validate_and_return_get_more_tasks(content, params,
@@ -79,7 +108,7 @@ class TestUsTnMcminnScraper(BaseScraperTest, unittest.TestCase):
                                            birthdate='1989', gender='M',
                                            place_of_residence='123 PLACE PLACE')
         b1 = p1.create_booking(custody_status='CURRENTLY BOOKED')
-        b1.create_arrest(date='1/1/1111')
+        b1.create_arrest(arrest_date='1/1/1111')
         b1.create_charge(charge_id='16',
                          statute='TITLE',
                          name='VIOLATION',
@@ -95,7 +124,7 @@ class TestUsTnMcminnScraper(BaseScraperTest, unittest.TestCase):
                                            gender='M',
                                            place_of_residence='SPRINGFIELD')
         b2 = p2.create_booking(custody_status='CURRENTLY BOOKED')
-        b2.create_arrest(date='1/1/1111')
+        b2.create_arrest(arrest_date='1/1/1111')
         charge2 = b2.create_charge(charge_id='17',
                                    statute='TITLE',
                                    name='VIOLATIONOF PROBATION',

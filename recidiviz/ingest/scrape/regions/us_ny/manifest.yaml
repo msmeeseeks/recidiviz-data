@@ -1,0 +1,6 @@
+agency_name: Department of Corrections and Community Supervision
+agency_type: prison
+base_url: http://nysdoccslookup.doccs.ny.gov
+queue:
+  rate: 18/m
+timezone: America/New_York
