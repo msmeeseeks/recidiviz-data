@@ -2,3 +2,4 @@ agency_name: Washington County Sheriff's Department
 agency_type: jail
 base_url: unused, remove me
 timezone: America/Indiana/Indianapolis
+environment: staging

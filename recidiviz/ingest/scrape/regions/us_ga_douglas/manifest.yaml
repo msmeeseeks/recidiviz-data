@@ -2,3 +2,4 @@ agency_name: Douglas County Sheriff's Office
 agency_type: jail
 base_url: https://douglas-so-ga.zuercherportal.com
 timezone: America/New_York
+environment: production

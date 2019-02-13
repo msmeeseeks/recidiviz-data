@@ -2,3 +2,4 @@ agency_name: Berrien County Sheriff's Office
 agency_type: jail
 base_url: http://berriencoga.offenderindex.com
 timezone: America/New_York
+environment: production

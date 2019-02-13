@@ -2,3 +2,4 @@ agency_name: Fayette County Sheriff's Office
 agency_type: jail
 base_url: http://www.fayetteso.com/roster.php
 timezone: America/Chicago
+environment: production

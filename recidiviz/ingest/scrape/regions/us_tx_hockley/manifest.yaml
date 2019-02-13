@@ -2,3 +2,4 @@ agency_name: Hockley County Sheriff's Office
 agency_type: jail
 base_url: http://www.hockleycountyonline.net/bok/cgibok108.html
 timezone: America/Chicago
+environment: production

@@ -2,3 +2,4 @@ agency_name: Rogers County Sheriff's Office
 agency_type: jail
 base_url: http://www.rcsheriff.org/roster.php
 timezone: America/Chicago
+environment: production

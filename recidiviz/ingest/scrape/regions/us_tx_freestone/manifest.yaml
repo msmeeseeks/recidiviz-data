@@ -2,3 +2,4 @@ agency_name: Freestone County Sheriff's Office
 agency_type: jail
 base_url: https://netweb.netdatacorp.net/CLOUD/BOK/cgibokfree.html
 timezone: America/Chicago
+environment: production

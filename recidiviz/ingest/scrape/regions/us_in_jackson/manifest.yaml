@@ -2,3 +2,4 @@ agency_name: Jackson County Sheriff's Office
 agency_type: jail
 base_url: https://www.jacksoncountysheriffin.org/roster.php
 timezone: America/Indiana/Indianapolis
+environment: production

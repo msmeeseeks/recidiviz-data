@@ -2,3 +2,4 @@ agency_name: Autauga County Sheriff's Office
 agency_type: jail
 base_url: https://www.autaugasheriff.org/roster.php
 timezone: America/Chicago
+environment: production

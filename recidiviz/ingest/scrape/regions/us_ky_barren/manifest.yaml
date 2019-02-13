@@ -2,3 +2,4 @@ agency_name: Barren County Jail
 agency_type: jail
 base_url: https://omsweb.public-safety-cloud.com/jtclientweb/(S(d30x5ormsksqobxzt3zrgoad))/jailtracker/index/BARREN_COUNTY_KY
 timezone: America/New_York
+environment: production

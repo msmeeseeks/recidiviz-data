@@ -2,3 +2,4 @@ agency_name: Livingston County Sheriff's Office
 agency_type: jail
 base_url: https://www.livcoso.org/roster.php
 timezone: America/Chicago
+environment: production

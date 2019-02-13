@@ -2,3 +2,4 @@ agency_name: Glades County Sheriff's Office
 agency_type: jail
 base_url: http://www.gladessheriff.org
 timezone: America/New_York
+environment: production

@@ -2,3 +2,4 @@ agency_name: Hendry County
 agency_type: jail
 base_url: http://hcso.online
 timezone: America/New_York
+environment: production

@@ -2,3 +2,4 @@ agency_name: Stone County Sheriff's Office
 agency_type: jail
 base_url: https://www.stonecountysheriff.com/roster.php
 timezone: America/Chicago
+environment: production

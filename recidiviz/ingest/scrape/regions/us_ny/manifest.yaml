@@ -4,3 +4,4 @@ base_url: http://nysdoccslookup.doccs.ny.gov
 queue:
   rate: 18/m
 timezone: America/New_York
+environment: production

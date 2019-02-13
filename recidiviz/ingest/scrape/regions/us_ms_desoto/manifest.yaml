@@ -2,3 +2,4 @@ agency_name: Desoto county
 agency_type: jail
 base_url: https://jail.desotosheriff.org/DCN/inmates
 timezone: America/Chicago
+environment: production

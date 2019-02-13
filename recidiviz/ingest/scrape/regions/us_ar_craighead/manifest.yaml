@@ -2,3 +2,4 @@ agency_name: Craighead County Sheriff's Office
 agency_type: jail
 base_url: https://www.craigheadso.org/roster_custom.php
 timezone: America/Chicago
+environment: production

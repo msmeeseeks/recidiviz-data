@@ -2,3 +2,4 @@ agency_name: New Hanover County Sheriff's Office
 agency_type: jail
 base_url: http://p2c.nhcgov.com/p2c
 timezone: America/New_York
+environment: production

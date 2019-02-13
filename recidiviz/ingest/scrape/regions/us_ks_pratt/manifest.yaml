@@ -2,3 +2,4 @@ agency_name: Pratt County Sheriff's Office
 agency_type: jail
 base_url: https://www.prattcountysheriff.com/roster.php
 timezone: America/Chicago
+environment: production

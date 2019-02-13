@@ -2,3 +2,4 @@ agency_name: Lincoln County Sheriff's Office
 agency_type: jail
 base_url: http://www.lincolnsheriff.org/p2c
 timezone: America/New_York
+environment: production

@@ -2,3 +2,4 @@ agency_name: McMinn County Sheriff's Office
 agency_type: jail
 base_url: http://mcminncotn.offenderindex.com
 timezone: America/Chicago
+environment: production

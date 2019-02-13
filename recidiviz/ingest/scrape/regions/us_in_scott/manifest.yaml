@@ -2,3 +2,4 @@ agency_name: Scott County Sheriff's Office
 agency_type: jail
 base_url: https://www.scottcountysheriff.org/roster.php
 timezone: America/Indiana/Indianapolis
+environment: production

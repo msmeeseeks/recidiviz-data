@@ -2,3 +2,4 @@ agency_name: Campbell County Sheriff's Office
 agency_type: jail
 base_url: https://omsweb.public-safety-cloud.com/jtclientweb/(S(snmrvnoaxgkfjrmsyazsbekk))/jailtracker/index/Campbell_County_KY
 timezone: America/New_York
+environment: production

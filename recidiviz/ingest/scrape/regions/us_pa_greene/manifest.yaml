@@ -2,3 +2,4 @@ agency_name: Greene County Detention Center
 agency_type: jail
 base_url: http://www.co.greene.pa.us/InmateLocator
 timezone: America/New_York
+environment: production

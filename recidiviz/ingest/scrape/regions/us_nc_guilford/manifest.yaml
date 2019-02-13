@@ -2,3 +2,4 @@ agency_name: Guilford County Sheriff's Office
 agency_type: jail
 base_url: http://p2c.guilfordcountysheriff.com
 timezone: America/New_York
+environment: production

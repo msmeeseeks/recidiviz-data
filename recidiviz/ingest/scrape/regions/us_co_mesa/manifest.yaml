@@ -2,3 +2,4 @@ agency_name: Mesa County Sheriff's Office
 agency_type: jail
 base_url: http://inmateinfo.mesacounty.us/default.asp
 timezone: America/Denver
+environment: production

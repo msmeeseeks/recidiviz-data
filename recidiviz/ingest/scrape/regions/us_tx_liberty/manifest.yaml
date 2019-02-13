@@ -2,3 +2,4 @@ agency_name: Liberty County Sheriff's Office
 agency_type: jail
 base_url: http://74.81.132.22/bok/cgibok108.html
 timezone: America/Chicago
+environment: production
