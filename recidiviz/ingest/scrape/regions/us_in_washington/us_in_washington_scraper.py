@@ -25,7 +25,6 @@ class UsInWashingtonScraper(JailTrackerScraper):
     def __init__(self):
         super(UsInWashingtonScraper, self).__init__('us_in_washington')
 
-
     def get_jailtracker_index(self):
         """Returns the index used in the JailTracker URL to request a specific
         region's landing page.
@@ -35,3 +34,9 @@ class UsInWashingtonScraper(JailTrackerScraper):
         should return the value as a string.
         """
         return 'Washington_County_IN'
+
+    def get_enum_overrides(self):
+        return {
+            # Charge Class
+            'X': None,
+        }
