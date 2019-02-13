@@ -30,6 +30,8 @@ from lxml import html
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape.task_params import Task
+from recidiviz.ingest.scrape.vendors.jailtracker.jailtracker_scraper import \
+    JailTrackerRequestRateExceededError
 from recidiviz.tests.ingest import fixtures
 from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
@@ -91,6 +93,29 @@ class JailTrackerScraperTest(BaseScraperTest):
 
         self.validate_and_return_get_more_tasks(
             _LANDING_HTML, self.scraper.get_initial_task(), expected_result)
+
+    def test_get_more_tasks_rate_error(self):
+        task = Task(
+            task_type=constants.TaskType.GET_MORE_TASKS,
+            endpoint=self.roster_endpoint,
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._REQUEST_TARGET: self.scraper._ROSTER_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+            },
+        )
+
+        rate_error_content = {
+            'data': '',
+            'error': 'max-requests-for-timeperiod',
+            'success': False,
+        }
+
+        expected_result = []
+
+        with self.assertRaises(JailTrackerRequestRateExceededError):
+            self.validate_and_return_get_more_tasks(
+                rate_error_content, task, expected_result)
 
     def test_get_more_tasks_roster(self):
         task = Task(

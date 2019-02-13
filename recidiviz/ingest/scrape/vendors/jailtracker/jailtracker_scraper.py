@@ -57,6 +57,17 @@ from recidiviz.ingest.models.ingest_info import IngestInfo, Bond, Sentence, \
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
 
+class JailTrackerRequestRateExceededError(Exception):
+    """Raised if we detect that we'ree exceeded thre Jailtracker system
+    request rate.
+    """
+
+    def __init__(self):
+        msg = ('Exceeded the maximum number of requests per minute.'
+               ' Failing to retry.')
+        super().__init__(msg)
+
+
 class JailTrackerScraper(BaseScraper):
     """Generic scraper for regions using JailTracker."""
 
@@ -278,6 +289,10 @@ class JailTrackerScraper(BaseScraper):
         """
 
         next_tasks = []
+
+        if 'error' in response and \
+           response['error'] == 'max-requests-for-timeperiod':
+            raise JailTrackerRequestRateExceededError()
 
         max_index_present = 0
         for roster_entry in response["data"]:
