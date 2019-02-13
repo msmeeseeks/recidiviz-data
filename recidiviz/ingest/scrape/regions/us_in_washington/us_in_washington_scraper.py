@@ -16,6 +16,12 @@
 # =============================================================================
 
 """Scraper implementation for us_in_washington."""
+from typing import Optional
+
+from recidiviz.common.constants.charge import ChargeClass
+from recidiviz.ingest.models.ingest_info import IngestInfo, Person
+from recidiviz.ingest.scrape import scraper_utils
+from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 from recidiviz.ingest.scrape.vendors.jailtracker.jailtracker_scraper import \
     JailTrackerScraper
 
@@ -35,8 +41,28 @@ class UsInWashingtonScraper(JailTrackerScraper):
         """
         return 'Washington_County_IN'
 
+    def populate_data(self, content, task: Task,
+                      ingest_info: IngestInfo) -> Optional[ScrapedData]:
+        scraped_data: Optional[ScrapedData] = super(
+            UsInWashingtonScraper, self).populate_data(content, task,
+                                                       ingest_info)
+
+        person = scraper_utils.one('person', scraped_data.ingest_info) \
+            if scraped_data else Person()
+
+        for booking in person.bookings:
+            for charge in booking.charges:
+                if charge.charge_class and charge.charge_class == '6':
+                    charge.charge_class = ChargeClass.FELONY.value
+                    charge.level = '6'
+
+        return scraped_data
+
     def get_enum_overrides(self):
         return {
+            **super(UsInWashingtonScraper, self).get_enum_overrides(),
+
             # Charge Class
+            'A': ChargeClass.MISDEMEANOR,
             'X': None,
         }
