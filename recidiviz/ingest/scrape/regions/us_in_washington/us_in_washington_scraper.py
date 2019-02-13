@@ -62,6 +62,9 @@ class UsInWashingtonScraper(JailTrackerScraper):
         return {
             **super(UsInWashingtonScraper, self).get_enum_overrides(),
 
+            # BondType
+            'SERVE TIME': None,
+
             # Charge Class
             'A': ChargeClass.MISDEMEANOR,
             'X': None,
