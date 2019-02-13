@@ -29,6 +29,7 @@ class UsNcBuncombeScraper(SuperionScraper):
 
     def get_enum_overrides(self):
         return {
+            **super(UsNcBuncombeScraper, self).get_enum_overrides(),
             'DOM VIO': BondType.NO_BOND,
             'INCLUDED W OTHER': BondType.EXTERNAL_UNKNOWN,
             'SECURED FTA PRIOR': BondType.NO_BOND,

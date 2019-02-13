@@ -29,6 +29,7 @@ class UsNcCabarrusScraper(SuperionScraper):
 
     def get_enum_overrides(self):
         return {
+            **super(UsNcCabarrusScraper, self).get_enum_overrides(),
             'OTHER SEE NOTES': BondType.EXTERNAL_UNKNOWN,
             'WAITING TRANSPORT TO DAC': ChargeStatus.SENTENCED,
             'COMPLIANCE': None,

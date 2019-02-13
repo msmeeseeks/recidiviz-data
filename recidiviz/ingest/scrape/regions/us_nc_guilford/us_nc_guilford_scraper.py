@@ -32,6 +32,7 @@ class UsNcGuilfordScraper(SuperionScraper):
 
     def get_enum_overrides(self):
         return {
+            **super(UsNcGuilfordScraper, self).get_enum_overrides(),
             'CUSTODY RELEASE': BondType.NO_BOND,
             'PAROLE HEARING PENDING': ChargeStatus.PENDING,
             'PRE-SENTENCED QUICK DIPS': ChargeStatus.SENTENCED,

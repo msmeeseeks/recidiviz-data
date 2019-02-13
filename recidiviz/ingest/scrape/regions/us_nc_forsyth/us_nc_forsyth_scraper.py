@@ -28,6 +28,7 @@ class UsNcForsythScraper(SuperionScraper):
 
     def get_enum_overrides(self):
         return {
+            **super(UsNcForsythScraper, self).get_enum_overrides(),
             'CONSOLIDATED': None,
             'INEBRIATES (24-HR HOLD)': ChargeStatus.PENDING,
             'APPEALED TO SUPERIIOR COURT': ChargeStatus.SENTENCED,

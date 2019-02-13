@@ -28,6 +28,7 @@ class UsNcRowanScraper(SuperionScraper):
 
     def get_enum_overrides(self):
         return {
+            **super(UsNcRowanScraper, self).get_enum_overrides(),
             'SURRENDER OF SURETY': ChargeStatus.PRETRIAL,
             'TEMPORARY HOLD': ChargeStatus.SENTENCED,
         }

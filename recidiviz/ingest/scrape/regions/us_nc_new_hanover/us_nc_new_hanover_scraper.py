@@ -28,5 +28,6 @@ class UsNcNewHanoverScraper(SuperionScraper):
 
     def get_enum_overrides(self):
         return {
+            **super(UsNcNewHanoverScraper, self).get_enum_overrides(),
             'INCLUDED IN OTHER CHARGES': BondType.NO_BOND,
         }
