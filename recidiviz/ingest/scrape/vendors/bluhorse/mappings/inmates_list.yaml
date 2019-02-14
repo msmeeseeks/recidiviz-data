@@ -1,0 +1,15 @@
+key_mappings:
+  GetInmates2Result.BDate: person.birthdate
+  GetInmates2Result.FullName: person.full_name
+
+keys_to_ignore:
+- GetInmates2Result.BookNo  # Get from charge info page
+- GetInmates2Result.FName  # Use FullName
+- GetInmates2Result.FarmOut
+- GetInmates2Result.JacketNo
+- GetInmates2Result.LName  # Use FullName
+- GetInmates2Result.Location
+- GetInmates2Result.MName  # Use FullName
+- GetInmates2Result.RDate
+- GetInmates2Result.SSN
+- GetInmates2Result.Suffix  # Use FullName

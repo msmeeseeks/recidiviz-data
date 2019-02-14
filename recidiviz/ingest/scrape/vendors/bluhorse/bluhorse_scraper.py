@@ -28,24 +28,15 @@ Background scraping procedure:
 """
 
 import abc
-import html
 import os
-import re
-from datetime import datetime
+import enum
 from typing import List, Optional, Set, Tuple
 
-import pytz
-
-from recidiviz.common.constants.booking import AdmissionReason
-from recidiviz.common.constants.bond import BondType
-from recidiviz.common.constants.charge import ChargeClass, ChargeStatus
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
-from recidiviz.ingest.models.ingest_info import (Bond, Booking, Charge,
-                                                 IngestInfo)
+from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
-from recidiviz.persistence.converter import converter_utils
 
 class BluHorseScraper(BaseScraper):
     """Scraper for counties using BluHorse."""
@@ -53,16 +44,83 @@ class BluHorseScraper(BaseScraper):
     def __init__(self, region_name):
         super(BluHorseScraper, self).__init__(region_name)
 
+    @staticmethod
+    @abc.abstractmethod
+    def get_jail_id() -> str:
+        """Returns the id of the jail, as used in requests to BluHorse.
+
+        Example:
+            'LCRJ' for Letcher County, where requests need '?Jail=LCRJ'
+        """
+
+    class Page(enum.Enum):
+        PASSKEY = 'GeneratePassKey'
+        INMATES_LIST = 'GetInmates2'
+        INMATE = 'GetInmate'
+        CHARGES = 'GetInmateCharges'
+        HOLDS = 'GetInmateHolds'
+        BONDS = 'GetInmateBonds'
+        ARREST = 'GetInmate_Arrest_Info'
+        COURT_HISTORY = 'GetInmateCourtHistory'
+
+    # NEXT_PAGE_MAP = {
+    #     Page.PASSKEY: Page.INMATES_LIST,
+    #     Page.IN
+    # }
+
     def get_initial_task(self) -> Task:
+        page = self.Page.PASSKEY
         return Task(
             task_type=constants.TaskType.INITIAL_AND_MORE,
-            endpoint='/'.join([
-                'http://inmates.bluhorse.com/InmateService.svc',
-                'GeneratePassKey',
-            ]),
+            endpoint='/'.join([self.get_region().base_url, page.value]),
             response_type=constants.ResponseType.JSON,
+            custom={
+                'page': page.value
+            },
         )
+
+    def get_more_tasks(self, content, task: Task) -> List[Task]:
+        print(str(content)[:100] + '...')
+        page = self.Page(task.custom['page'])
+        if page is self.Page.PASSKEY:
+            task.custom['key'], task.custom['answer'] = \
+                content['GeneratePassKeyResult'].split('|||')
+
+            return [Task(
+                task_type=constants.TaskType.SCRAPE_DATA_AND_MORE,
+                endpoint='/'.join([self.get_region().base_url, 'GetInmates2']),
+                params={
+                    'Jail': self.get_jail_id(),
+                    'key': task.custom['key'],
+                    'ans': task.custom['answer'],
+                },
+                custom={**task.custom, 'page': self.Page.INMATES_LIST.value},
+                response_type=constants.ResponseType.JSON,
+            )]
+        if page is self.Page.INMATES_LIST:
+            return [Task(
+                task_type=constants.TaskType.SCRAPE_DATA_AND_MORE,
+                endpoint='/'.join([self.get_region().base_url, 'GetInmate']),
+                params={
+                    'Jail': self.get_jail_id(),
+                    'bookno': person['BookNo'],
+                    'key': task.custom['key'],
+                    'answer': task.custom['answer'],
+                    'Fields': 'ACEFGHIJKLMNO',
+                    'isLogin': 'false',
+                },
+                custom={**task.custom, 'page': self.Page.INMATES_LIST.value},
+                response_type=constants.ResponseType.JSON,
+            ) for person in content['GetInmates2Result']]
+
+        return []
 
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[ScrapedData]:
-        return ScrapedData(ingest_info, False)
+        page = self.Page(task.custom['page'])
+        data_extractor = JsonDataExtractor(
+            os.path.join(os.path.dirname(__file__), 'mappings',
+                         '{}.yaml'.format(page.name.lower())))
+        ingest_info = data_extractor.extract_and_populate_data(
+            content, ingest_info)
+        return ScrapedData(ingest_info, page is not self.Page.COURT_HISTORY)
