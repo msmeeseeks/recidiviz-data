@@ -3,3 +3,4 @@ agency_type: jail
 base_url: https://omsweb.public-safety-cloud.com/jtclientweb/jailtracker/index/Vigo_County_IN
 timezone: America/Indiana/Indianapolis
 environment: production
+shared_queue: vendor-jailtracker-scraper
