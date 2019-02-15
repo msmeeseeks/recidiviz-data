@@ -68,59 +68,82 @@ class BluHorseScraper(BaseScraper):
     #     Page.IN
     # }
 
-    def get_initial_task(self) -> Task:
-        page = self.Page.PASSKEY
+    def base_task(self, task_type: constants.TaskType, page: Page,
+                  base_custom: Optional[dict] = None) -> Task:
         return Task(
-            task_type=constants.TaskType.INITIAL_AND_MORE,
+            task_type=task_type,
             endpoint='/'.join([self.get_region().base_url, page.value]),
             response_type=constants.ResponseType.JSON,
-            custom={
-                'page': page.value
+            headers={
+                'Referer': 'http://inmates.bluhorse.com/Default.aspx?ID=LCRJ',
             },
+            custom={
+                **(base_custom or {}),
+                'page': page.value
+            }
         )
 
+    def get_initial_task(self) -> Task:
+        return self.base_task(constants.TaskType.INITIAL_AND_MORE,
+                              self.Page.PASSKEY)
+
     def get_more_tasks(self, content, task: Task) -> List[Task]:
-        print(str(content)[:100] + '...')
+        print(str(content)[:1000] + '...')
         page = self.Page(task.custom['page'])
         if page is self.Page.PASSKEY:
             task.custom['key'], task.custom['answer'] = \
                 content['GeneratePassKeyResult'].split('|||')
 
-            return [Task(
-                task_type=constants.TaskType.SCRAPE_DATA_AND_MORE,
-                endpoint='/'.join([self.get_region().base_url, 'GetInmates2']),
+            return [Task.evolve(
+                self.base_task(constants.TaskType.GET_MORE_TASKS,
+                               self.Page.INMATES_LIST, task.custom),
                 params={
                     'Jail': self.get_jail_id(),
                     'key': task.custom['key'],
                     'ans': task.custom['answer'],
-                },
-                custom={**task.custom, 'page': self.Page.INMATES_LIST.value},
-                response_type=constants.ResponseType.JSON,
-            )]
+                })]
         if page is self.Page.INMATES_LIST:
-            return [Task(
-                task_type=constants.TaskType.SCRAPE_DATA_AND_MORE,
-                endpoint='/'.join([self.get_region().base_url, 'GetInmate']),
+            return [Task.evolve(
+                self.base_task(
+                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.INMATE,
+                    {**task.custom, 'full_name': person['FullName'],
+                     'birthdate': person['BDate']}),
                 params={
                     'Jail': self.get_jail_id(),
                     'bookno': person['BookNo'],
                     'key': task.custom['key'],
                     'answer': task.custom['answer'],
                     'Fields': 'ACEFGHIJKLMNO',
-                    'isLogin': 'false',
                 },
-                custom={**task.custom, 'page': self.Page.INMATES_LIST.value},
-                response_type=constants.ResponseType.JSON,
             ) for person in content['GetInmates2Result']]
+        if page is self.Page.INMATE:
+            bookno = task.params['bookno'] if task.params else None
+            return [Task.evolve(
+                self.base_task(
+                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.CHARGES,
+                    task.custom),
+                params={
+                    'Jail': self.get_jail_id(),
+                    'bookno': bookno,
+                    'Fields': 'ACEFGHIJKLMNO',
+                },
+            )]
 
         return []
 
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[ScrapedData]:
         page = self.Page(task.custom['page'])
+
         data_extractor = JsonDataExtractor(
             os.path.join(os.path.dirname(__file__), 'mappings',
                          '{}.yaml'.format(page.name.lower())))
         ingest_info = data_extractor.extract_and_populate_data(
             content, ingest_info)
-        return ScrapedData(ingest_info, page is not self.Page.COURT_HISTORY)
+
+        if page is self.Page.INMATE:
+            [person] = ingest_info.people
+            person.full_name = task.custom['full_name']
+            person.birthdate = task.custom['birthdate']
+
+        return ScrapedData(ingest_info, page is self.Page.COURT_HISTORY)
