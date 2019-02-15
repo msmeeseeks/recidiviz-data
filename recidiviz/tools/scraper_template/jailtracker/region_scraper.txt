@@ -16,6 +16,8 @@
 # =============================================================================
 
 """Scraper implementation for $region."""
+
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.ingest.scrape.vendors.jailtracker.jailtracker_scraper import \
     JailTrackerScraper
 
@@ -35,3 +37,9 @@ class ${class_name}(JailTrackerScraper):
         should return the value as a string.
         """
         pass
+
+    def get_enum_overrides(self) -> EnumOverrides:
+        overrides_builder = super(${class_name},
+                                  self).get_enum_overrides().to_builder()
+        # Add mappings here by calling overrides_builder.add() or .ignore()
+        return overrides_builder.build()

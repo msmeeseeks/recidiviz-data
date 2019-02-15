@@ -31,4 +31,9 @@ class UsGaBerrienScraper(EagleAdvantageScraper):
                              agency_service_port=9000)
 
     def get_enum_overrides(self):
-        return {'O': ChargeClass.OTHER}
+        overrides_builder = super(
+            UsGaBerrienScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.add('O', ChargeClass.OTHER)
+
+        return overrides_builder.build()

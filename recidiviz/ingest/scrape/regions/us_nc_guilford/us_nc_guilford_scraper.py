@@ -31,12 +31,15 @@ class UsNcGuilfordScraper(SuperionScraper):
         super(UsNcGuilfordScraper, self).__init__('us_nc_guilford')
 
     def get_enum_overrides(self):
-        return {
-            **super(UsNcGuilfordScraper, self).get_enum_overrides(),
-            'CUSTODY RELEASE': BondType.NO_BOND,
-            'PAROLE HEARING PENDING': ChargeStatus.PENDING,
-            'PRE-SENTENCED QUICK DIPS': ChargeStatus.SENTENCED,
-            'RELEASE PER JUDGE': ChargeStatus.DROPPED,
-            'SENTENCED WEEKENDER': ChargeStatus.SENTENCED,
-            'WRITTEN PROMISE TO APPEAR': BondType.NO_BOND,
-        }
+        overrides_builder = super(
+            UsNcGuilfordScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.add('CUSTODY RELEASE', BondType.NO_BOND)
+        overrides_builder.add('PAROLE HEARING PENDING', ChargeStatus.PENDING)
+        overrides_builder.add('PRE SENTENCED QUICK DIPS',
+                              ChargeStatus.SENTENCED)
+        overrides_builder.add('RELEASE PER JUDGE', ChargeStatus.DROPPED)
+        overrides_builder.add('SENTENCED WEEKENDER', ChargeStatus.SENTENCED)
+        overrides_builder.add('WRITTEN PROMISE TO APPEAR', BondType.NO_BOND)
+
+        return overrides_builder.build()

@@ -84,20 +84,26 @@ class UsInVigoScraper(JailTrackerScraper):
         return ScrapedData(ingest_info=scraped_data.ingest_info, persist=True)
 
     def get_enum_overrides(self):
-        return {
-            'CASH ONLY NO 10 NO PROFESSIONAL BONDSMAN': BondType.CASH,
-            'WITH 10 ALLOWED': BondType.CASH,
-            'BAIL CONSOLIDATED TO ONE CHARGE': None,
-            'BOND SET': ChargeStatus.PRETRIAL,
-            'GENERAL': None,
-            'RELEASED BY COURT': ChargeStatus.PRETRIAL,
-            'IV D SUPPORT COURT': CourtType.CIVIL,
-            'SC': ChargeClass.CIVIL,
-            'COUNTY COURT': CourtType.DISTRICT,
-            'COURT TYPE': CourtType.DISTRICT,
-            'TERRE HAUTE CITY COURT': CourtType.DISTRICT,
-            'OTHER NOT CLASSIFIED': CourtType.EXTERNAL_UNKNOWN,
-            '*': None,
-            '.': None,
-            'PAROLE VIOLATION STATE ONLY': None,
-        }
+        overrides_builder = super(
+            UsInVigoScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.add('*', ChargeStatus)
+        overrides_builder.add('.', ChargeStatus)
+        overrides_builder.ignore('BAIL CONSOLIDATED TO ONE CHARGE',
+                                 BondType)
+        overrides_builder.add('BOND SET', ChargeStatus.PRETRIAL)
+        overrides_builder.add('CASH ONLY NO 10 NO PROFESSIONAL BONDSMAN',
+                              BondType.CASH)
+        overrides_builder.add('COUNTY COURT', CourtType.DISTRICT)
+        overrides_builder.add('COURT TYPE', CourtType.DISTRICT)
+        overrides_builder.add('GENERAL', ChargeStatus)
+        overrides_builder.add('IV D SUPPORT COURT', CourtType.CIVIL)
+        overrides_builder.add('OTHER NOT CLASSIFIED',
+                              CourtType.EXTERNAL_UNKNOWN)
+        overrides_builder.add('PAROLE VIOLATION STATE ONLY', ChargeStatus)
+        overrides_builder.add('RELEASED BY COURT', ChargeStatus.PRETRIAL)
+        overrides_builder.add('SC', ChargeClass.CIVIL)
+        overrides_builder.add('TERRE HAUTE CITY COURT', CourtType.DISTRICT)
+        overrides_builder.add('WITH 10 ALLOWED', BondType.CASH)
+
+        return overrides_builder.build()

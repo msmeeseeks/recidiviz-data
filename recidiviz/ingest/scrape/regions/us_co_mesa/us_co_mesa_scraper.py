@@ -41,6 +41,7 @@ from typing import List, Optional
 
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeClass
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.common.constants.hold import HoldStatus
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
@@ -181,19 +182,19 @@ class UsCoMesaScraper(BaseScraper):
         return ScrapedData(ingest_info=ingest_info, persist=True)
 
     def get_enum_overrides(self):
-        return {
-            # Charge Classes
-            'PO': ChargeClass.INFRACTION,  # Petty Offense
-            'TI': ChargeClass.CIVIL,  # Traffic Infraction
+        overrides_builder = EnumOverrides.Builder()
 
-            # Bond Types
-            'CASH CASH': BondType.CASH,
-            'CS CASH SURETY': BondType.UNSECURED,
-            'CSP CASH SURETY PROPERTY': BondType.UNSECURED,
-            'SURETY SURETY': BondType.UNSECURED,
-            'PR PERSONAL RECOGNIZANCE': BondType.NO_BOND,
-            'PRS PERSONAL RECOGNIZANCE CO SIGN': BondType.NO_BOND,
-        }
+        overrides_builder.add('CASH CASH', BondType.CASH)
+        overrides_builder.add('CS CASH SURETY', BondType.UNSECURED)
+        overrides_builder.add('CSP CASH SURETY PROPERTY', BondType.UNSECURED)
+        overrides_builder.add('PO', ChargeClass.INFRACTION)  # Petty Offense
+        overrides_builder.add('PR PERSONAL RECOGNIZANCE', BondType.NO_BOND)
+        overrides_builder.add('PRS PERSONAL RECOGNIZANCE CO SIGN',
+                              BondType.NO_BOND)
+        overrides_builder.add('SURETY SURETY', BondType.UNSECURED)
+        overrides_builder.add('TI', ChargeClass.CIVIL)  # Traffic Infraction
+
+        return overrides_builder.build()
 
 
 def _parse_class_and_level(text):

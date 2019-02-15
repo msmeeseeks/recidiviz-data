@@ -27,7 +27,9 @@ class UsNcNewHanoverScraper(SuperionScraper):
         super(UsNcNewHanoverScraper, self).__init__('us_nc_new_hanover')
 
     def get_enum_overrides(self):
-        return {
-            **super(UsNcNewHanoverScraper, self).get_enum_overrides(),
-            'INCLUDED IN OTHER CHARGES': BondType.NO_BOND,
-        }
+        overrides_builder = super(
+            UsNcNewHanoverScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.add('INCLUDED IN OTHER CHARGES', BondType.NO_BOND)
+
+        return overrides_builder.build()

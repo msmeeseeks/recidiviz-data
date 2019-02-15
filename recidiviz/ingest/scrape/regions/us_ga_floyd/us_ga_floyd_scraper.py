@@ -35,18 +35,14 @@ class UsGaFloydScraper(ZuercherScraper):
         return 'Floyd County, GA'
 
     def get_enum_overrides(self):
-        return {
-            **super(UsGaFloydScraper, self).get_enum_overrides(),
-            # Charge Status
-            'NOLLE PROSSED CCH 300': ChargeStatus.DROPPED,
-            'DISMISSED CCH 305': ChargeStatus.DROPPED,
-            'GUILTY CCH 310': ChargeStatus.CONVICTED,
+        overrides_builder = super(
+            UsGaFloydScraper, self).get_enum_overrides().to_builder()
 
-            # Charge Classes
-            'FEL': ChargeClass.FELONY,
-            'FEL.': ChargeClass.FELONY,
-            'MISD.': ChargeClass.MISDEMEANOR,
+        overrides_builder.add('DISMISSED CCH 305', ChargeStatus.DROPPED)
+        overrides_builder.add('FEL', ChargeClass.FELONY)
+        overrides_builder.add('GUILTY CCH 310', ChargeStatus.CONVICTED)
+        overrides_builder.add('MISD', ChargeClass.MISDEMEANOR)
+        overrides_builder.add('NOLLE PROSSED CCH 300', ChargeStatus.DROPPED)
+        overrides_builder.add('PROPERTY', BondType.SECURED)
 
-            # Bond Types
-            'PROPERTY': BondType.SECURED,
-        }
+        return overrides_builder.build()

@@ -17,6 +17,7 @@
 
 """Scraper implementation for us_nc_forsyth."""
 from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.ingest.scrape.vendors.superion.superion_scraper import \
     SuperionScraper
 
@@ -26,11 +27,15 @@ class UsNcForsythScraper(SuperionScraper):
     def __init__(self):
         super(UsNcForsythScraper, self).__init__('us_nc_forsyth')
 
-    def get_enum_overrides(self):
-        return {
-            **super(UsNcForsythScraper, self).get_enum_overrides(),
-            'CONSOLIDATED': None,
-            'INEBRIATES (24-HR HOLD)': ChargeStatus.PENDING,
-            'APPEALED TO SUPERIIOR COURT': ChargeStatus.SENTENCED,
-            'WAITING TRANSPORT TO DAC': ChargeStatus.SENTENCED,
-        }
+    def get_enum_overrides(self) -> EnumOverrides:
+        overrides_builder = super(
+            UsNcForsythScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.add('APPEALED TO SUPERIIOR COURT',
+                              ChargeStatus.SENTENCED)
+        overrides_builder.ignore('CONSOLIDATED', ChargeStatus)
+        overrides_builder.add('INEBRIATES 24 HR HOLD', ChargeStatus.PENDING)
+        overrides_builder.add('WAITING TRANSPORT TO DAC',
+                              ChargeStatus.SENTENCED)
+
+        return overrides_builder.build()

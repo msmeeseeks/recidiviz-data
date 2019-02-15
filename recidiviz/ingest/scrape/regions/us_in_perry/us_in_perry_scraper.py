@@ -18,8 +18,10 @@
 """Scraper implementation for us_in_perry."""
 from typing import Optional
 
+from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.common.constants.person import Race
 from recidiviz.ingest.scrape import scraper_utils
 from recidiviz.ingest.models.ingest_info import IngestInfo, Person
@@ -29,6 +31,7 @@ from recidiviz.ingest.scrape.vendors.jailtracker import JailTrackerScraper
 
 class UsInPerryScraper(JailTrackerScraper):
     """Scraper implementation for us_in_perry."""
+
     def __init__(self):
         super(UsInPerryScraper, self).__init__('us_in_perry')
 
@@ -67,17 +70,10 @@ class UsInPerryScraper(JailTrackerScraper):
 
         return scraped_data
 
-    def get_enum_overrides(self):
-        return {
-            **super(UsInPerryScraper, self).get_enum_overrides(),
-
-            # ChargeStatus
-            'NOT FILED BY PROSECUTOR': ChargeStatus.PENDING,
-            'OTHER': None,
-
-            # BondType
-            'SERVE TIME': None,
-
-            # Race
-            'UNKOWN': Race.EXTERNAL_UNKNOWN,
-        }
+    def get_enum_overrides(self) -> EnumOverrides:
+        overrides_builder = super(UsInPerryScraper,
+                                  self).get_enum_overrides().to_builder()
+        overrides_builder.add('NOT FILED BY PROSECUTOR', ChargeStatus.PENDING)
+        overrides_builder.ignore('SERVE TIME', BondType)
+        overrides_builder.add('UNKOWN', Race.EXTERNAL_UNKNOWN)
+        return overrides_builder.build()

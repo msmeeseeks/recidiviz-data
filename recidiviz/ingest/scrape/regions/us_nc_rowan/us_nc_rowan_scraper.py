@@ -27,8 +27,10 @@ class UsNcRowanScraper(SuperionScraper):
         super(UsNcRowanScraper, self).__init__('us_nc_rowan')
 
     def get_enum_overrides(self):
-        return {
-            **super(UsNcRowanScraper, self).get_enum_overrides(),
-            'SURRENDER OF SURETY': ChargeStatus.PRETRIAL,
-            'TEMPORARY HOLD': ChargeStatus.SENTENCED,
-        }
+        overrides_builder = super(
+            UsNcRowanScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.add('SURRENDER OF SURETY', ChargeStatus.PRETRIAL)
+        overrides_builder.add('TEMPORARY HOLD', ChargeStatus.SENTENCED)
+
+        return overrides_builder.build()

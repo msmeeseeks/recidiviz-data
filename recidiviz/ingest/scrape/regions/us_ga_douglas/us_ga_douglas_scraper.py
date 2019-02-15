@@ -32,11 +32,9 @@ class UsGaDouglasScraper(ZuercherScraper):
         return 'Douglas County, GA'
 
     def get_enum_overrides(self):
-        return {
-            **super(UsGaDouglasScraper, self).get_enum_overrides(),
-            # Charge Statuses
-            'NEG PLEA': ChargeStatus.PRETRIAL,
+        overrides_builder = super(
+            UsGaDouglasScraper, self).get_enum_overrides().to_builder()
 
-            # Bond Types
-            'BONDING COMPANY': BondType.UNSECURED,
-        }
+        overrides_builder.add('BONDING COMPANY', BondType.SECURED)
+        overrides_builder.add('NEG PLEA', ChargeStatus.PRETRIAL)
+        return overrides_builder.build()

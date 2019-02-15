@@ -55,10 +55,13 @@ class UsNcWakeScraper(SuperionScraper):
         return scraped_data
 
     def get_enum_overrides(self):
-        return {
-            **super(UsNcWakeScraper, self).get_enum_overrides(),
-            'DISMISSED 234': BondType.NO_BOND,
-            'ELECTRONIC HOUSE ARREST SECURED BOND': BondType.SECURED,
-            'SECURE BOND 2ND OR SUBSEQUENT FTA ON THIS CASE':
-                BondType.SECURED,
-        }
+        overrides_builder = super(
+            UsNcWakeScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.add('DISMISSED 234', BondType.NO_BOND)
+        overrides_builder.add('ELECTRONIC HOUSE ARREST SECURED BOND',
+                              BondType.SECURED)
+        overrides_builder.add('SECURE BOND 2ND OR SUBSEQUENT FTA ON THIS CASE',
+                              BondType.SECURED)
+
+        return overrides_builder.build()

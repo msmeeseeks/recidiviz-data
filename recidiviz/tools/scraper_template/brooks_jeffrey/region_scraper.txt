@@ -17,6 +17,7 @@
 
 """Scraper implementation for $region (Brooks Jeffrey vendor)."""
 
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.ingest.scrape.vendors.brooks_jeffrey.brooks_jeffrey_scraper \
     import BrooksJeffreyScraper
 
@@ -24,3 +25,9 @@ class ${class_name}Scraper(BrooksJeffreyScraper):
     """Scraper implementation for $region."""
     def __init__(self, mapping_filepath=None):
         super(${class_name}Scraper, self).__init__('$region')
+
+    def get_enum_overrides(self) -> EnumOverrides:
+        overrides_builder = super(${class_name},
+                                  self).get_enum_overrides().to_builder()
+        # Add mappings here by calling overrides_builder.add() or .ignore()
+        return overrides_builder.build()

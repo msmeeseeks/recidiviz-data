@@ -19,6 +19,7 @@
 import os
 from typing import Optional, List
 from recidiviz.common.constants.charge import ChargeDegree
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo, Bond
 from recidiviz.ingest.scrape import constants, scraper_utils
@@ -45,8 +46,8 @@ class UsFlAlachuaScraper(Html5BaseScraper):
         person_info = extractor.extract_and_populate_data(person_table,
                                                           ingest_info)
         one_person = scraper_utils.one('person', person_info)
-        created_booking = one_person.create_booking(admission_date=
-                                                    task.custom['Booking Date'])
+        created_booking = one_person.create_booking(
+            admission_date=task.custom['Booking Date'])
         hold_federal = extractor.get_value('Federal')
         hold_other = extractor.get_value('Other County')
         hold_bool = extractor.get_value('Hold')
@@ -103,7 +104,11 @@ class UsFlAlachuaScraper(Html5BaseScraper):
         return task_list
 
     def get_enum_overrides(self):
-        return {'N': None,
-                'F': ChargeDegree.FIRST,
-                'S': ChargeDegree.SECOND,
-                'T': ChargeDegree.THIRD}
+        overrides_builder = EnumOverrides.Builder()
+
+        overrides_builder.add('F', ChargeDegree.FIRST)
+        overrides_builder.ignore('N')
+        overrides_builder.add('S', ChargeDegree.SECOND)
+        overrides_builder.add('T', ChargeDegree.THIRD)
+
+        return overrides_builder.build()

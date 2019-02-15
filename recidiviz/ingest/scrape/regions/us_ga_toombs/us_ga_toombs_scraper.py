@@ -41,13 +41,13 @@ class UsGaToombsScraper(ZuercherScraper):
         return 'Toombs County, GA'
 
     def get_enum_overrides(self):
-        return {
-            **super(UsGaToombsScraper, self).get_enum_overrides(),
+        overrides_builder = super(
+            UsGaToombsScraper, self).get_enum_overrides().to_builder()
 
-            # Bond Types
-            'PROPERTY Bond': BondType.SECURED,
-            'REVOKED BOND': BondType.NO_BOND,
-            'CHILD SUPPORT RELEASE PAYMENT': BondType.CASH,
-            'OR PER JUDGE': BondType.NO_BOND,
-            'NA': None,
-        }
+        overrides_builder.add('CHILD SUPPORT RELEASE PAYMENT', BondType.CASH)
+        overrides_builder.ignore('NA')
+        overrides_builder.add('OR PER JUDGE', BondType.NO_BOND)
+        overrides_builder.add('PROPERTY BOND', BondType.SECURED)
+        overrides_builder.add('REVOKED BOND', BondType.NO_BOND)
+
+        return overrides_builder.build()

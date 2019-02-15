@@ -19,6 +19,7 @@
 """Scraper implementation for NJ Bergen County (IML)
 """
 
+from recidiviz.common.constants.charge import ChargeStatus
 from recidiviz.common.constants.person import Race
 from recidiviz.ingest.scrape.vendors import ImlScraper
 
@@ -29,8 +30,11 @@ class UsNjBergenScraper(ImlScraper):
         super(UsNjBergenScraper, self).__init__('us_nj_bergen')
 
     def get_enum_overrides(self):
-        return {
-            'DP': None,
-            'PDP': None,
-            'CHINESE': Race.ASIAN,
-        }
+        overrides_builder = super(
+            UsNjBergenScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.add('CHINESE', Race.ASIAN)
+        overrides_builder.ignore('DP', ChargeStatus)
+        overrides_builder.ignore('PDP', ChargeStatus)
+
+        return overrides_builder.build()

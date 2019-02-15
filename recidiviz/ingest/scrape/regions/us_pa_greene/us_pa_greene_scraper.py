@@ -39,17 +39,17 @@ class UsPaGreeneScraper(JailTrackerScraper):
         return 'Greene_County_PA'
 
     def get_enum_overrides(self):
-        return {
-            # Charge Classes
-            'TO BE DETERMINED': None,
-            'SUMMARY': ChargeClass.INFRACTION,
+        overrides_builder = super(
+            UsPaGreeneScraper, self).get_enum_overrides().to_builder()
 
-            # Charge Statuses
-            'SENTENCED BY COMMONWEALTH': ChargeStatus.SENTENCED,
+        overrides_builder.add('CASH SURETY', BondType.UNSECURED)
+        overrides_builder.add('NO BOND PERMITTED UNBONDABLE CHARGE',
+                              BondType.NO_BOND)
+        overrides_builder.add('PERCENTAGE', BondType.CASH)
+        overrides_builder.add('SENTENCED BY COMMONWEALTH',
+                              ChargeStatus.SENTENCED)
+        overrides_builder.add('STRAIGHT', BondType.CASH)
+        overrides_builder.add('SUMMARY', ChargeClass.INFRACTION)
+        overrides_builder.ignore('TO BE DETERMINED', ChargeClass)
 
-            # Bond Types
-            'CASH SURETY': BondType.UNSECURED,
-            'STRAIGHT': BondType.CASH,
-            'NO BOND PERMITTED UNBONDABLE CHARGE': BondType.NO_BOND,
-            'PERCENTAGE': BondType.CASH,
-        }
+        return overrides_builder.build()

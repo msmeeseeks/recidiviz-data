@@ -28,9 +28,12 @@ class UsNcCabarrusScraper(SuperionScraper):
         super(UsNcCabarrusScraper, self).__init__('us_nc_cabarrus')
 
     def get_enum_overrides(self):
-        return {
-            **super(UsNcCabarrusScraper, self).get_enum_overrides(),
-            'OTHER SEE NOTES': BondType.EXTERNAL_UNKNOWN,
-            'WAITING TRANSPORT TO DAC': ChargeStatus.SENTENCED,
-            'COMPLIANCE': None,
-        }
+        overrides_builder = super(
+            UsNcCabarrusScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.ignore('COMPLIANCE', ChargeStatus)
+        overrides_builder.add('OTHER SEE NOTES', BondType.EXTERNAL_UNKNOWN)
+        overrides_builder.add('WAITING TRANSPORT TO DAC',
+                              ChargeStatus.SENTENCED)
+
+        return overrides_builder.build()

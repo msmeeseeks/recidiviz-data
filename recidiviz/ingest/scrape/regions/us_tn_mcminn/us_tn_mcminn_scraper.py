@@ -31,8 +31,12 @@ class UsTnMcminnScraper(EagleAdvantageScraper):
                              agency_service_port=9000)
 
     def get_enum_overrides(self):
-        return {
-            'GENERALSESSIONS': CourtType.DISTRICT,
-            # JUVENILE seems to mostly refer to child support charges
-            'JUVENILE': CourtType.DISTRICT
-        }
+        overrides_builder = super(
+            UsTnMcminnScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.add('GENERALSESSIONS', CourtType.DISTRICT)
+
+        # JUVENILE seems to mostly refer to child support charges
+        overrides_builder.add('JUVENILE', CourtType.DISTRICT)
+
+        return overrides_builder.build()

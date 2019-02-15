@@ -40,6 +40,8 @@ import pytz
 from recidiviz.common.constants.booking import AdmissionReason
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeClass, ChargeStatus
+from recidiviz.common.constants.enum_overrides import EnumOverrides
+from recidiviz.common.constants.person import Race
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
@@ -49,6 +51,7 @@ from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 from recidiviz.persistence.converter import converter_utils
 
 _BATCH_SIZE = 100
+
 
 class ZuercherScraper(BaseScraper):
     """Scraper for counties using Zuercher."""
@@ -402,17 +405,14 @@ class ZuercherScraper(BaseScraper):
         return text, unused
 
     def get_enum_overrides(self):
-        return {
-            # Races
-            'NOT SPECIFIED': None,
+        overrides_builder = EnumOverrides.Builder()
 
-            # Charge Classes
-            'MISD': ChargeClass.MISDEMEANOR,
+        overrides_builder.add('CASH ONLY', BondType.CASH)
+        overrides_builder.add('MISD', ChargeClass.MISDEMEANOR)
+        overrides_builder.ignore('NOT SPECIFIED', Race)
+        overrides_builder.add('OTHER', BondType)
 
-            # Bond Types
-            'CASH ONLY': BondType.CASH,
-            'OTHER': None,
-        }
+        return overrides_builder.build()
 
 def _starts_with_key(text: str, keys: Set[str]) -> bool:
     for key in keys:

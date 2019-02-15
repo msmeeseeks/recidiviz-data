@@ -23,6 +23,7 @@ import os
 from typing import Optional, List
 from lxml import html
 
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.common.constants.person import Race
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.scrape.constants import ResponseType, TaskType
@@ -137,18 +138,19 @@ class SmartCopScraper(BaseScraper):
         title = content.find('.//title')
         return title is not None and title.text.strip() == 'Error'
 
-    def get_enum_overrides(self):
-        return {
-            'A': Race.ASIAN,
-            'I': Race.AMERICAN_INDIAN_ALASKAN_NATIVE,
-            'U': Race.EXTERNAL_UNKNOWN,
+    def get_enum_overrides(self) -> EnumOverrides:
+        overrides_builder = EnumOverrides.Builder()
+        overrides_builder.add('A', Race.ASIAN)
+        overrides_builder.add('I', Race.AMERICAN_INDIAN_ALASKAN_NATIVE)
+        overrides_builder.add('U', Race.EXTERNAL_UNKNOWN)
 
-            # Oliver- do you know what these charge degrees mean?
-            'C': None,
-            'F': None,
-            'L': None,
-            'M': None,
-            'N': None,
-            'S': None,
-            'T': None,
-        }
+        # TODO(806)
+        overrides_builder.ignore('C')
+        overrides_builder.ignore('F')
+        overrides_builder.ignore('L')
+        overrides_builder.ignore('M')
+        overrides_builder.ignore('N')
+        overrides_builder.ignore('S')
+        overrides_builder.ignore('T')
+
+        return overrides_builder.build()

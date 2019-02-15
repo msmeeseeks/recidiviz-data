@@ -18,7 +18,9 @@
 """Scraper implementation for us_in_washington."""
 from typing import Optional
 
+from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeClass
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.ingest.models.ingest_info import IngestInfo, Person
 from recidiviz.ingest.scrape import scraper_utils
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
@@ -28,6 +30,7 @@ from recidiviz.ingest.scrape.vendors.jailtracker.jailtracker_scraper import \
 
 class UsInWashingtonScraper(JailTrackerScraper):
     """Scraper implementation for us_in_washington."""
+
     def __init__(self):
         super(UsInWashingtonScraper, self).__init__('us_in_washington')
 
@@ -58,14 +61,10 @@ class UsInWashingtonScraper(JailTrackerScraper):
 
         return scraped_data
 
-    def get_enum_overrides(self):
-        return {
-            **super(UsInWashingtonScraper, self).get_enum_overrides(),
-
-            # BondType
-            'SERVE TIME': None,
-
-            # Charge Class
-            'A': ChargeClass.MISDEMEANOR,
-            'X': None,
-        }
+    def get_enum_overrides(self) -> EnumOverrides:
+        overrides_builder = super(UsInWashingtonScraper,
+                                  self).get_enum_overrides().to_builder()
+        overrides_builder.add('A', ChargeClass.MISDEMEANOR)
+        overrides_builder.ignore('SERVE TIME', BondType)
+        overrides_builder.ignore('X', ChargeClass)
+        return overrides_builder.build()

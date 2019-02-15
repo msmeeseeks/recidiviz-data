@@ -49,6 +49,7 @@ from lxml import html
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.booking import CustodyStatus, ReleaseReason
 from recidiviz.common.constants.charge import ChargeClass, ChargeStatus
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
@@ -226,14 +227,13 @@ class JailTrackerScraper(BaseScraper):
         ingest_info = ingest_info.prune()
         return ScrapedData(ingest_info=ingest_info, persist=True)
 
-    def get_enum_overrides(self):
-        return {
-            'O': ChargeClass.PROBATION_VIOLATION,
-            'CLOSED': ChargeStatus.DROPPED,
-            'NO BAIL': BondType.NO_BOND,
-            # This is overloaded in the bond and means there is no bond.
-            'SERVING_TIME': None,
-        }
+    def get_enum_overrides(self) -> EnumOverrides:
+        overrides_builder = EnumOverrides.Builder()
+        overrides_builder.add('CLOSED', ChargeStatus.DROPPED)
+        overrides_builder.add('NO BAIL', BondType.NO_BOND)
+        overrides_builder.add('O', ChargeClass.PROBATION_VIOLATION)
+        overrides_builder.ignore('SERVING TIME')
+        return overrides_builder.build()
 
     def _process_landing_page_and_get_next_task(
             self, content) -> Optional[Task]:

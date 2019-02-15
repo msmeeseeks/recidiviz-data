@@ -34,6 +34,7 @@ from typing import Optional, List
 
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.ingest.scrape import scraper_utils, constants
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
@@ -68,9 +69,11 @@ class DcnScraper(BaseScraper):
         Returns:
             A dict of session vars needed for the next scrape.
         """
-        data = {session_var: scraper_utils.get_value_from_html_tree(
-            content, session_var) for session_var in
-                self._required_session_vars}
+        data = {
+            session_var: scraper_utils.get_value_from_html_tree(content,
+                                                                session_var)
+            for session_var in self._required_session_vars
+        }
         # Viewstate is much large, compress it before sending it to the queue.
         data['__VIEWSTATE'] = scraper_utils.compress_string(
             data['__VIEWSTATE'], level=9)
@@ -158,10 +161,9 @@ class DcnScraper(BaseScraper):
             data[compression_key] = scraper_utils.decompress_string(
                 data[compression_key])
 
-    def get_enum_overrides(self):
-        return {
-            # This is set on bond type sometimes.
-            'DECLINED': BondType.NO_BOND,
-            'CASH OR SURETY BOND': BondType.UNSECURED,
-            'PURGE': BondType.CASH,
-        }
+    def get_enum_overrides(self) -> EnumOverrides:
+        overrides_builder = EnumOverrides.Builder()
+        overrides_builder.add('CASH OR SURETY BOND', BondType.UNSECURED)
+        overrides_builder.add('DECLINED', BondType.NO_BOND)
+        overrides_builder.add('PURGE', BondType.CASH)
+        return overrides_builder.build()
