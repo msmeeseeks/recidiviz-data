@@ -141,6 +141,10 @@ class JailTrackerScraper(BaseScraper):
     # Key in param dict for session token.
     _SESSION_TOKEN = "session_token"
 
+    # Miscellaneous constants specific to JailTracker
+    _MAX_REQUESTS_EXCEEDED_ERROR_MSG = 'max-requests-for-timeperiod'
+
+
     def __init__(self, region_name, yaml_file=None):
         super(JailTrackerScraper, self).__init__(region_name)
 
@@ -205,6 +209,14 @@ class JailTrackerScraper(BaseScraper):
             self, content, task: Task,
             ingest_info: IngestInfo) -> Optional[ScrapedData]:
         data_extractor = JsonDataExtractor(self.yaml)
+
+        # Some requests (namely, person and charges) may return
+        # max requests exceeded error, and will cause KeyError for 'data'.
+        for data_content in [self._PERSON, content]:
+            if 'error' in data_content and \
+               data_content['error'] == self._MAX_REQUESTS_EXCEEDED_ERROR_MSG:
+                raise JailTrackerRequestRateExceededError()
+
         facility, parole_agency = self.extract_agencies(
             task.custom[self._PERSON]['data'])
         booking_data = self._field_val_pairs_to_dict(
@@ -291,7 +303,7 @@ class JailTrackerScraper(BaseScraper):
         next_tasks = []
 
         if 'error' in response and \
-           response['error'] == 'max-requests-for-timeperiod':
+           response['error'] == self._MAX_REQUESTS_EXCEEDED_ERROR_MSG:
             raise JailTrackerRequestRateExceededError()
 
         max_index_present = 0

@@ -41,13 +41,16 @@ _ROSTER_JSON = fixtures.as_dict('vendors/jailtracker', 'roster.json')
 _PERSON_PROBATION_JSON = fixtures.as_dict('vendors/jailtracker', 'person.json')
 _PERSON_AGENCIES_JSON = fixtures.as_dict('vendors/jailtracker',
                                          'person_agencies.json')
+_MAX_EXCEEDED_JSON = fixtures.as_dict('vendors/jailtracker',
+                                      'max_exceeded.json')
 _CASES_JSON = fixtures.as_dict('vendors/jailtracker', 'cases.json')
 _CHARGES_JSON = fixtures.as_dict('vendors/jailtracker', 'charges.json')
 _CHARGES_WITH_BOND_TYPE_JSON = fixtures.as_dict('vendors/jailtracker',
                                                 'charges_sentenced.json')
 _CHARGES_WITH_CASES_JSON = fixtures.as_dict('vendors/jailtracker',
                                             'charges_with_cases.json')
-
+# Key in param dict for JSON object for charges.
+_CHARGES = "charge"
 
 # pylint:disable=protected-access
 class JailTrackerScraperTest(BaseScraperTest):
@@ -107,7 +110,7 @@ class JailTrackerScraperTest(BaseScraperTest):
 
         rate_error_content = {
             'data': '',
-            'error': 'max-requests-for-timeperiod',
+            'error': self.scraper._MAX_REQUESTS_EXCEEDED_ERROR_MSG,
             'success': False,
         }
 
@@ -350,3 +353,40 @@ class JailTrackerScraperTest(BaseScraperTest):
 
         self.validate_and_return_populate_data(
             _CHARGES_JSON, expected_info, task=task)
+
+    def test_populate_data_person_max_requests_exceeded(self):
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint='test',
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 1,
+                self.scraper._REQUEST_TARGET: self.scraper._PERSON_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+                self.scraper._PERSON: _MAX_EXCEEDED_JSON,
+                self.scraper._CASES: {},
+            },
+        )
+
+        with self.assertRaises(JailTrackerRequestRateExceededError):
+            self.validate_and_return_populate_data(
+                _MAX_EXCEEDED_JSON, {}, task=task)
+
+    def test_populate_data_charges_max_requests_exceeded(self):
+        task = Task(
+            task_type=constants.TaskType.SCRAPE_DATA,
+            endpoint='test',
+            response_type=constants.ResponseType.JSON,
+            custom={
+                self.scraper._ARREST_NUMBER: 1,
+                self.scraper._REQUEST_TARGET: self.scraper._CHARGES_REQUEST,
+                self.scraper._SESSION_TOKEN: self.SESSION_TOKEN,
+                self.scraper._PERSON: _PERSON_AGENCIES_JSON,
+                _CHARGES: _MAX_EXCEEDED_JSON,
+                self.scraper._CASES: {},
+            },
+        )
+
+        with self.assertRaises(JailTrackerRequestRateExceededError):
+            self.validate_and_return_populate_data(
+                _MAX_EXCEEDED_JSON, {}, task=task)
