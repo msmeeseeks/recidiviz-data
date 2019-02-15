@@ -1,0 +1,6 @@
+agency_name: Breckinridge County Detention Center
+agency_type: prison
+base_url: http://www.breckinridgecountydetention.com/Breckinridge_inmatelist.html
+timezone: America/New_York
+environment: staging
+shared_queue: vendor-jailtracker-scraper
