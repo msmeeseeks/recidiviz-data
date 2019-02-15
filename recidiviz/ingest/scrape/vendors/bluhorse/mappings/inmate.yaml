@@ -1,0 +1,55 @@
+key_mappings:
+  GetInmateResult.ArrestAgency: arrest.agency
+  GetInmateResult.ArrestDate: arrest.arrest_date
+  GetInmateResult.ArrestOfficer: arrest.officer_name
+  GetInmateResult.ArrestOfficerBadgeNo: arrest.officer_id
+  GetInmateResult.BookNo: booking.booking_id
+  GetInmateResult.City: person.place_of_residence
+  GetInmateResult.DateReleased: booking.release_date
+  GetInmateResult.Race: person.race
+  GetInmateResult.ReleaseReason: booking.release_reason
+  GetInmateResult.ReleaseType: booking.custody_status  # maybe
+  GetInmateResult.Sex: person.gender
+
+
+keys_to_ignore:
+- GetInmateResult.Address
+- GetInmateResult.AliasRec
+- GetInmateResult.BDate  # not set here
+- GetInmateResult.Bonds  # not set here
+- GetInmateResult.BookDate  # not set here
+- GetInmateResult.BookOfficer
+- GetInmateResult.Build
+- GetInmateResult.Citizen
+- GetInmateResult.Court
+- GetInmateResult.DaysIncarcerated
+- GetInmateResult.Detainers
+- GetInmateResult.Eye
+- GetInmateResult.FarmoutLocation
+- GetInmateResult.Fname  # Use FullName from search
+- GetInmateResult.HPhone
+- GetInmateResult.Hair
+- GetInmateResult.Height
+- GetInmateResult.Incarceration  # not sure
+- GetInmateResult.Information  # not sure
+- GetInmateResult.InternalClass  # not sure
+- GetInmateResult.JacketNo
+- GetInmateResult.LastRebook
+- GetInmateResult.LicExp
+- GetInmateResult.LicNo
+- GetInmateResult.LicState
+- GetInmateResult.LicType
+- GetInmateResult.Lname  # Use FullName from search
+- GetInmateResult.Location
+- GetInmateResult.MStatus
+- GetInmateResult.Mname  # Use FullName from search
+- GetInmateResult.Nationality
+- GetInmateResult.OffenseDate  # charges have offense dates
+- GetInmateResult.ReleaseOfficer
+- GetInmateResult.SSN
+- GetInmateResult.SearchOfficer
+- GetInmateResult.Skin
+- GetInmateResult.State
+- GetInmateResult.Suffix  # Use FullName from search
+- GetInmateResult.Weight
+- GetInmateResult.Zip
