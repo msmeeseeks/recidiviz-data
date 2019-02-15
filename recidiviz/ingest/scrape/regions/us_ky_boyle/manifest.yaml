@@ -1,0 +1,6 @@
+agency_name: Boyle County Detention Center
+agency_type: jail
+base_url: http://www.boylecountydetention.com/boyle_inmatelist.html
+timezone: America/New_York
+environment: staging
+shared_queue: vendor-jailtracker-scraper
