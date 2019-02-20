@@ -26,7 +26,7 @@ import more_itertools
 
 from recidiviz.common.constants.bond import BondStatus, BondType
 from recidiviz.common.constants.charge import ChargeStatus
-from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape import constants, scraper_utils
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.scrape.errors import ScraperError
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
@@ -59,8 +59,7 @@ class BrooksJeffreyScraper(BaseScraper):
         content = _preprocess(content)
         ingest_info = data_extractor.extract_and_populate_data(
             content, ingest_info)
-        person = more_itertools.one(ingest_info.people)
-        booking = more_itertools.one(person.bookings)
+        booking = scraper_utils.one('booking', ingest_info)
 
         split_bonds, bond_status, charge_status, bond_type = \
             _parse_total_bond_if_necessary(booking)

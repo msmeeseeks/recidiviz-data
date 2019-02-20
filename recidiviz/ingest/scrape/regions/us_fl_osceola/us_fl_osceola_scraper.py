@@ -19,7 +19,7 @@
 import os
 from typing import List, Optional
 
-from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape import constants, scraper_utils
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
@@ -49,18 +49,16 @@ class UsFlOsceolaScraper(BaseScraper):
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
 
-        if len(ingest_info.people) != 1:
-            raise Exception("Expected exactly one person per page, "
-                            "but got %i" % len(ingest_info.people))
+        scraper_utils.one('person', ingest_info)
+
 
         # Split statute and charge name
-        for booking in ingest_info.people[0].bookings:
-            for charge in booking.charges:
-                if charge.statute:
-                    s = charge.statute.split(' - ')
-                    if len(s) == 2:
-                        charge.statute = s[0]
-                        charge.name = s[1]
+        for charge in ingest_info.get_all_charges():
+            if charge.statute:
+                s = charge.statute.split(' - ')
+                if len(s) == 2:
+                    charge.statute = s[0]
+                    charge.name = s[1]
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
 

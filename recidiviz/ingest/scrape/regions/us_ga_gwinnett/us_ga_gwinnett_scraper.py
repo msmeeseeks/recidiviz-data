@@ -41,17 +41,16 @@ class UsGaGwinnettScraper(SmartCopScraper):
         # This website somewhat regularly puts arrest warrant codes in this
         # field (the columns just don't line up). We aren't scraping that
         # data, so scrub the field if it's filled incorrectly.
-        for person in ingest_info.people:
-            for booking in person.bookings:
-                for charge in booking.charges:
-                    bond = charge.bond
-                    if charge.fee_dollars and \
-                            not charge.fee_dollars.startswith('$'):
-                        charge.fee_dollars = None
-                        if bond and bond.bond_type:
-                            booking.create_arrest(officer_name=bond.bond_type)
-                            bond.bond_type = None
-                    if bond and bond.amount == 'NO BOND':
-                        bond.bond_type = bond.amount
+        for booking in ingest_info.get_all_bookings():
+            for charge in booking.charges:
+                bond = charge.bond
+                if charge.fee_dollars and \
+                        not charge.fee_dollars.startswith('$'):
+                    charge.fee_dollars = None
+                    if bond and bond.bond_type:
+                        booking.create_arrest(officer_name=bond.bond_type)
+                        bond.bond_type = None
+                if bond and bond.amount == 'NO BOND':
+                    bond.bond_type = bond.amount
 
         return ScrapedData(ingest_info)

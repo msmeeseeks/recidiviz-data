@@ -30,6 +30,7 @@ from recidiviz.ingest.scrape.vendors.jailtracker import \
 
 class UsInVigoScraper(JailTrackerScraper):
     """Scraper implementation for us_in_vigo."""
+
     def __init__(self, ):
         super(UsInVigoScraper, self).__init__('us_in_vigo')
 
@@ -53,33 +54,31 @@ class UsInVigoScraper(JailTrackerScraper):
                              'it would be')
 
         # Manual charge info manipulations.
-        for person in scraped_data.ingest_info.people:
-            for booking in person.bookings:
-                for charge in booking.charges:
-                    if charge.court_type:
-                        # Chop 'DIVISION <N> ' off the court type string
-                        if charge.court_type.upper().startswith('DIVISION'):
-                            charge.court_type = ' '.join(
-                                charge.court_type.split()[2:])
+        for booking in scraped_data.ingest_info.get_all_bookings():
+            for charge in booking.charges:
+                if charge.court_type:
+                    # Chop 'DIVISION <N> ' off the court type string
+                    if charge.court_type.upper().startswith('DIVISION'):
+                        charge.court_type = ' '.join(
+                            charge.court_type.split()[2:])
 
-                        # Look for holds in court type
-                        court_hold_keys = [
-                            'DEPARTMENT OF CORRECTIONS',
-                            'INDIANA OUT OF COUNTY',
-                            'OUT OF STATE COURTS',
-                        ]
-                        if charge.court_type in court_hold_keys:
-                            booking.create_hold(
-                                jurisdiction_name=charge.court_type)
-                            charge.court_type = None
+                    # Look for holds in court type
+                    court_hold_keys = [
+                        'DEPARTMENT OF CORRECTIONS',
+                        'INDIANA OUT OF COUNTY',
+                        'OUT OF STATE COURTS',
+                    ]
+                    if charge.court_type in court_hold_keys:
+                        booking.create_hold(jurisdiction_name=charge.court_type)
+                        charge.court_type = None
 
-                    # Look for level of charges in charge_class
-                    if charge.charge_class and charge.charge_class.isnumeric():
-                        charge.level = charge.charge_class
-                        charge.charge_class = ChargeClass.FELONY.value
-                    elif charge.charge_class in ['A', 'B', 'C']:
-                        charge.level = charge.charge_class
-                        charge.charge_class = ChargeClass.MISDEMEANOR.value
+                # Look for level of charges in charge_class
+                if charge.charge_class and charge.charge_class.isnumeric():
+                    charge.level = charge.charge_class
+                    charge.charge_class = ChargeClass.FELONY.value
+                elif charge.charge_class in ['A', 'B', 'C']:
+                    charge.level = charge.charge_class
+                    charge.charge_class = ChargeClass.MISDEMEANOR.value
 
         return ScrapedData(ingest_info=scraped_data.ingest_info, persist=True)
 

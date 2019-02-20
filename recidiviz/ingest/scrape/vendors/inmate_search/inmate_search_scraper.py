@@ -1,4 +1,3 @@
-
 # Recidiviz - a platform for tracking granular recidivism metrics in real time
 # Copyright (C) 2018 Recidiviz, Inc.
 #
@@ -21,7 +20,7 @@ import os
 import re
 from typing import List, Optional, Set
 
-from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape import constants, scraper_utils
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.scrape.errors import ScraperError
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
@@ -61,11 +60,7 @@ class InmateSearchScraper(BaseScraper):
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
 
-        if len(ingest_info.people) != 1:
-            raise ScraperError("Expected only 1 person on page, but found %i" %
-                               len(ingest_info.people))
-
-        person = ingest_info.people[0]
+        person = scraper_utils.one('person', ingest_info)
 
         tables = content.cssselect('table')
         for table in tables:

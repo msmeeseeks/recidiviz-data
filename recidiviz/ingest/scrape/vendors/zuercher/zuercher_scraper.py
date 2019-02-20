@@ -185,11 +185,10 @@ class ZuercherScraper(BaseScraper):
         data_extractor = JsonDataExtractor(self.yaml)
         ingest_info = data_extractor.extract_and_populate_data(
             content, ingest_info)
-        for person in ingest_info.people:
-            for booking in person.bookings:
-                for charge in booking.charges:
-                    self._postprocess_charge(booking, charge)
-                booking.prune()
+        for booking in ingest_info.get_all_bookings():
+            for charge in booking.charges:
+                self._postprocess_charge(booking, charge)
+            booking.prune()
         return ScrapedData(ingest_info=ingest_info, persist=True)
 
     @staticmethod

@@ -21,7 +21,7 @@ from typing import Optional
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.common.constants.enum_overrides import EnumOverrides
-from recidiviz.ingest.models.ingest_info import IngestInfo, Person
+from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape import scraper_utils
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 from recidiviz.ingest.scrape.vendors.jailtracker.jailtracker_scraper import \
@@ -49,15 +49,13 @@ class UsInWashingtonScraper(JailTrackerScraper):
         scraped_data: Optional[ScrapedData] = super(
             UsInWashingtonScraper, self).populate_data(content, task,
                                                        ingest_info)
+        ingest_info = scraped_data.ingest_info if scraped_data else ingest_info
+        scraper_utils.one('person', ingest_info)
 
-        person = scraper_utils.one('person', scraped_data.ingest_info) \
-            if scraped_data else Person()
-
-        for booking in person.bookings:
-            for charge in booking.charges:
-                if charge.charge_class and charge.charge_class == '6':
-                    charge.charge_class = ChargeClass.FELONY.value
-                    charge.level = '6'
+        for charge in ingest_info.get_all_charges(lambda c:
+                                                  c.charge_class == '6'):
+            charge.charge_class = ChargeClass.FELONY.value
+            charge.level = '6'
 
         return scraped_data
 

@@ -200,17 +200,8 @@ class ImlScraper(BaseScraper):
         data_extractor = HtmlDataExtractor(self.yaml_file)
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
-        if len(ingest_info.people) != 1:
-            logging.error("Data extractor didn't find exactly one person as "
-                          "it should have")
-            return None
-        person = ingest_info.people[0]
-
-        if len(person.bookings) != 1:
-            logging.error("Data extractor didn't find exactly one booking as "
-                          "it should have")
-            return None
-        booking = person.bookings[0]
+        person = scraper_utils.one('person', ingest_info)
+        booking = scraper_utils.one('booking', ingest_info)
 
         person.person_id = task.custom['person_id']
         booking.booking_id = task.custom['booking_id']
@@ -226,18 +217,15 @@ class ImlScraper(BaseScraper):
         bond_ingest_info = bond_extractor.extract_and_populate_data(bond_tab,
                                                                     None)
 
-        if bond_ingest_info.people:
+        if bond_ingest_info:
             # Connect bonds and charges, and fill in an ICE hold when we
             # see it in the charge name.
             for charge in booking.charges:
                 if charge.name == 'IMMIGRATION DETAINEE':
                     booking.create_hold(jurisdiction_name='ICE')
 
-                charges = [c for c in
-                           bond_ingest_info.people[0].bookings[0].charges
-                           if c.case_number and
-                           c.case_number == charge.case_number]
-
+                charges = [c for c in bond_ingest_info.get_all_charges()
+                           if c.case_number == charge.case_number]
                 if not charges:
                     continue
 

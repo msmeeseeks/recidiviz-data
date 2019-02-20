@@ -275,18 +275,7 @@ class UsNyScraper(BaseScraper):
         ingest_info = booking_extractor.extract_and_populate_data(content,
                                                                   ingest_info)
 
-        if len(ingest_info.people) != 1:
-            logging.error("Data extraction did not produce a single person, "
-                          "as it should.")
-            # TODO This is for debugging issue #483. Remove when that
-            # issue is solved.
-            logging.error("task: %r", task)
-            return None
-
-        if len(ingest_info.people[0].bookings) != 1:
-            logging.error("Data extraction did not produce a single booking, "
-                          "as it should")
-            return None
+        booking = scraper_utils.one('booking', ingest_info)
 
         # Handle this special case for the race.
         if ingest_info.people[0].race == 'WHITE/HISPANIC':
@@ -298,11 +287,10 @@ class UsNyScraper(BaseScraper):
 
         # Get release date, if released
         release_date_fields = content.xpath('//*[@headers="t1l"]')
-        if (ingest_info.people[0].bookings[0].custody_status == 'RELEASED' or
-                ingest_info.people[0].bookings[0].custody_status ==
-                'DISCHARGED') and release_date_fields:
+        if (booking.custody_status == 'RELEASED' or
+                booking.custody_status == 'DISCHARGED') and release_date_fields:
             release_date_string = release_date_fields[0].text.split()[0]
-            ingest_info.people[0].bookings[0].release_date = release_date_string
+            booking.release_date = release_date_string
 
         sentence_extractor = HtmlDataExtractor(self.sentence_mapping_filepath)
         sentence_info = sentence_extractor.extract_and_populate_data(content)
@@ -352,7 +340,7 @@ class UsNyScraper(BaseScraper):
             if charge_name.lower().startswith('att'):
                 attempted = 'True'
 
-            ingest_info.people[0].bookings[0].create_charge(
+            booking.create_charge(
                 attempted=attempted,
                 charge_class=ChargeClass.FELONY.value,
                 degree=charge_degree,

@@ -33,18 +33,17 @@ Background scraping procedure:
 """
 
 import json
-import logging
 import os
 from typing import List, Optional
 
+from recidiviz.common.common_utils import normalize
 from recidiviz.common.constants.bond import BondStatus
 from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.common.constants.charge import ChargeStatus
-from recidiviz.common.common_utils import normalize
-from recidiviz.ingest.scrape import scraper_utils, constants
-from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.scrape import scraper_utils, constants
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
 
@@ -159,50 +158,52 @@ class SuperionScraper(BaseScraper):
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
 
-        if len(ingest_info.people) != 1:
-            logging.error("Data extractor didn't find exactly one person as "
-                          "it should have")
-            return ScrapedData(ingest_info=ingest_info, persist=True)
-
-        person = ingest_info.people[0]
-
+        person = scraper_utils.one('person', ingest_info)
         if person.age:
             person.age = person.age.strip().split()[0]
 
+        for charge in ingest_info.get_all_charges():
+            if not charge.bond:
+                continue
+            bond = charge.bond
+            if bond.amount:
+                # check for dollar amount present
+                if '$' in bond.amount:
+                    type_and_amount = bond.amount
+                    bond.bond_type = ' '.join(
+                        type_and_amount.split('$')[:-1])
+                    bond.amount = type_and_amount.split('$')[-1]
+                else:  # just a bond type, no amount
+                    bond.bond_type = bond.amount
+                    bond.amount = None
+
+            # Transfer the bond type to charge status, if we
+            # detect that the bond type field contains a charge
+            # status enum value.
+            if bond.bond_type:
+                if ChargeStatus.can_parse(bond.bond_type,
+                                          self.get_enum_overrides()):
+                    charge.status = bond.bond_type
+                    bond.bond_type = None
+                elif (bond.bond_type.startswith('SECURED') or
+                      bond.bond_type.startswith('SECRUED')):
+                    bond.bond_type = 'SECURED'
+                elif bond.bond_type == 'PAID':
+                    # Bond type is listed as 'PAID' when
+                    # status is posted.
+                    # TODO (#816) remove this when crosstype
+                    # mappings are possible
+                    bond.status = BondStatus.POSTED.value
+                    bond.bond_type = None
+
         for booking in person.bookings:
+            # Test if the release date is a projected one
+            if booking.release_date is not None and \
+                   'ESTIMATED' in booking.release_date.upper():
+                booking.projected_release_date = \
+                    ' '.join(booking.release_date.split()[:-1])
+                booking.release_date = None
             for charge in booking.charges:
-                if charge.bond:
-                    bond = charge.bond
-                    if bond.amount:
-                        # check for dollar amount present
-                        if '$' in bond.amount:
-                            type_and_amount = bond.amount
-                            bond.bond_type = ' '.join(
-                                type_and_amount.split('$')[:-1])
-                            bond.amount = type_and_amount.split('$')[-1]
-                        else:  # just a bond type, no amount
-                            bond.bond_type = bond.amount
-                            bond.amount = None
-
-                    # Transfer the bond type to charge status, if we
-                    # detect that the bond type field contains a charge
-                    # status enum value.
-                    if bond.bond_type:
-                        if ChargeStatus.can_parse(bond.bond_type,
-                                                  self.get_enum_overrides()):
-                            charge.status = bond.bond_type
-                            bond.bond_type = None
-                        elif (bond.bond_type.startswith('SECURED') or
-                              bond.bond_type.startswith('SECRUED')):
-                            bond.bond_type = 'SECURED'
-                        elif bond.bond_type == 'PAID':
-                            # Bond type is listed as 'PAID' when
-                            # status is posted.
-                            # TODO (#816) remove this when crosstype
-                            # mappings are possible
-                            bond.status = BondStatus.POSTED.value
-                            bond.bond_type = None
-
                 # Check for hold information in the charge.
                 hold_values = [
                     'FEDERAL',
@@ -230,17 +231,7 @@ class SuperionScraper(BaseScraper):
                             charge.charge_class = charge_class.value
                             break
 
-        # Test if the release date is a projected one
-        for booking in person.bookings:
-            if booking.release_date is not None and \
-                   'ESTIMATED' in booking.release_date.upper():
-                booking.projected_release_date = \
-                    ' '.join(booking.release_date.split()[:-1])
-                booking.release_date = None
-
-        # Empty bond objects can be left dangling when charge status
-        # are taken out of them.
-        person.prune()
+        ingest_info.prune()
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
 

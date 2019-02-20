@@ -128,9 +128,9 @@ class DcnScraper(BaseScraper):
         data_extractor = HtmlDataExtractor(self.yaml)
         ingest_info = data_extractor.extract_and_populate_data(content)
         # The charges table has a row at the bottom which is always bad data.
-        del ingest_info.people[0].bookings[0].charges[-1]
+        scraper_utils.one('booking', ingest_info).charges.pop()
         # The bond type is sometimes overloaded to included charge status.
-        for charge in ingest_info.people[0].bookings[0].charges:
+        for charge in ingest_info.get_all_charges():
             if charge.bond:
                 if charge.bond.bond_type and \
                         ChargeStatus.can_parse(charge.bond.bond_type,

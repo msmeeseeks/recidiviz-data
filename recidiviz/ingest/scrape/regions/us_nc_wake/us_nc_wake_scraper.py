@@ -21,8 +21,8 @@ from typing import Optional
 from recidiviz.common.constants.bond import BondStatus
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape import scraper_utils
-from recidiviz.ingest.models.ingest_info import IngestInfo, Person
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 from recidiviz.ingest.scrape.vendors.superion.superion_scraper import \
     SuperionScraper
@@ -30,6 +30,7 @@ from recidiviz.ingest.scrape.vendors.superion.superion_scraper import \
 
 class UsNcWakeScraper(SuperionScraper):
     """Scraper implementation for us_nc_wake."""
+
     def __init__(self):
         super(UsNcWakeScraper, self).__init__('us_nc_wake')
 
@@ -38,19 +39,19 @@ class UsNcWakeScraper(SuperionScraper):
         scraped_data: Optional[ScrapedData] = super(
             UsNcWakeScraper, self).populate_data(content, task, ingest_info)
 
-        person = scraper_utils.one('person', scraped_data.ingest_info) \
-            if scraped_data else Person()
+        ingest_info = scraped_data.ingest_info if scraped_data else ingest_info
+        scraper_utils.one('person', ingest_info)
 
-        for booking in person.bookings:
-            for charge in booking.charges:
-                if not charge.bond:
-                    continue
-                if charge.bond.bond_type.startswith('SENTENCE'):
-                    charge.bond.bond_type = BondType.NO_BOND.value
-                    charge.status = ChargeStatus.SENTENCED.value
-                if charge.bond.bond_type.startswith('PENDING'):
-                    charge.bond.bond_type = None
-                    charge.bond.status = BondStatus.PENDING.value
+        for charge in ingest_info.get_all_charges():
+            if not charge.bond:
+                continue
+            bond = charge.bond
+            if bond.bond_type and bond.bond_type.startswith('SENTENCE'):
+                bond.bond_type = BondType.NO_BOND.value
+                charge.status = ChargeStatus.SENTENCED.value
+            if bond.bond_type and bond.bond_type.startswith('PENDING'):
+                charge.bond.bond_type = None
+                charge.bond.status = BondStatus.PENDING.value
 
         return scraped_data
 

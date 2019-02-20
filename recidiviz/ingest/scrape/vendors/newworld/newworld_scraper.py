@@ -19,7 +19,7 @@
 import os
 from typing import List, Optional
 
-from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape import constants, scraper_utils
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
@@ -43,17 +43,13 @@ class NewWorldScraper(BaseScraper):
         data_extractor = HtmlDataExtractor(self.mapping_filepath)
         ingest_info = data_extractor.extract_and_populate_data(content,
                                                                ingest_info)
+        scraper_utils.one('person', ingest_info)
 
-        if len(ingest_info.people) != 1:
-            raise Exception("Expected exactly one person per page, "
-                            "but got %i" % len(ingest_info.people))
-
-        for booking in ingest_info.people[0].bookings:
-            for charge in booking.charges:
-                if charge.offense_date == "No data":
-                    charge.offense_date = None
-                if charge.bond and charge.bond.bond_id == "No data":
-                    charge.bond = None
+        for charge in ingest_info.get_all_charges():
+            if charge.offense_date == "No data":
+                charge.offense_date = None
+            if charge.bond and charge.bond.bond_id == "No data":
+                charge.bond = None
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
 

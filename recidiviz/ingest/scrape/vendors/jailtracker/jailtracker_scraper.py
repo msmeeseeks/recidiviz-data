@@ -40,21 +40,20 @@ import logging
 import os
 import re
 from itertools import groupby
-from typing import Optional
 from typing import List
+from typing import Optional
 
-import more_itertools
 from lxml import html
 
 from recidiviz.common.constants.bond import BondType
 from recidiviz.common.constants.booking import CustodyStatus, ReleaseReason
 from recidiviz.common.constants.charge import ChargeClass, ChargeStatus
 from recidiviz.common.constants.enum_overrides import EnumOverrides
-from recidiviz.ingest.scrape import constants
-from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo, Bond, Sentence, \
     Charge
+from recidiviz.ingest.scrape import constants, scraper_utils
+from recidiviz.ingest.scrape.base_scraper import BaseScraper
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
 
@@ -477,8 +476,7 @@ class JailTrackerScraper(BaseScraper):
         """"Looks at the provided |case_content| and updates the found charge
         information based on the contents of it's corresponding case, if
         present"""
-        person = more_itertools.one(ingest_info.people)
-        booking = more_itertools.one(person.bookings)
+        booking = scraper_utils.one('booking', ingest_info)
         charges_by_case = {k: list(cases) for k, cases in
                            groupby(booking.charges, lambda x: x.case_number)}
 
@@ -526,8 +524,7 @@ class JailTrackerScraper(BaseScraper):
         return False
 
     def _sanitize_bond_types(self, ingest_info: IngestInfo) -> None:
-        person = more_itertools.one(ingest_info.people)
-        booking = more_itertools.one(person.bookings)
+        booking = scraper_utils.one('booking', ingest_info)
         for charge in booking.charges:
             if charge.bond and charge.bond.bond_type in {'SENTENCED',
                                                          'PROB REVOKED'}:
