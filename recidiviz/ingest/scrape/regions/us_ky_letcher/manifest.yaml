@@ -3,3 +3,4 @@ agency_type: jail
 base_url: http://inmates.bluhorse.com/InmateService.svc
 timezone: America/New_York
 environment: staging
+shared_queue: vendor-bluhorse-scraper
