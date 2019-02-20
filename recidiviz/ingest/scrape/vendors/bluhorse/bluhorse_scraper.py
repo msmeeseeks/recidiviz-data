@@ -30,7 +30,7 @@ Background scraping procedure:
 import abc
 import os
 import enum
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional
 
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
@@ -146,4 +146,5 @@ class BluHorseScraper(BaseScraper):
             person.full_name = task.custom['full_name']
             person.birthdate = task.custom['birthdate']
 
+        print(ingest_info)
         return ScrapedData(ingest_info, page is self.Page.COURT_HISTORY)

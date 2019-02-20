@@ -1,14 +1,14 @@
 key_mappings:
   GetInmateChargesResult.Bond: charge.bond
-  GetInmageChargesResult.CaseNo: charge.case_number
-  GetInmageChargesResult.ChargeDegree: charge.degree
-  GetInmageChargesResult.ChargeType: charge.charge_class
-  GetInmageChargesResult.Code: charge.statute
-  GetInmageChargesResult.County: charge.charging_entity  # check this
-  GetInmageChargesResult.Description: charge.name
-  GetInmageChargesResult.Fine: charge.fee_dollars
-  GetInmageChargesResult.OffenseDate: charge.offense_date
+  GetInmateChargesResult.CaseNo: charge.case_number
+  GetInmateChargesResult.ChargeDegree: charge.degree
+  GetInmateChargesResult.ChargeType: charge.charge_class
+  GetInmateChargesResult.Code: charge.statute
+  GetInmateChargesResult.County: charge.charging_entity  # check this
+  GetInmateChargesResult.Description: charge.name
+  GetInmateChargesResult.Fine: charge.fee_dollars
+  GetInmateChargesResult.OffenseDate: charge.offense_date
 
 keys_to_ignore:
-- GetInmageChargesResult.Disposition
-- GetInmageChargesResult.RowID
+- GetInmateChargesResult.Disposition
+- GetInmateChargesResult.RowID
