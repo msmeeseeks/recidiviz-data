@@ -17,9 +17,11 @@
 """Tests for ingest/extractor/json_data_extractor.py"""
 import os
 import unittest
+import tempfile
 
 from recidiviz.ingest.extractor.json_data_extractor import JsonDataExtractor
-from recidiviz.ingest.models.ingest_info import Booking, Charge, IngestInfo
+from recidiviz.ingest.models.ingest_info import (Bond, Booking, Charge,
+                                                 IngestInfo)
 from recidiviz.tests.ingest import fixtures
 
 _JT_PERSON = fixtures.as_dict('extractor', 'jailtracker_person.json')
@@ -138,4 +140,130 @@ class DataExtractorJsonTest(unittest.TestCase):
         )
 
         result = extractor.extract_and_populate_data(_SKIP_EMPTY)
+        self.assertEqual(result, expected)
+
+    def test_extract_bonds_existing_charges(self):
+        with tempfile.NamedTemporaryFile('w') as key_mappings:
+            key_mappings.write('''
+            key_mappings:
+              Bonds.BondAmount: bond.amount
+              Bonds.BondStatus: bond.status
+              Bonds.BondType: bond.bond_type
+            ''')
+            key_mappings.flush()
+            extractor = JsonDataExtractor(key_mappings.name)
+
+        existing = IngestInfo()
+        existing.create_person(
+            full_name='add bonds',
+            bookings=[Booking(
+                charges=[Charge(
+                    name='battery',
+                ), Charge(
+                    name='assault',
+                ), ],
+            ), ],
+        )
+
+        input_json = {
+            'Bonds': [{
+                'BondAmount': '50000.00',
+                'BondStatus': 'OPEN',
+                'BondType': 'CASH',
+            }, {
+                'BondAmount': '250000.00',
+                'BondStatus': 'OPEN',
+                'BondType': 'CASH',
+
+            }, ],
+        }
+
+        expected = IngestInfo()
+        expected.create_person(
+            full_name='add bonds',
+            bookings=[Booking(
+                charges=[Charge(
+                    name='battery',
+                ), Charge(
+                    name='assault',
+                ), Charge(
+                    bond=Bond(
+                        amount='50000.00',
+                        status='OPEN',
+                        bond_type='CASH',
+                    ),
+                ), Charge(
+                    bond=Bond(
+                        amount='25000.00',
+                        status='OPEN',
+                        bond_type='CASH',
+                    ),
+                ), ],
+            ), ],
+        )
+
+        result = extractor.extract_and_populate_data(input_json,
+                                                     ingest_info=existing)
+        self.assertEqual(result, expected)
+
+    def test_extract_bonds_existing_charges_multikey(self):
+        with tempfile.NamedTemporaryFile('w') as key_mappings:
+            key_mappings.write('''
+            multi_key_mapping:
+              Bonds.BondAmount: bond.amount
+              Bonds.BondStatus: bond.status
+              Bonds.BondType: bond.bond_type
+            ''')
+            key_mappings.flush()
+            extractor = JsonDataExtractor(key_mappings.name)
+
+        existing = IngestInfo()
+        existing.create_person(
+            full_name='add bonds',
+            bookings=[Booking(
+                charges=[Charge(
+                    name='battery',
+                ), Charge(
+                    name='assault',
+                ), ],
+            ), ],
+        )
+
+        input_json = {
+            'Bonds': [{
+                'BondAmount': '50000.00',
+                'BondStatus': 'OPEN',
+                'BondType': 'CASH',
+            }, {
+                'BondAmount': '250000.00',
+                'BondStatus': 'OPEN',
+                'BondType': 'CASH',
+
+            }, ],
+        }
+
+        expected = IngestInfo()
+        expected.create_person(
+            full_name='add bonds',
+            bookings=[Booking(
+                charges=[Charge(
+                    name='battery',
+                    bond=Bond(
+                        amount='50000.00',
+                        status='OPEN',
+                        bond_type='CASH',
+                    ),
+                ), Charge(
+                    name='assault',
+                    bond=Bond(
+                        amount='25000.00',
+                        status='OPEN',
+                        bond_type='CASH',
+                    ),
+                ), ],
+            ), ],
+        )
+
+        result = extractor.extract_and_populate_data(input_json,
+                                                     ingest_info=existing)
         self.assertEqual(result, expected)
