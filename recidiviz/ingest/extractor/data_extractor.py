@@ -43,8 +43,12 @@ class DataExtractor(metaclass=abc.ABCMeta):
         if key_mapping_file:
             with open(key_mapping_file, 'r') as ymlfile:
                 self.manifest = yaml.load(ymlfile)
-            self.keys = self.manifest['key_mappings']
+            self.keys = self.manifest.get('key_mappings', {})
             self.multi_keys = self.manifest.get('multi_key_mapping', {})
+            if not self.keys and not self.multi_keys:
+                raise ValueError(
+                    'Key mapping file must contain at least one key to extract '
+                    '(in `key_mappings` or `multi_key_mapping`).')
 
             # We want to know which of the classes are multi keys as this helps
             # us with behaviour when we set the values.
