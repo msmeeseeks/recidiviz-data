@@ -1,5 +1,4 @@
 key_mappings:
-  GetInmateChargesResult.Bond: charge.bond
   GetInmateChargesResult.CaseNo: charge.case_number
   GetInmateChargesResult.ChargeDegree: charge.degree
   GetInmateChargesResult.ChargeType: charge.charge_class
@@ -10,5 +9,6 @@ key_mappings:
   GetInmateChargesResult.OffenseDate: charge.offense_date
 
 keys_to_ignore:
+- GetInmateChargesResult.Bond  # TODO: check all regions, current use other page
 - GetInmateChargesResult.Disposition
 - GetInmateChargesResult.RowID

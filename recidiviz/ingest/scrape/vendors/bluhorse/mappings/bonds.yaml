@@ -1,0 +1,8 @@
+key_mappings:
+  GetInmateBondsResult.BondAmount: bond.amount
+  GetInmateBondsResult.BondStatus: bond.status
+  GetInmateBondsResult.BondType: bond.bond_type
+
+keys_to_ignore:
+- GetInmateBondsResult.Agency
+- GetInmateBondsResult.BondAmountAlt

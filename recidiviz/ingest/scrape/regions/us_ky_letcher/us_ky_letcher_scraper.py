@@ -27,3 +27,7 @@ class UsKyLetcherScraper(BluHorseScraper):
     @staticmethod
     def get_jail_id() -> str:
         return 'LCRJ'
+
+    @staticmethod
+    def get_request_fields() -> str:
+        return 'ACEFGHIJKLMNO'

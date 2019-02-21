@@ -53,6 +53,16 @@ class BluHorseScraper(BaseScraper):
             'LCRJ' for Letcher County, where requests need '?Jail=LCRJ'
         """
 
+    @staticmethod
+    @abc.abstractmethod
+    def get_request_fields() -> str:
+        """Returns the fields specifier, as used in requests to BluHorse.
+
+        Example:
+            'ACEFGHIJKLMNO' for Letcher County, where requests need
+            '?Fields=ACEFGHIJKLMNO'.
+        """
+
     class Page(enum.Enum):
         PASSKEY = 'GeneratePassKey'
         INMATES_LIST = 'GetInmates2'
@@ -107,25 +117,46 @@ class BluHorseScraper(BaseScraper):
                 self.base_task(
                     constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.INMATE,
                     {**task.custom, 'full_name': person['FullName'],
-                     'birthdate': person['BDate']}),
+                     'birthdate': person['BDate'], 'bookno': person['BookNo']}),
                 params={
                     'Jail': self.get_jail_id(),
                     'bookno': person['BookNo'],
                     'key': task.custom['key'],
                     'answer': task.custom['answer'],
-                    'Fields': 'ACEFGHIJKLMNO',
+                    'Fields': self.get_request_fields(),
                 },
             ) for person in content['GetInmates2Result']]
         if page is self.Page.INMATE:
-            bookno = task.params['bookno'] if task.params else None
             return [Task.evolve(
                 self.base_task(
                     constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.CHARGES,
                     task.custom),
                 params={
                     'Jail': self.get_jail_id(),
-                    'bookno': bookno,
-                    'Fields': 'ACEFGHIJKLMNO',
+                    'bookno': task.custom['bookno'],
+                    'Fields': self.get_request_fields(),
+                },
+            )]
+        if page is self.Page.CHARGES:
+            return [Task.evolve(
+                self.base_task(
+                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.HOLDS,
+                    task.custom),
+                params={
+                    'Jail': self.get_jail_id(),
+                    'BookNo': task.custom['bookno'],
+                    'Fields': self.get_request_fields(),
+                },
+            )]
+        if page is self.Page.HOLDS:
+            return [Task.evolve(
+                self.base_task(
+                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.BONDS,
+                    task.custom),
+                params={
+                    'Jail': self.get_jail_id(),
+                    'BookNo': task.custom['bookno'],
+                    'Fields': self.get_request_fields(),
                 },
             )]
 

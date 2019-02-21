@@ -1,0 +1,13 @@
+key_mappings:
+  GetInmateHoldsResult.Agency: hold.jurisdiction_name
+
+keys_to_ignore:
+- GetInmateHoldsResult.BondAmount
+- GetInmateHoldsResult.BondMethod
+- GetInmateHoldsResult.Contact
+- GetInmateHoldsResult.Description
+- GetInmateHoldsResult.Expires
+- GetInmateHoldsResult.Phone
+- GetInmateHoldsResult.Received
+- GetInmateHoldsResult.RowID
+- GetInmateHoldsResult.SetAlert
