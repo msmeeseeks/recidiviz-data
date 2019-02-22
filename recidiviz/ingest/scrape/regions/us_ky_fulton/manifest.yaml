@@ -1,0 +1,6 @@
+agency_name: $agency
+agency_type: jail
+base_url: http://www.fultonkyjail.com/FCDC_inmate_list.html
+timezone: America/Chicago
+environment: staging
+shared_queue: vendor-jailtracker-scraper
