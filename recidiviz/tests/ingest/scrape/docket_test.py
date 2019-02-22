@@ -153,7 +153,8 @@ class TestDocket:
         write_key = ScrapeKey(REGIONS[0], constants.ScrapeType.BACKGROUND)
         read_key = ScrapeKey(REGIONS[1], constants.ScrapeType.BACKGROUND)
 
-        pubsub_helper.create_topic_and_subscription(write_key)
+        pubsub_helper.create_topic_and_subscription(
+            write_key, docket.PUBSUB_TYPE)
         docket.add_to_query_docket(write_key, get_payload()).result()
 
         docket_item = docket.get_new_docket_item(read_key,
@@ -172,8 +173,10 @@ class TestDocket:
         scrape_key_read = ScrapeKey(REGIONS[1],
                                     constants.ScrapeType.BACKGROUND)
 
-        pubsub_helper.create_topic_and_subscription(scrape_key_purge)
-        pubsub_helper.create_topic_and_subscription(scrape_key_read)
+        pubsub_helper.create_topic_and_subscription(
+            scrape_key_purge, docket.PUBSUB_TYPE)
+        pubsub_helper.create_topic_and_subscription(
+            scrape_key_read, docket.PUBSUB_TYPE)
         docket.add_to_query_docket(scrape_key_purge, get_payload()).result()
         docket.add_to_query_docket(scrape_key_read, get_payload()).result()
 
@@ -188,7 +191,8 @@ class TestDocket:
                                      constants.ScrapeType.BACKGROUND)
         scrape_key_add = ScrapeKey(REGIONS[1], constants.ScrapeType.BACKGROUND)
 
-        pubsub_helper.create_topic_and_subscription(scrape_key_add)
+        pubsub_helper.create_topic_and_subscription(
+            scrape_key_add, docket.PUBSUB_TYPE)
         docket.add_to_query_docket(scrape_key_add, get_payload()).result()
 
         docket.purge_query_docket(scrape_key_purge)
