@@ -25,6 +25,7 @@ from mock import patch
 
 from recidiviz.ingest.scrape import constants, docket
 from recidiviz.ingest.models.scrape_key import ScrapeKey
+from recidiviz.utils import pubsub_helper
 
 REGIONS = ["us_ny", "us_va"]
 
@@ -39,7 +40,8 @@ class TestDocket:
     def test_add_to_query_docket_background(self):
         scrape_key = ScrapeKey(REGIONS[0], constants.ScrapeType.BACKGROUND)
 
-        docket.create_topic_and_subscription(scrape_key)
+        pubsub_helper.create_topic_and_subscription(
+            scrape_key, docket.PUBSUB_TYPE)
 
         docket.add_to_query_docket(scrape_key, get_payload()[0]).result()
         docket.add_to_query_docket(scrape_key, get_payload()[1]).result()
