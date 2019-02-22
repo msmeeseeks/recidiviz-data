@@ -99,13 +99,11 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
         )
         booking.create_charge(
             name="CRIMINAL REGISTRATION (NOT AN ARREST)",
-            offense_date="3/15/2017 11:44 AM"
+            offense_date="3/15/2017 11:44 AM",
+            charging_entity="AGENCY"
         ).create_sentence(
             min_length='120 days',
             max_length='120 days')
-        booking.create_arrest(
-            agency="AGENCY"
-        )
 
         # Booking 2
         booking = person.create_booking(
