@@ -71,15 +71,11 @@ class BluHorseScraper(BaseScraper):
         HOLDS = 'GetInmateHolds'
         BONDS = 'GetInmateBonds'
         ARREST = 'GetInmate_Arrest_Info'
-        COURT_HISTORY = 'GetInmateCourtHistory'
-
-    # NEXT_PAGE_MAP = {
-    #     Page.PASSKEY: Page.INMATES_LIST,
-    #     Page.IN
-    # }
+        # skip 'GetImageSkt' as it fetches a mugshot
+        COURT = 'GetInmateCourtHistory'
 
     def base_task(self, task_type: constants.TaskType, page: Page,
-                  base_custom: Optional[dict] = None) -> Task:
+                  custom: Optional[dict] = None) -> Task:
         return Task(
             task_type=task_type,
             endpoint='/'.join([self.get_region().base_url, page.value]),
@@ -88,7 +84,7 @@ class BluHorseScraper(BaseScraper):
                 'Referer': 'http://inmates.bluhorse.com/Default.aspx?ID=LCRJ',
             },
             custom={
-                **(base_custom or {}),
+                **(custom or {}),
                 'page': page.value
             }
         )
@@ -105,8 +101,9 @@ class BluHorseScraper(BaseScraper):
                 content['GeneratePassKeyResult'].split('|||')
 
             return [Task.evolve(
-                self.base_task(constants.TaskType.GET_MORE_TASKS,
-                               self.Page.INMATES_LIST, task.custom),
+                self.base_task(
+                    constants.TaskType.GET_MORE_TASKS, self.Page.INMATES_LIST,
+                    custom=task.custom),
                 params={
                     'Jail': self.get_jail_id(),
                     'key': task.custom['key'],
@@ -116,8 +113,12 @@ class BluHorseScraper(BaseScraper):
             return [Task.evolve(
                 self.base_task(
                     constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.INMATE,
-                    {**task.custom, 'full_name': person['FullName'],
-                     'birthdate': person['BDate'], 'bookno': person['BookNo']}),
+                    custom={
+                        **task.custom,
+                        'full_name': person['FullName'],
+                        'birthdate': person['BDate'],
+                        'bookno': person['BookNo']
+                    }),
                 params={
                     'Jail': self.get_jail_id(),
                     'bookno': person['BookNo'],
@@ -130,7 +131,7 @@ class BluHorseScraper(BaseScraper):
             return [Task.evolve(
                 self.base_task(
                     constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.CHARGES,
-                    task.custom),
+                    custom=task.custom),
                 params={
                     'Jail': self.get_jail_id(),
                     'bookno': task.custom['bookno'],
@@ -141,7 +142,7 @@ class BluHorseScraper(BaseScraper):
             return [Task.evolve(
                 self.base_task(
                     constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.HOLDS,
-                    task.custom),
+                    custom=task.custom),
                 params={
                     'Jail': self.get_jail_id(),
                     'BookNo': task.custom['bookno'],
@@ -152,7 +153,7 @@ class BluHorseScraper(BaseScraper):
             return [Task.evolve(
                 self.base_task(
                     constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.BONDS,
-                    task.custom),
+                    custom=task.custom),
                 params={
                     'Jail': self.get_jail_id(),
                     'BookNo': task.custom['bookno'],
@@ -163,12 +164,23 @@ class BluHorseScraper(BaseScraper):
             return [Task.evolve(
                 self.base_task(
                     constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.ARREST,
-                    task.custom),
+                    custom=task.custom),
                 params={
                     'Jail': self.get_jail_id(),
                     'bookno': task.custom['bookno'],
                     'key': task.custom['key'],
                     'answer': task.custom['answer'],
+                    'Fields': self.get_request_fields(),
+                },
+            )]
+        if page is self.Page.ARREST:
+            return [Task.evolve(
+                self.base_task(
+                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.COURT,
+                    custom=task.custom),
+                params={
+                    'Jail': self.get_jail_id(),
+                    'BookNo': task.custom['bookno'],
                     'Fields': self.get_request_fields(),
                 },
             )]
@@ -191,4 +203,4 @@ class BluHorseScraper(BaseScraper):
             person.birthdate = task.custom['birthdate']
 
         print(ingest_info)
-        return ScrapedData(ingest_info, page is self.Page.COURT_HISTORY)
+        return ScrapedData(ingest_info, page is self.Page.COURT)
