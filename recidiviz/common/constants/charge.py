@@ -103,13 +103,16 @@ _CHARGE_DEGREE_MAP = {
 # For example, `N/A` can be written as `N A` and `(10%)` can be written as `10`.
 _CHARGE_CLASS_MAP = {
     'CIVIL': ChargeClass.CIVIL,
-    'FELONY': ChargeClass.FELONY,
     'F': ChargeClass.FELONY,
+    'FEL': ChargeClass.FELONY,
+    'FELONY': ChargeClass.FELONY,
     'I': ChargeClass.INFRACTION,
     'INFRACTION': ChargeClass.INFRACTION,
-    'MISDEMEANOR': ChargeClass.MISDEMEANOR,
     'M': ChargeClass.MISDEMEANOR,
+    'MIS': ChargeClass.MISDEMEANOR,
+    'MISDEMEANOR': ChargeClass.MISDEMEANOR,
     'O': ChargeClass.OTHER,
+    'OTH': ChargeClass.OTHER,
     'OTHER': ChargeClass.OTHER,
     'PAROLE VIOLATION': ChargeClass.PAROLE_VIOLATION,
     'PAROLE_VIOLATION': ChargeClass.PAROLE_VIOLATION,

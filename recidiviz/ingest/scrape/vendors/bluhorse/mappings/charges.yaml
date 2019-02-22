@@ -1,6 +1,6 @@
 key_mappings:
   GetInmateChargesResult.CaseNo: charge.case_number
-  GetInmateChargesResult.ChargeDegree: charge.degree
+  GetInmateChargesResult.ChargeDegree: charge.level  # values are A through D
   GetInmateChargesResult.ChargeType: charge.charge_class
   GetInmateChargesResult.Code: charge.statute
   GetInmateChargesResult.County: charge.charging_entity  # check this

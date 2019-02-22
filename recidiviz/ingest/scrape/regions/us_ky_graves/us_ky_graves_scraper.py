@@ -16,8 +16,11 @@
 # =============================================================================
 
 """Scraper implementation for us_ky_graves."""
+from recidiviz.common.constants.bond import BondStatus, BondType
+from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.ingest.scrape.vendors.bluhorse.bluhorse_scraper import \
     BluHorseScraper
+
 
 class UsKyGravesScraper(BluHorseScraper):
     """Scraper implementation for us_ky_graves."""
@@ -31,3 +34,15 @@ class UsKyGravesScraper(BluHorseScraper):
     @staticmethod
     def get_request_fields() -> str:
         return 'ACDEFGHIJKLMNOP12'
+
+    def get_enum_overrides(self):
+        ob = super(UsKyGravesScraper, self).get_enum_overrides().to_builder()
+
+        ob.add('FINE AND COSTS', BondType.CASH) # fixme
+        ob.add('JAIL CREDIT', BondStatus.NOT_REQUIRED) # fixme
+        ob.add('OPEN', BondStatus.SET)
+        # Technical Violation
+        ob.add('T', ChargeClass.PROBATION_VIOLATION)
+        ob.add('V', ChargeClass.INFRACTION)
+
+        return ob.build()

@@ -75,7 +75,8 @@ class BluHorseScraper(BaseScraper):
         COURT = 'GetInmateCourtHistory'
 
     def base_task(self, task_type: constants.TaskType, page: Page,
-                  custom: Optional[dict] = None) -> Task:
+                  params: Optional[dict] = None, custom: Optional[dict] = None
+                  ) -> Task:
         return Task(
             task_type=task_type,
             endpoint='/'.join([self.get_region().base_url, page.value]),
@@ -83,42 +84,39 @@ class BluHorseScraper(BaseScraper):
             headers={
                 'Referer': 'http://inmates.bluhorse.com/Default.aspx?ID=LCRJ',
             },
+            params=params,
             custom={
                 **(custom or {}),
                 'page': page.value
-            }
+            },
         )
+
+    @classmethod
+    def page_from_task(cls, task: Task):
+        return cls.Page(task.custom['page'])
 
     def get_initial_task(self) -> Task:
         return self.base_task(constants.TaskType.INITIAL_AND_MORE,
                               self.Page.PASSKEY)
 
     def get_more_tasks(self, content, task: Task) -> List[Task]:
-        print(str(content)[:1000] + '...')
-        page = self.Page(task.custom['page'])
+        page = self.page_from_task(task)
         if page is self.Page.PASSKEY:
             task.custom['key'], task.custom['answer'] = \
                 content['GeneratePassKeyResult'].split('|||')
 
-            return [Task.evolve(
-                self.base_task(
-                    constants.TaskType.GET_MORE_TASKS, self.Page.INMATES_LIST,
-                    custom=task.custom),
+            return [self.base_task(
+                constants.TaskType.GET_MORE_TASKS, self.Page.INMATES_LIST,
                 params={
                     'Jail': self.get_jail_id(),
                     'key': task.custom['key'],
                     'ans': task.custom['answer'],
-                })]
+                },
+                custom=task.custom,
+            ), ]
         if page is self.Page.INMATES_LIST:
-            return [Task.evolve(
-                self.base_task(
-                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.INMATE,
-                    custom={
-                        **task.custom,
-                        'full_name': person['FullName'],
-                        'birthdate': person['BDate'],
-                        'bookno': person['BookNo']
-                    }),
+            return [self.base_task(
+                constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.INMATE,
                 params={
                     'Jail': self.get_jail_id(),
                     'bookno': person['BookNo'],
@@ -126,45 +124,46 @@ class BluHorseScraper(BaseScraper):
                     'answer': task.custom['answer'],
                     'Fields': self.get_request_fields(),
                 },
+                custom={
+                    **task.custom,
+                    'full_name': person['FullName'],
+                    'birthdate': person['BDate'],
+                    'bookno': person['BookNo']
+                },
             ) for person in content['GetInmates2Result']]
         if page is self.Page.INMATE:
-            return [Task.evolve(
-                self.base_task(
-                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.CHARGES,
-                    custom=task.custom),
+            return [self.base_task(
+                constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.CHARGES,
                 params={
                     'Jail': self.get_jail_id(),
                     'bookno': task.custom['bookno'],
                     'Fields': self.get_request_fields(),
                 },
-            )]
+                custom=task.custom,
+            ), ]
         if page is self.Page.CHARGES:
-            return [Task.evolve(
-                self.base_task(
-                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.HOLDS,
-                    custom=task.custom),
+            return [self.base_task(
+                constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.HOLDS,
                 params={
                     'Jail': self.get_jail_id(),
                     'BookNo': task.custom['bookno'],
                     'Fields': self.get_request_fields(),
                 },
-            )]
+                custom=task.custom,
+            ), ]
         if page is self.Page.HOLDS:
-            return [Task.evolve(
-                self.base_task(
-                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.BONDS,
-                    custom=task.custom),
+            return [self.base_task(
+                constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.BONDS,
                 params={
                     'Jail': self.get_jail_id(),
                     'BookNo': task.custom['bookno'],
                     'Fields': self.get_request_fields(),
                 },
-            )]
+                custom=task.custom,
+            ), ]
         if page is self.Page.BONDS:
-            return [Task.evolve(
-                self.base_task(
-                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.ARREST,
-                    custom=task.custom),
+            return [self.base_task(
+                constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.ARREST,
                 params={
                     'Jail': self.get_jail_id(),
                     'bookno': task.custom['bookno'],
@@ -172,24 +171,24 @@ class BluHorseScraper(BaseScraper):
                     'answer': task.custom['answer'],
                     'Fields': self.get_request_fields(),
                 },
-            )]
+                custom=task.custom,
+            ), ]
         if page is self.Page.ARREST:
-            return [Task.evolve(
-                self.base_task(
-                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.COURT,
-                    custom=task.custom),
+            return [self.base_task(
+                constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.COURT,
                 params={
                     'Jail': self.get_jail_id(),
                     'BookNo': task.custom['bookno'],
                     'Fields': self.get_request_fields(),
                 },
-            )]
+                custom=task.custom,
+            ), ]
 
         return []
 
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[ScrapedData]:
-        page = self.Page(task.custom['page'])
+        page = self.page_from_task(task)
 
         data_extractor = JsonDataExtractor(
             os.path.join(os.path.dirname(__file__), 'mappings',
@@ -202,5 +201,4 @@ class BluHorseScraper(BaseScraper):
             person.full_name = task.custom['full_name']
             person.birthdate = task.custom['birthdate']
 
-        print(ingest_info)
         return ScrapedData(ingest_info, page is self.Page.COURT)
