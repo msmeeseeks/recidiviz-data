@@ -16,15 +16,16 @@
 # =============================================================================
 
 """Scraper implementation for us_ky_fulton."""
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.ingest.scrape.vendors.jailtracker.jailtracker_scraper import \
     JailTrackerScraper
 from recidiviz.common.constants.charge import ChargeClass, ChargeStatus
+
 
 class UsKyFultonScraper(JailTrackerScraper):
     """Scraper implementation for us_ky_fulton."""
     def __init__(self):
         super(UsKyFultonScraper, self).__init__('us_ky_fulton')
-
 
     def get_jailtracker_index(self):
         """Returns the index used in the JailTracker URL to request a specific
@@ -36,14 +37,15 @@ class UsKyFultonScraper(JailTrackerScraper):
         """
         return 'FULTON_COUNTY_REGIONAL_KY'
 
-
     def get_enum_overrides(self):
-        return {
-            'VIOLATION': ChargeClass.OTHER,
-            'V': ChargeClass.OTHER,
-            # Below possibly means (T)hird degree felony, but not sure
-            'T': None,
-            # Conflicts with CustodyStatus.RELEASED, but JailTracker for
-            # us_ky_fulton doesn't appear to use this status so OK to override
-            'RELEASED': ChargeStatus.DROPPED
-        }
+        overrides_builder = EnumOverrides.Builder()
+
+        # Conflicts with CustodyStatus.RELEASED, but JailTracker for
+        # us_ky_fulton doesn't appear to use this status so OK to override
+        overrides_builder.add('RELEASED', ChargeStatus.DROPPED)
+        overrides_builder.add('VIOLATION', ChargeClass.PROBATION_VIOLATION)
+        overrides_builder.ignore('V', ChargeClass)
+        # Below possibly means (T)hird degree felony, but not sure
+        overrides_builder.ignore('T')
+
+        return overrides_builder.build()
