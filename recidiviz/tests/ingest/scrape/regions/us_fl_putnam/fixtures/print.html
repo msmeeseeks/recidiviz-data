@@ -1,0 +1,569 @@
+<meta http-equiv="X-UA-Compatible" content="IE=8"/>
+<!doctype html >
+<!--<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<body>
+<form name="form1" method="post"
+      action="./Jail.aspx?preview=true&amp;searchvalues=%7b%22FirstName%22%3a%22%22%2c%22MiddleName%22%3a%22%22%2c%22LastName%22%3a%22%22%2c%22BeginBookDate%22%3a%22%22%2c%22EndBookDate%22%3a%22%22%2c%22BeginReleaseDate%22%3a%22%22%2c%22EndReleaseDate%22%3a%22%22%2c%22TypeJailSearch%22%3a0%2c%22RecordsLoaded%22%3a8%2c%22SortOption%22%3a0%2c%22SortOrder%22%3a0%2c%22IsDefault%22%3atrue%7d"
+      onsubmit="javascript:return WebForm_OnSubmit();" id="form1">
+    <div id="Everything" class="">
+        <div id="Search" class="SearchDIV">
+            <div id="upProgPnl" style="display:none;">
+                <img id="imgProgress" src="images/preloader_01.gif"
+                     style="border-width:0px;"/>
+            </div>
+            <table id="Table1" border="0" cellpadding="0" width="100%">
+                <tr>
+                    <td class="SearchHeader">
+                        <center>
+                            Search Inmates
+                        </center>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Last Name:
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input name="txbLastName" type="text" id="txbLastName"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        First Name:
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input name="txbFirstName" type="text"
+                               id="txbFirstName"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Middle Name:
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input name="txbMiddleName" type="text"
+                               id="txbMiddleName"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Begin Booking Date:
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input name="tbBeginDate" type="text" id="tbBeginDate"/>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        End Booking Date:
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input name="tbEndDate" type="text" id="tbEndDate"/>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td id="BeginReleaseDateLabel" style="display: none;">
+                        Begin Release Date:
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input name="tbBeginReleaseDate" type="text"
+                               id="tbBeginReleaseDate" style="display: none;"/>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td id="EndReleaseDateLabel" style="display: none;">
+                        End Release Date:
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input name="tbEndReleaseDate" type="text"
+                               id="tbEndReleaseDate" style="display: none;"/>
+
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Search For:
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <select name="TypeSearch" id="TypeSearch"
+                                onChange="SearchTypeSelect();">
+                            <option value="0">Current Inmates Only</option>
+                            <option value="1">Released Inmates Only</option>
+                            <option value="2">Both Current And Released</option>
+
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <table>
+                            <tr>
+                                <td style="width: 80px">
+                                    Sorted By:
+                                </td>
+                                <td>
+                                    <select name="SearchSortOption"
+                                            id="SearchSortOption">
+                                        <option value="0">Name</option>
+                                        <option value="1">Booking Date</option>
+
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Order:
+                                </td>
+                                <td>
+                                    <select name="SearchOrderOption"
+                                            id="SearchOrderOption">
+                                        <option value="0">Ascending</option>
+                                        <option value="1">Descending</option>
+
+                                    </select>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input type="submit" name="btnSumit" value="Submit"
+                               onclick="javascript:WebForm_DoPostBackWithOptions(new WebForm_PostBackOptions(&quot;btnSumit&quot;, &quot;&quot;, true, &quot;&quot;, &quot;&quot;, false, false))"
+                               id="btnSumit"/><input type="submit"
+                                                     name="btnReset"
+                                                     value="Reset"
+                                                     id="btnReset"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+
+
+        <div id="grid" class="GridDIV">
+			<span id="UpdatePanel2">
+					<span id="ControlInput" style="color:Red;display:none;">Please fill in at least one search criteria.</span>
+					<center>
+						<span id="ResultsReturned" Value="0"
+                              style="display:none">125</span>
+						<span id="lbGridInfo" class="DivCountMsg">Number of Inmate Records Returned: 125</span></center>
+                </BR>
+                <br/>
+                    <table>
+                        <tr>
+                            <td>
+                                <div id="JailInfo">
+						        <table border="0" cellpadding="0"
+                                       cellspacing="2" class="JailView">
+
+
+									        <tr style="InmateRecordRow">
+										        <td nowrap="nowrap" width="2%">
+                                                    <img src='ViewImage.aspx?preview=true&bookno='><BR><a
+                                                        href="ViewImageFull.aspx?bookno="
+                                                        target='blank'>Enlarge Photo</a>
+
+										        </td>
+										        <td nowrap="nowrap"
+                                                    valign="top">
+											        <table border="0"
+                                                           cellpadding="1"
+                                                           cellspacing="0"
+                                                           width="100%">
+												        <thead>
+													        <tr>
+														        <td class="SearchHeader"
+                                                                    colspan="4">
+															        LAST, FIRST
+															        &nbsp; (W/
+															        MALE
+															        / DOB:1/1/1111
+
+															        )
+														        </td>
+													        </tr>
+												        </thead>
+												        <tbody>
+													        <tr>
+														        <td class="InmateInfoGridTd"
+                                                                    style="">
+															        Status:
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        In Jail
+														        </td>
+
+
+													        </tr>
+													        <tr class="oddNoWidth">
+														        <td class="InmateInfoGridTd">
+															        Booking No:
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        BKGNO
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        MniNo:
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        MNINUMBER
+														        </td>
+													        </tr>
+													        <tr>
+														        <td class="InmateInfoGridTd">
+															        Booking Date:
+														        </td>
+                                                                <td
+                                                                        class="InmateInfoGridTd">1/1/1111 01:01 PM</td>
+														        <td></td>
+													        </tr>
+													        <tr class="oddNoWidth">
+														        <td class="InmateInfoGridTd">
+															        Age On Booking Date:
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        21
+														        </td>
+														        <td class="InmateInfoGridTd">
+														        </td>
+														        <td class="InmateInfoGridTd">
+														        </td>
+													        </tr>
+													        <tr>
+														        <td class="InmateInfoGridTd">
+															        Bond Amount:
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        $30000.00
+														        </td>
+
+																<td class="InmateInfoGridTd"
+                                                                    colspan="2"></td>
+
+													        </tr>
+													        <tr class="oddNoWidth">
+
+
+													        </tr>
+													        <tr class="oddNoWidth"><td
+                                                                    class="InmateInfoGridTd"
+                                                                    nowrap="nowrap"
+                                                                    width="2%">Address Given:</td><td
+                                                                    colspan="3"
+                                                                    style="min-width: 500px;"
+                                                                    class="InmateInfoGridTd">123 AAAA</td></tr>
+												        </tbody>
+											        </table>
+										        </td>
+									        </tr>
+											<tr class="InmateRecordSeperater"></tr>
+
+									        <tr class="InmateRecordSeperater"></tr>
+
+											        <tr>
+												        <td colspan="2"
+                                                            valign="top">
+													        <table class="JailViewCharges"
+                                                                   id="JailViewCharges"
+                                                                   border="0"
+                                                                   cellpadding="2"
+                                                                   cellspacing="0"
+                                                                   width="100%">
+														        <tr>
+															        <td class="SearchHeader"
+                                                                        colspan="6">
+																        CHARGES
+															        </td>
+														        </tr>
+														        <tr class="SearchHeader">
+															        <td>
+															        </td>
+															        <td>
+																        STATUTE
+															        </td>
+															        <td>
+																        COURT CASE NUMBER
+															        </td>
+															        <td>
+																        CHARGE
+															        </td>
+															        <td>
+																        DEGREE
+															        </td>
+															        <td>
+																        LEVEL
+															        </td>
+															        <td>
+																        BOND
+															        </td>
+
+														        </tr>
+
+											        <tr>
+												        <td nowrap="nowrap"
+                                                            id="expander1d80087d4641486d9030c77c64a07b6e"
+                                                            onclick="ToggleExpand(this.id)">[+]</td>
+												        <td nowrap="nowrap">
+													        784.021.1a
+												        </td>
+												        <td nowrap="nowrap">
+													        23456 (PUTNAM
+															COUNTY SHERIFFS OFFICE)
+												        </td>
+												        <td nowrap="nowrap">
+                                                            CHARGE NAME 1
+												        </td>
+												        <td nowrap="nowrap">
+													        T
+												        </td>
+												        <td nowrap="nowrap">
+													        F
+												        </td>
+												        <td nowrap="nowrap">
+													        $10000.00</br>
+												        </td>
+														<tr><td nowrap="nowrap"
+                                                                colspan="8"
+                                                                id="expanded1d80087d4641486d9030c77c64a07b6e"
+                                                                style="display:none;text-align:left">BLAH BLAH</td></tr>
+                                                                </tr>
+
+                                                                <tr class="odd">
+												        <td nowrap="nowrap"
+                                                            id="expanderadc5e67302bf40569dad90d8f97b8a22"
+                                                            onclick="ToggleExpand(this.id)">[+]</td>
+												        <td nowrap="nowrap">
+													        893.13.6a
+												        </td>
+												        <td nowrap="nowrap">
+													        12345 (PUTNAM
+															COUNTY SHERIFFS OFFICE)
+												        </td>
+												        <td nowrap="nowrap">
+													        CHARGE-2
+												        </td>
+												        <td nowrap="nowrap">
+													        T
+												        </td>
+												        <td nowrap="nowrap">
+													        F
+												        </td>
+												        <td nowrap="nowrap">
+													        $5000.00
+                                                            <br></br>
+												        </td>
+                                                    </table>
+                                                            </BR></BR></BR></td></tr>
+
+									        <tr style="InmateRecordRow">
+										        <td nowrap="nowrap" width="2%">
+                                                    <img src='ViewImage.aspx?preview=true&bookno='><BR><a
+                                                        href="ViewImageFull.aspx?bookno="
+                                                        target='blank'>Enlarge Photo</a>
+
+										        </td>
+										        <td nowrap="nowrap"
+                                                    valign="top">
+											        <table border="0"
+                                                           cellpadding="1"
+                                                           cellspacing="0"
+                                                           width="100%">
+												        <thead>
+													        <tr>
+														        <td class="SearchHeader"
+                                                                    colspan="4">
+															        LAST2,FIRST2
+															        &nbsp; (B/
+															        MALE
+															        / DOB:1/1/1111
+
+															        )
+														        </td>
+													        </tr>
+												        </thead>
+												        <tbody>
+													        <tr>
+														        <td class="InmateInfoGridTd"
+                                                                    style="">
+															        Status:
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        In Jail
+														        </td>
+
+
+													        </tr>
+													        <tr class="oddNoWidth">
+														        <td class="InmateInfoGridTd">
+															        Booking No:
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        BID2
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        MniNo:
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        PID2
+														        </td>
+													        </tr>
+													        <tr>
+														        <td class="InmateInfoGridTd">
+															        Booking Date:
+														        </td>
+                                                                <td
+                                                                        class="InmateInfoGridTd">2/2/2018 03:21 PM</td>
+														        <td></td>
+													        </tr>
+													        <tr class="oddNoWidth">
+														        <td class="InmateInfoGridTd">
+															        Age On Booking Date:
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        24
+														        </td>
+														        <td class="InmateInfoGridTd">
+														        </td>
+														        <td class="InmateInfoGridTd">
+														        </td>
+													        </tr>
+													        <tr>
+														        <td class="InmateInfoGridTd">
+															        Bond Amount:
+														        </td>
+														        <td class="InmateInfoGridTd">
+															        $102000.00
+														        </td>
+
+																<td class="InmateInfoGridTd"
+                                                                    colspan="2"></td>
+
+													        </tr>
+													        <tr class="oddNoWidth">
+
+
+													        </tr>
+													        <tr class="oddNoWidth"><td
+                                                                    class="InmateInfoGridTd"
+                                                                    nowrap="nowrap"
+                                                                    width="2%">Address Given:</td><td
+                                                                    colspan="3"
+                                                                    style="min-width: 500px;"
+                                                                    class="InmateInfoGridTd">3245 </td></tr>
+												        </tbody>
+											        </table>
+										        </td>
+									        </tr>
+											<tr class="InmateRecordSeperater"></tr>
+
+											        <tr>
+												        <td colspan="2"
+                                                            valign="top">
+													        <table class="JailViewCharges"
+                                                                   id="JailViewHolds"
+                                                                   border="0"
+                                                                   cellpadding="2"
+                                                                   cellspacing="0"
+                                                                   width="100%">
+																<tr>
+															        <td class="SearchHeader"
+                                                                        colspan="6">
+																        HOLDS
+															        </td>
+														        </tr>
+
+
+													<tr>
+
+														<td nowrap="nowrap">
+															ALACHUA
+														</td>
+													</tr>
+
+                                                    </table>
+                                                            </BR></BR></BR></td></tr>
+
+									        <tr class="InmateRecordSeperater"></tr>
+					        </table>
+		                        </div>
+                            </td>
+                        </tr>
+                        <tr id="LoadMoreRow" class="LoadMoreRow">
+                            <td style="height:35px;">
+                                <div id="LoadMoreButton" class="LoadMoreButton"
+                                     onclick="LoadMoreResults()"
+                                     onmouseover="LoadMoreMouseEnter()"
+                                     onmouseout="LoadMoreMouseLeave()">
+                                     <p>Load more results<p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="PrintRow" class="noPrint">
+                            <td style="width:100px;">
+                                <center><a id="PrintLink" class="noPrint"
+                                           href="javascript:PrintPreview();">Print</a></center>
+                            </td>
+                        </tr>
+                    </table>
+                </span>
+        </div>
+
+        <div style="font-size: 6pt;float: right;position: fixed;bottom: 20px;">
+            <div style="font-size: 8pt;">
+                Contact: &nbsp;
+            </div>
+            <a href="http://cts-america.com" title="http://cts-america.com"
+               class="logo" target="_blank">
+                <img id="CTSLogo" src="images/SmartCOP%20horizontal-01.png"
+                     style="border-width:0px;"/>
+            </a>
+            <div style="font-size: 6pt;bottom: 0;">Version:2.1.0.22</div>
+        </div>
+
+
+        <div style="margin-top: 10px;margin-right: 0px; position: fixed; right: 10px;"
+             class="noPrint">
+
+        </div>
+
+
+    </div>
+</form>
+</body>
+</html>

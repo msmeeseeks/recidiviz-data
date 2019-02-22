@@ -1,0 +1,5 @@
+agency_name: $agency
+agency_type: jail
+base_url: http://smartweb.pcso.us/smartwebclient/jail.aspx
+timezone: America/New_York
+environment: staging
