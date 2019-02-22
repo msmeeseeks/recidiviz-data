@@ -1,4 +1,5 @@
 key_mappings:
+  # Placeholder as we currently don't extract any information from this page.
   mt: '?'
 
 # most of thse are not set at all
