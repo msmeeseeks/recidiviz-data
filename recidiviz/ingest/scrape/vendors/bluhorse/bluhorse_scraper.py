@@ -159,6 +159,19 @@ class BluHorseScraper(BaseScraper):
                     'Fields': self.get_request_fields(),
                 },
             )]
+        if page is self.Page.BONDS:
+            return [Task.evole(
+                self.base_task(
+                    constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.ARREST,
+                    task.custom),
+                params={
+                    'Jail': self.get_jail_id(),
+                    'bookno': task.custom['bookno'],
+                    'key': task.custom['key'],
+                    'answer': task.custom['answer'],
+                    'Fields': self.get_request_fields(),
+                },
+            )]
 
         return []
 

@@ -1,0 +1,43 @@
+# most of thse are not set at all
+keys_to_ignore:
+- GetInmate_Arrest_InfoResult.AFISNo
+- GetInmate_Arrest_InfoResult.ArrestAgency
+- GetInmate_Arrest_InfoResult.ArrestBadge
+- GetInmate_Arrest_InfoResult.ArrestDate
+- GetInmate_Arrest_InfoResult.ArrestHowMade
+- GetInmate_Arrest_InfoResult.ArrestLocation
+- GetInmate_Arrest_InfoResult.ArrestOfficer
+- GetInmate_Arrest_InfoResult.ArrestTime
+- GetInmate_Arrest_InfoResult.Bed  # set but nowhere to put it
+- GetInmate_Arrest_InfoResult.Birthplace
+- GetInmate_Arrest_InfoResult.BookDate  # set but already used
+- GetInmate_Arrest_InfoResult.BookOfficer
+- GetInmate_Arrest_InfoResult.BookTime
+- GetInmate_Arrest_InfoResult.Cell  # set but nowhere to put it
+- GetInmate_Arrest_InfoResult.CountyOfArrest
+- GetInmate_Arrest_InfoResult.DateReleased
+- GetInmate_Arrest_InfoResult.FBINo
+- GetInmate_Arrest_InfoResult.Farmout
+- GetInmate_Arrest_InfoResult.FedClass
+- GetInmate_Arrest_InfoResult.FinalReleased
+- GetInmate_Arrest_InfoResult.HousingCode
+- GetInmate_Arrest_InfoResult.HousingCodeAlt
+- GetInmate_Arrest_InfoResult.InmateClass
+- GetInmate_Arrest_InfoResult.InternalClass
+- GetInmate_Arrest_InfoResult.JacketNo  # set but nowhere to put it
+- GetInmate_Arrest_InfoResult.KOMS
+- GetInmate_Arrest_InfoResult.LastRebookDate
+- GetInmate_Arrest_InfoResult.LastRebookTime
+- GetInmate_Arrest_InfoResult.Location
+- GetInmate_Arrest_InfoResult.OffenseDate
+- GetInmate_Arrest_InfoResult.Pod  # set but nowhere to put it
+- GetInmate_Arrest_InfoResult.RDate
+- GetInmate_Arrest_InfoResult.SIDNo
+- GetInmate_Arrest_InfoResult.SearchOfficer
+- GetInmate_Arrest_InfoResult.StateAltID
+- GetInmate_Arrest_InfoResult.StateClass
+- GetInmate_Arrest_InfoResult.TempReleased
+- GetInmate_Arrest_InfoResult.TomisNo
+- GetInmate_Arrest_InfoResult.TransferFrom
+- GetInmate_Arrest_InfoResult.TransferOfficer
+- GetInmate_Arrest_InfoResult.TrnNol
