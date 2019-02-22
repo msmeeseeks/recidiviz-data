@@ -1,0 +1,6 @@
+agency_name: Giles County Sheriff's Department
+agency_type: jail
+base_url: https://omsweb.public-safety-cloud.com/jtclientweb/(S(5kl001ec0blwa0qachngrqnb))/jailtracker/index/Giles_County_Tn
+timezone: America/Chicago
+environment: staging
+shared_queue: vendor-jailtracker-scraper
