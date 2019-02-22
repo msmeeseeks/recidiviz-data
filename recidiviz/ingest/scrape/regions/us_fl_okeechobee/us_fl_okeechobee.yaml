@@ -1,0 +1,14 @@
+key_mappings:
+  "Name #": person.person_id
+  Last: person.surname
+  First: person.given_names
+  Middle: person.middle_names
+  "D.O.B.": person.birthdate
+  Age: person.age
+  Last Intake: booking.admission_date
+  Race: person.race
+  "Booking Type": booking.admission_reason
+  "Scheduled Release": booking.projected_release_date
+
+keys_to_ignore:
+  - "Days in Custody"

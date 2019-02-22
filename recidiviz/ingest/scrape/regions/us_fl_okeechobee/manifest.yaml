@@ -1,0 +1,5 @@
+agency_name: Okeechobee County Sheriff's Office
+agency_type: jail
+base_url: https://docs.google.com/spreadsheets/d/1iGxwDTUD77SOu0qssyqnDOBrNntw4d8gAXRf_95LO14/pub?output=csv
+timezone: America/New_York
+environment: staging
