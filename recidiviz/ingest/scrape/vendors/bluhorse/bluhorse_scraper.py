@@ -160,7 +160,7 @@ class BluHorseScraper(BaseScraper):
                 },
             )]
         if page is self.Page.BONDS:
-            return [Task.evole(
+            return [Task.evolve(
                 self.base_task(
                     constants.TaskType.SCRAPE_DATA_AND_MORE, self.Page.ARREST,
                     task.custom),

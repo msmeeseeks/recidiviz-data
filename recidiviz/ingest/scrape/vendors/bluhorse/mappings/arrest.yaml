@@ -1,3 +1,6 @@
+key_mappings:
+  mt: '?'
+
 # most of thse are not set at all
 keys_to_ignore:
 - GetInmate_Arrest_InfoResult.AFISNo
