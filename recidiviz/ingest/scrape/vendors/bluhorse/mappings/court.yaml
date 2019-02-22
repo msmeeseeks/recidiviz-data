@@ -1,0 +1,5 @@
+# None of the scrapers so far return any entities for this page, so we don't
+# know what keys exist.
+key_mappings:
+  # Placeholder as we currently don't extract any information from this page.
+  mt: '?'
