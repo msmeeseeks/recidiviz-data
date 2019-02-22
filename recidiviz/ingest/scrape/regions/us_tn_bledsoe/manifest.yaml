@@ -1,0 +1,5 @@
+agency_name: Bledsoe County Sheriff's Department
+agency_type: jail
+base_url: https://www.tbejail.com/inmate_deposit.php?jail_id=5&inmate_letter=
+timezone: America/Chicago
+environment: staging
