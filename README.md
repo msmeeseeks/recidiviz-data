@@ -91,6 +91,23 @@ pipenv shell
 
 Finally, run `pytest`. If no tests fail, you are ready to develop!
 
+**NOTE**: If some `recidiviz/tests/ingest/aggregate` tests fail, you may need to install the Java Runtime Environment (JRE) version 7 or higher.
+
+You can ignore those tests with:
+```
+pytest --ignore=recidiviz/tests/ingest/aggregate
+```
+
+On a Mac with [Homebrew](https://brew.sh/), you can install the JRE with:
+```
+brew cask install java
+```
+
+On Ubuntu 18.04, you can install the JRE with:
+```
+apt update -y && apt install -y default-jre
+```
+
 
 ##### Option 2: Docker container
 
@@ -112,7 +129,7 @@ cd recidiviz-data
 
 Build the image:
 ```
-docker build -t recidiviz-image .
+docker build -t recidiviz-image . --build-arg DEV_MODE=True
 ```
 
 Stop and delete previous instances of the image if they exist:

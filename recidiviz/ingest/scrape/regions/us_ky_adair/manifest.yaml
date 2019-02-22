@@ -1,0 +1,6 @@
+agency_name: Adair County Sheriff
+agency_type: jail
+base_url: https://omsweb.public-safety-cloud.com/jtclientweb/(S(lqewba2kxvq450uktpbnlo03))/jailtracker/index/Adair_County_RJ_KY
+timezone: America/Chicago
+environment: staging
+# TODO(#584): use shared queue once exists

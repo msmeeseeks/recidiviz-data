@@ -25,7 +25,7 @@ multi_key_mapping:
   Crime Class: charge.charge_class
   Court Date: charge.next_court_date
   Docket Number: charge.case_number
-  Arresting Agency: arrest.agency
+  Arresting Agency: charge.charging_entity
 
   Bond Number: bond.bond_id
   Bond Type: bond.bond_type
