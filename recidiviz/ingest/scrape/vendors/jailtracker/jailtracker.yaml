@@ -16,6 +16,7 @@ key_mappings:
   booking.Arresting Agency: arrest.agency
   booking.Arrest Date: arrest.arrest_date
   booking.Arresting Officer: arrest.officer_name
+  booking.Badge: arrest.officer_id
 
   charges.ChargeId: charge.charge_id
   charges.CaseNo: charge.case_number

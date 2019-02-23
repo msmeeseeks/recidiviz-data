@@ -1,0 +1,6 @@
+agency_name: Daviess County Detention Center
+agency_type: jail
+base_url: http://www.daviesscojail.org/InmateRoster/daviess_inmatelist.html
+timezone: America/New_York
+environment: staging
+shared_queue: vendor-jailtracker-scraper

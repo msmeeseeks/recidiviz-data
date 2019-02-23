@@ -1,0 +1,6 @@
+agency_name: "CARTER COUNTY SHERIFFS OFFICE"
+agency_type: jail
+base_url: https://omsweb.public-safety-cloud.com/jtclientweb/(S(ggoimnyi343jgzdb04l1fdn2))/jailtracker/index/Carter_County_TN
+timezone: America/Chicago
+environment: staging
+shared_queue: vendor-jailtracker-scraper

@@ -1,0 +1,5 @@
+agency_name: St. Johns County Sherrif's Office
+agency_type: jail
+base_url: http://www2.sjso.org/smartwebclient/jail.aspx
+timezone: America/New_York
+environment: staging

@@ -1,0 +1,6 @@
+agency_name: Laporte County Sheriff
+agency_type: jail
+base_url: https://omsweb.public-safety-cloud.com/jtclientweb/(S(xy4ndpxnqyqdfft1ap23hyvl))/jailtracker/index/Laporte_County_IN
+timezone: America/Indiana/Indianapolis
+environment: staging
+shared_queue: vendor-jailtracker-scraper
