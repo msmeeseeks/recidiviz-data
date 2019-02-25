@@ -38,6 +38,15 @@ def convert(ingest_info, metadata):
     return _Converter(ingest_info, metadata).convert()
 
 
+def get_converter(ingest_info, metadata):
+    """Returns a converter object.
+
+    Returns:
+        A _Converter object
+    """
+    return _Converter(ingest_info, metadata)
+
+
 class _Converter:
     """Converts between ingest_info objects and persistence layer entity."""
 
@@ -54,6 +63,9 @@ class _Converter:
 
     def convert(self):
         return [self._convert_person(p) for p in self.ingest_info.people]
+
+    def convert_and_pop(self):
+        return self._convert_person(self.ingest_info.people.pop())
 
     def _convert_person(self, ingest_person):
         """Converts an ingest_info proto Person to a persistence entity."""

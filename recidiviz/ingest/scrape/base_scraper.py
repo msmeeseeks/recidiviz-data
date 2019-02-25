@@ -47,15 +47,22 @@ from lxml.etree import XMLSyntaxError  # pylint:disable=no-name-in-module
 
 from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.common.ingest_metadata import IngestMetadata
+from recidiviz.ingest.models.scrape_key import ScrapeKey
 from recidiviz.ingest.scrape import constants, ingest_utils
 from recidiviz.ingest.models.ingest_info import IngestInfo
+from recidiviz.ingest.scrape.errors import ScraperFetchError, \
+    ScraperGetMoreTasksError, ScraperPopulateDataError, ScraperError
 from recidiviz.ingest.scrape.scraper import Scraper
-from recidiviz.ingest.scrape.task_params import QueueRequest, ScrapedData, Task
+from recidiviz.ingest.scrape.task_params import QueueRequest, ScrapedData,\
+    Task, BatchMessage
 from recidiviz.persistence import persistence
+from recidiviz.utils import pubsub_helper
 
 
 class BaseScraper(Scraper):
     """Generic class for scrapers."""
+
+    PUBSUB_TYPE = 'scraper_batch'
 
     def __init__(self, region_name):
         super(BaseScraper, self).__init__(region_name)
@@ -131,7 +138,6 @@ class BaseScraper(Scraper):
                       response_type, endpoint)
         return -1, None
 
-
     def _parse_html_content(self, content_string: str) -> html.HtmlElement:
         """Parses a string into a structured HtmlElement.
 
@@ -154,88 +160,131 @@ class BaseScraper(Scraper):
         Returns:
             Nothing if successful, -1 if it fails
         """
-        task = request.next_task
+        try:
+            task = request.next_task
 
-        # Here we handle a special case where we weren't really sure
-        # we were going to get data when we submitted a task, but then
-        # we ended up with data, so no more requests are required,
-        # just the content we already have.
-        # TODO(#680): remove this
-        if task.content is not None:
-            content = self._parse_html_content(task.content)
-        else:
-            post_data = task.post_data
+            # Here we handle a special case where we weren't really sure
+            # we were going to get data when we submitted a task, but then
+            # we ended up with data, so no more requests are required,
+            # just the content we already have.
+            # TODO(#680): remove this
+            if task.content is not None:
+                content = self._parse_html_content(task.content)
+            else:
+                post_data = task.post_data
 
-            # Let the child transform the post_data if it wants before
-            # sending the requests.  This hook is in here in case the
-            # child did something like compress the post_data before
-            # it put it on the queue.
-            self.transform_post_data(post_data)
+                # Let the child transform the post_data if it wants before
+                # sending the requests.  This hook is in here in case the
+                # child did something like compress the post_data before
+                # it put it on the queue.
+                self.transform_post_data(post_data)
 
-            # We always fetch some content before doing anything.
-            # Note that we use get here for the post_data to return a
-            # default value of None if this scraper doesn't set it.
-            content, cookies = self._fetch_content(
-                task.endpoint, task.response_type, headers=task.headers,
-                cookies=task.cookies, params=task.params, post_data=post_data,
-                json_data=task.json)
-            if content == -1:
-                return -1
+                # We always fetch some content before doing anything.
+                # Note that we use get here for the post_data to return a
+                # default value of None if this scraper doesn't set it.
+                try:
+                    content, cookies = self._fetch_content(
+                        task.endpoint, task.response_type, headers=task.headers,
+                        cookies=task.cookies, params=task.params,
+                        post_data=post_data, json_data=task.json)
+                    if content == -1:
+                        return -1
+                except Exception as e:
+                    raise ScraperFetchError(str(e))
 
-        scraped_data = None
-        if self.should_scrape_data(task.task_type):
-            # If we want to scrape data, we should either create an ingest_info
-            # object or get the one that already exists.
-            logging.info('Scraping data for %s and endpoint: %s',
-                         self.region.region_code, task.endpoint)
-            scraped_data = self.populate_data(
-                content, task, request.ingest_info or IngestInfo())
+            scraped_data = None
+            if self.should_scrape_data(task.task_type):
+                # If we want to scrape data, we should either create an
+                # ingest_info object or get the one that already exists.
+                logging.info('Scraping data for %s and endpoint: %s',
+                             self.region.region_code, task.endpoint)
+                try:
+                    scraped_data = self.populate_data(
+                        content, task, request.ingest_info or IngestInfo())
+                except Exception as e:
+                    raise ScraperPopulateDataError(str(e))
 
-        if self.should_get_more_tasks(task.task_type):
-            logging.info('Getting more tasks for %s and endpoint: %s',
-                         self.region.region_code, task.endpoint)
+            if self.should_get_more_tasks(task.task_type):
+                logging.info('Getting more tasks for %s and endpoint: %s',
+                             self.region.region_code, task.endpoint)
 
-            # Only send along ingest info if it will not be persisted now.
-            ingest_info_to_send = None
-            if scraped_data is not None and not scraped_data.persist:
-                ingest_info_to_send = scraped_data.ingest_info
+                # Only send along ingest info if it will not be persisted now.
+                ingest_info_to_send = None
+                if scraped_data is not None and not scraped_data.persist:
+                    ingest_info_to_send = scraped_data.ingest_info
 
-            next_tasks = self.get_more_tasks(content, task)
-            for next_task in next_tasks:
-                # Include cookies received from response, if any
-                if cookies:
-                    cookies.update(next_task.cookies)
-                    next_task = Task.evolve(next_task, cookies=cookies)
-                self.add_task('_generic_scrape', QueueRequest(
-                    scrape_type=request.scrape_type,
-                    scraper_start_time=request.scraper_start_time,
-                    next_task=next_task,
-                    ingest_info=ingest_info_to_send,
-                ))
+                try:
+                    next_tasks = self.get_more_tasks(content, task)
+                except Exception as e:
+                    raise ScraperGetMoreTasksError(str(e))
+                for next_task in next_tasks:
+                    # Include cookies received from response, if any
+                    if cookies:
+                        cookies.update(next_task.cookies)
+                        next_task = Task.evolve(next_task, cookies=cookies)
+                    self.add_task('_generic_scrape', QueueRequest(
+                        scrape_type=request.scrape_type,
+                        scraper_start_time=request.scraper_start_time,
+                        next_task=next_task,
+                        ingest_info=ingest_info_to_send,
+                    ))
 
-        if scraped_data is not None and scraped_data.persist:
-            # Something is wrong if we get here but no fields are set in the
-            # ingest info.
-            if not scraped_data.ingest_info:
-                raise ValueError('IngestInfo must be populated')
+            if scraped_data is not None and scraped_data.persist:
+                # Something is wrong if we get here but no fields are set in the
+                # ingest info.
+                if not scraped_data.ingest_info:
+                    raise ValueError('IngestInfo must be populated')
 
-            logging.info(
-                'Writing ingest_info (%d people) to the database for %s',
-                len(scraped_data.ingest_info.people), self.region.region_code)
-            logging.info('Logging at most 4 people:')
-            loop_count = min(len(scraped_data.ingest_info.people),
-                             constants.MAX_PEOPLE_TO_LOG)
-            for i in range(loop_count):
-                logging.info(scraped_data.ingest_info.people[i])
-            logging.info('Last seen time of person being set as: %s',
-                         request.scraper_start_time)
-            metadata = IngestMetadata(self.region.region_code,
-                                      request.scraper_start_time,
-                                      self.get_enum_overrides())
-            persistence.write(
-                ingest_utils.convert_ingest_info_to_proto(
-                    scraped_data.ingest_info), metadata)
-        return None
+                logging.info(
+                    'Writing ingest_info (%d people) to the database for %s',
+                    len(scraped_data.ingest_info.people),
+                    self.region.region_code)
+                logging.info('Logging at most 4 people:')
+                loop_count = min(len(scraped_data.ingest_info.people),
+                                 constants.MAX_PEOPLE_TO_LOG)
+                for i in range(loop_count):
+                    logging.info(scraped_data.ingest_info.people[i])
+                logging.info('Last seen time of person being set as: %s',
+                             request.scraper_start_time)
+                metadata = IngestMetadata(self.region.region_code,
+                                          request.scraper_start_time,
+                                          self.get_enum_overrides())
+                # batch_message = BatchMessage(
+                #     scraper_start_time=request.scraper_start_time,
+                #     task=task,
+                #     ingest_info=scraped_data.ingest_info
+                # )
+                # scrape_key = ScrapeKey(
+                #     self.region.region_code, request.scrape_type)
+                # TODO 1055: Actually publish when the endpoint is correctly
+                #   set up
+                # self.publish_batch_message(batch_message, scrape_key)
+                persistence.write(
+                    ingest_utils.convert_ingest_info_to_proto(
+                        scraped_data.ingest_info), metadata)
+            return None
+        except Exception as e:
+            scraper_errors = [
+                ScraperGetMoreTasksError,
+                ScraperPopulateDataError,
+                ScraperPopulateDataError
+            ]
+            # If we caught some other unexpected error, we want to catch it
+            # and remap it to our catch all scraper error.
+            if type(e) not in scraper_errors:
+                e = ScraperError(str(e))
+            # batch_message = BatchMessage(
+            #     scraper_start_time=request.scraper_start_time,
+            #     task=task,
+            #     error=type(e).__name__
+            # )
+            # scrape_key = ScrapeKey(
+            #     self.region.region_code, request.scrape_type)
+            # TODO 1055: Actually publish when the endpoint is correctly set up
+            # self.publish_batch_message(batch_message, scrape_key)
+            raise e
+
+
 
     def is_initial_task(self, task_type):
         """Tells us if the task_type is initial task_type.
@@ -324,3 +373,19 @@ class BaseScraper(Scraper):
             task_type=constants.TaskType.INITIAL_AND_MORE,
             endpoint=self.get_region().base_url,
         )
+
+    def publish_batch_message(
+            self, batch_message: BatchMessage, scrape_key: ScrapeKey):
+        """Publishes the ingest info BatchMessage.
+
+        Args:
+            batch_message: Tahe BatchMessage to publish on the queue.
+            scrape_key: The ScrapeKey of the region
+        """
+        def inner():
+            serialized = batch_message.to_serializable()
+            return pubsub_helper.get_publisher().publish(
+                pubsub_helper.get_topic_path(scrape_key,
+                                             pubsub_type=self.PUBSUB_TYPE),
+                data=serialized)
+        pubsub_helper.retry_with_create(scrape_key, inner, self.PUBSUB_TYPE)

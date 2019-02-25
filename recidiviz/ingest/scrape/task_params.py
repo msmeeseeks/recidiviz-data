@@ -113,3 +113,33 @@ class QueueRequest:
     @classmethod
     def from_serializable(cls, serializable):
         return cattr.structure(serializable, cls)
+
+
+@attr.s(frozen=True)
+class BatchMessage:
+    """A wrapper around a message to publish so we can batch up the writes.
+
+    This is the object that is serialized and put on the pubsub queue.
+    """
+    # The time at which this scraper was started, used to associate the entities
+    # ingested during throughout the scrape
+    scraper_start_time: datetime.datetime = attr.ib()
+
+    # The task which published this message.  We use this to dedupe messages
+    # That failed some number of times before finally passing, or to not
+    # double count tasks that failed more than once.
+    task: Task = attr.ib()
+
+    # In the case that a person's information is spread across multiple pages
+    # this is used to pass it along to the next page.
+    ingest_info: Optional[IngestInfo] = attr.ib(default=None)
+
+    # The error type of the task if it ended in failure.
+    error: Optional[str] = attr.ib(default=None)
+
+    def to_serializable(self):
+        return cattr.unstructure(self)
+
+    @classmethod
+    def from_serializable(cls, serializable):
+        return cattr.structure(serializable, cls)
