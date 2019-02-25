@@ -14,16 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
-"""Contains errors for the persistence directory."""
+
+"""Scraper tests for us_in_knox."""
+import unittest
+
+from recidiviz.ingest.scrape.regions.us_in_knox.us_in_knox_scraper import \
+    UsInKnoxScraper
+from recidiviz.tests.ingest.scrape.vendors.jailtracker.jailtracker_scraper_test \
+    import JailTrackerScraperTest
 
 
-class PersistenceError(Exception):
-    """Raised when an error with the persistence layer is encountered."""
-
-
-class EntityMatchingError(Exception):
-    """Raised when an error with entity matching is encountered."""
-
-
-class DataValidationError(Exception):
-    """Raised when an assumption about incoming data is violated"""
+class TestUsInKnoxScraper(JailTrackerScraperTest, unittest.TestCase):
+    def _get_scraper(self):
+        return UsInKnoxScraper()

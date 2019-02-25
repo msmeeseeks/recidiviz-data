@@ -19,7 +19,7 @@ import datetime
 import logging
 import os
 from distutils.util import strtobool  # pylint: disable=no-name-in-module
-from typing import List
+from typing import List, Tuple
 
 from opencensus.stats import aggregation
 from opencensus.stats import measure
@@ -173,15 +173,34 @@ def _abort_or_continue(
         total_people,
         enum_parsing_errors=0,
         entity_matching_errors=0,
-        protected_class_errors=0,):
+        protected_class_errors=0,
+        data_validation_errors=0):
     # TODO: fill this in with actual logic
     if protected_class_errors > 0:
         raise PersistenceError(
             'Aborting because there was an error regarding a protected class')
-    if (enum_parsing_errors + entity_matching_errors) /\
-            total_people >= ERROR_THRESHOLD:
+    if (enum_parsing_errors + entity_matching_errors +
+            data_validation_errors) / total_people >= ERROR_THRESHOLD:
         raise PersistenceError(
             'Aborting because we exceeded the error threshold')
+
+
+# Note: If we ever want to validate more than the existence of multiple open
+# bookings, we should make validation an entirely separate module/step.
+def validate_one_open_booking(people: List[entities.Person]) ->\
+        Tuple[List[entities.Person], int]:
+    data_validation_errors = 0
+    validated_people = []
+    for person in people:
+        open_bookings = [booking for booking in person.bookings if
+                         not booking.release_date]
+        if len(open_bookings) > 1:
+            logging.error(
+                'Multiple open bookings found for person: ', person)
+            data_validation_errors += 1
+        else:
+            validated_people.append(person)
+    return validated_people, data_validation_errors
 
 
 def write(ingest_info, metadata):
@@ -196,13 +215,20 @@ def write(ingest_info, metadata):
              monitoring.TagKey.SHOULD_PERSIST: _should_persist()}
     total_people = len(ingest_info.people)
     with monitoring.measurements(mtags) as measurements:
+
         # Convert the people one at a time and count the errors as they happen.
         people, enum_parsing_errors, protected_class_errors =\
             _convert_and_count_errors(ingest_info, metadata)
-        logging.info('Converted %s people with %s enum_parsing_errors and %s'
-                     ' protected_class_errors',
-                     len(people), enum_parsing_errors, protected_class_errors)
-        logging.info('Logging max 4 people:')
+        people, data_validation_errors = validate_one_open_booking(people)
+        logging.info(
+            'Successfully converted and validated proto with %d people.'
+            '(logging max %d people):',
+            len(people), MAX_PEOPLE_TO_LOG)
+        logging.info('Converted %s people with %s enum_parsing_errors, %s'
+                     ' protected_class_errors and %s data_validation_errors, '
+                     '(logging max %d people):',
+                     len(people), enum_parsing_errors, protected_class_errors,
+                     data_validation_errors, MAX_PEOPLE_TO_LOG)
         loop_count = min(len(people), MAX_PEOPLE_TO_LOG)
         for i in range(loop_count):
             logging.info(people[i])
@@ -211,7 +237,8 @@ def write(ingest_info, metadata):
         _abort_or_continue(
             total_people=total_people,
             enum_parsing_errors=enum_parsing_errors,
-            protected_class_errors=protected_class_errors)
+            protected_class_errors=protected_class_errors,
+            data_validation_errors=data_validation_errors)
 
         if not _should_persist():
             return
@@ -228,7 +255,8 @@ def write(ingest_info, metadata):
             _abort_or_continue(
                 total_people=total_people,
                 enum_parsing_errors=enum_parsing_errors,
-                entity_matching_errors=entity_matching_errors)
+                entity_matching_errors=entity_matching_errors,
+                data_validation_errors=data_validation_errors)
             database.write_people(session, people, metadata)
             logging.info('Successfully wrote to the database')
             session.commit()

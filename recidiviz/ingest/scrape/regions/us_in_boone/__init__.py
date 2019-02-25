@@ -14,16 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
-"""Contains errors for the persistence directory."""
 
-
-class PersistenceError(Exception):
-    """Raised when an error with the persistence layer is encountered."""
-
-
-class EntityMatchingError(Exception):
-    """Raised when an error with entity matching is encountered."""
-
-
-class DataValidationError(Exception):
-    """Raised when an assumption about incoming data is violated"""
+"""us_in_boone specific regional functionality.
+"""
+from recidiviz.ingest.scrape.regions.us_in_boone import us_in_boone_scraper

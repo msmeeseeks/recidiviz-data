@@ -1,0 +1,5 @@
+agency_name: Orange County Corrections Department
+agency_type: jail
+base_url: http://apps.ocfl.net/bailbond/default.asp
+timezone: America/New_York
+environment: staging
