@@ -1,0 +1,19 @@
+key_mappings:
+  Booking Number: booking.booking_id
+  Race: person.race
+  Gender: person.gender
+  Age: person.age
+  Date Booked: booking.admission_date
+  Case Status: charge.status
+  "#Bond Amount": bond.amount
+  Arresting Agency: arrest.agency
+  "Charge/Court Case Number": charge.name
+
+keys_to_ignore:
+  - Cell
+  - Number of Holds
+  - Notes
+  - Last Known Location
+  - Police Case Number
+  - Note
+  - Court Location
