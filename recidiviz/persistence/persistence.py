@@ -179,7 +179,7 @@ def _abort_or_continue(
         raise PersistenceError(
             'Aborting because there was an error regarding a protected class')
     if (enum_parsing_errors + entity_matching_errors) /\
-            total_people > ERROR_THRESHOLD:
+            total_people >= ERROR_THRESHOLD:
         raise PersistenceError(
             'Aborting because we exceeded the error threshold')
 
@@ -226,9 +226,9 @@ def write(ingest_info, metadata):
                 'Successfully completed entity matching with %s errors',
                 entity_matching_errors)
             _abort_or_continue(
-                    total_people=total_people,
-                    enum_parsing_errors=enum_parsing_errors,
-                    entity_matching_errors=entity_matching_errors)
+                total_people=total_people,
+                enum_parsing_errors=enum_parsing_errors,
+                entity_matching_errors=entity_matching_errors)
             database.write_people(session, people, metadata)
             logging.info('Successfully wrote to the database')
             session.commit()

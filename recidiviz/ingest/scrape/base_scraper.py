@@ -271,7 +271,8 @@ class BaseScraper(Scraper):
             ]
             # If we caught some other unexpected error, we want to catch it
             # and remap it to our catch all scraper error.
-            if type(e) not in scraper_errors:
+            error_type = type(e)
+            if error_type not in scraper_errors:
                 e = ScraperError(str(e))
             # batch_message = BatchMessage(
             #     scraper_start_time=request.scraper_start_time,
