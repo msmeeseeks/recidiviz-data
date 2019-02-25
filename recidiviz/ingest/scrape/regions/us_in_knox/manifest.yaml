@@ -1,0 +1,6 @@
+agency_name: Knox County Sheriff's Office
+agency_type: jail
+base_url: https://omsweb.public-safety-cloud.com/jtclientweb/(S(1yh4zbbwzrb1v3uxxjy3lkis))/jailtracker/index/Knox_County_IN 
+timezone: America/Indiana/Indianapolis
+environment: production
+shared_queue: vendor-jailtracker-scraper
