@@ -196,7 +196,7 @@ def validate_one_open_booking(people: List[entities.Person]) ->\
                          not booking.release_date]
         if len(open_bookings) > 1:
             logging.error(
-                'Multiple open bookings found for person: ', person)
+                'Multiple open bookings found for person: %s', person.person_id)
             data_validation_errors += 1
         else:
             validated_people.append(person)

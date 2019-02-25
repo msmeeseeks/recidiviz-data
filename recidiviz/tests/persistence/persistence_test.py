@@ -37,7 +37,7 @@ from recidiviz.common.ingest_metadata import IngestMetadata
 from recidiviz.ingest.models.ingest_info_pb2 import IngestInfo, Charge, \
     Sentence
 from recidiviz.ingest.scrape.ingest_utils import convert_ingest_info_to_proto
-from recidiviz.persistence import persistence, entities, errors
+from recidiviz.persistence import persistence, entities
 from recidiviz.persistence.database import database, schema
 from recidiviz.persistence.errors import PersistenceError
 from recidiviz.tests.utils import fakes
