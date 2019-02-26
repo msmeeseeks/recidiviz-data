@@ -21,13 +21,16 @@ from typing import Optional
 
 import attr
 import cattr
+from flask import Blueprint
 
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.models.scrape_key import ScrapeKey
 from recidiviz.ingest.scrape.task_params import Task
 from recidiviz.utils import pubsub_helper
+from recidiviz.utils.auth import authenticate_request
 
 PUBSUB_TYPE = 'scraper_batch'
+batch_blueprint = Blueprint('batch', __name__)
 
 
 @attr.s(frozen=True)
@@ -78,7 +81,7 @@ def _publish_batch_message(
 
 
 def write(ingest_info, scraper_start_time, task, scrape_key):
-    """Batches up the writes using pubsub
+    """Batches up the writes using pubsub.
 
     Args:
         ingest_info: (IngestInfo) the ingest info object to batch.
@@ -107,3 +110,12 @@ def write_error(error, task, scrape_key):
         task=task,
     )
     _publish_batch_message(batch_message, scrape_key)
+
+
+@batch_blueprint.route('/read_and_persist')
+@authenticate_request
+def read_and_persist():
+    """Reads all of the messages on the pubsub queue for a region and persists
+    them to the database.
+    """
+
