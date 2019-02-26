@@ -266,7 +266,7 @@ class BaseScraper(Scraper):
                             scraped_data.ingest_info), metadata)
             return None
         except Exception as e:
-            if self.USE_PUBSUB:
+            if self.BATCH_WRITES:
                 scrape_key = ScrapeKey(
                     self.region.region_code, request.scrape_type)
                 # TODO 1055: Actually publish when the endpoint is correctly
