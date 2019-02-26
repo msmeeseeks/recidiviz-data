@@ -202,7 +202,8 @@ class BaseScraper(Scraper):
                     scraped_data = self.populate_data(
                         content, task, request.ingest_info or IngestInfo())
                 except Exception as e:
-                    raise ScraperPopulateDataError(str(e))
+                    raise ScraperPopulateDataError(str(e)).\
+                        with_traceback(e.__traceback__)
 
             if self.should_get_more_tasks(task.task_type):
                 logging.info('Getting more tasks for %s and endpoint: %s',
@@ -216,7 +217,8 @@ class BaseScraper(Scraper):
                 try:
                     next_tasks = self.get_more_tasks(content, task)
                 except Exception as e:
-                    raise ScraperGetMoreTasksError(str(e))
+                    raise ScraperGetMoreTasksError(str(e)).\
+                        with_traceback(e.__traceback__)
                 for next_task in next_tasks:
                     # Include cookies received from response, if any
                     if cookies:
@@ -252,8 +254,6 @@ class BaseScraper(Scraper):
                 if self.BATCH_WRITES:
                     scrape_key = ScrapeKey(
                         self.region.region_code, request.scrape_type)
-                    # TODO 1055: Actually publish when the endpoint is correctly
-                    #   set up
                     batch_persistence.write(
                         ingest_info=scraped_data.ingest_info,
                         scraper_start_time=request.scraper_start_time,
@@ -269,8 +269,6 @@ class BaseScraper(Scraper):
             if self.BATCH_WRITES:
                 scrape_key = ScrapeKey(
                     self.region.region_code, request.scrape_type)
-                # TODO 1055: Actually publish when the endpoint is correctly
-                #  set up
                 batch_persistence.write_error(
                     error=type(e).__name__,
                     task=task,

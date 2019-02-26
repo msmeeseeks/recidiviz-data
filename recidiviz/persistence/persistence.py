@@ -176,7 +176,7 @@ def _abort_or_continue(
         protected_class_errors=0,
         data_validation_errors=0):
     # TODO: fill this in with actual logic
-    if protected_class_errors > 0:
+    if protected_class_errors:
         raise PersistenceError(
             'Aborting because there was an error regarding a protected class')
     if (enum_parsing_errors + entity_matching_errors +
