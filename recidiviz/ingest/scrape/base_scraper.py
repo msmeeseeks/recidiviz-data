@@ -190,8 +190,7 @@ class BaseScraper(Scraper):
                     if content == -1:
                         return -1
                 except Exception as e:
-                    raise ScraperFetchError(str(e)).\
-                        with_traceback(e.__traceback__)
+                    raise ScraperFetchError() from e
 
             scraped_data = None
             if self.should_scrape_data(task.task_type):
@@ -203,8 +202,7 @@ class BaseScraper(Scraper):
                     scraped_data = self.populate_data(
                         content, task, request.ingest_info or IngestInfo())
                 except Exception as e:
-                    raise ScraperPopulateDataError(str(e)).\
-                        with_traceback(e.__traceback__)
+                    raise ScraperPopulateDataError() from e
 
             if self.should_get_more_tasks(task.task_type):
                 logging.info('Getting more tasks for %s and endpoint: %s',
@@ -218,8 +216,7 @@ class BaseScraper(Scraper):
                 try:
                     next_tasks = self.get_more_tasks(content, task)
                 except Exception as e:
-                    raise ScraperGetMoreTasksError(str(e)).\
-                        with_traceback(e.__traceback__)
+                    raise ScraperGetMoreTasksError() from e
                 for next_task in next_tasks:
                     # Include cookies received from response, if any
                     if cookies:

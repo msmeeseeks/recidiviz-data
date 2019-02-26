@@ -43,10 +43,6 @@ class EntityMatching:
         person, if a matching person exists in the database, the primary key is
         updated on the ingested person.
         TODO: document how matches are determined in docstring or README.
-        Args:
-            session: (Session)
-            region: (str)
-            ingested_people: List[entities.Person]
         """
         with_external_ids = []
         without_external_ids = []
