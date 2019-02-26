@@ -40,7 +40,6 @@ class UsNcGuilfordScraper(SuperionScraper):
                               ChargeStatus.SENTENCED)
         overrides_builder.add('RELEASE PER JUDGE', ChargeStatus.DROPPED)
         overrides_builder.add('SENTENCED WEEKENDER', ChargeStatus.SENTENCED)
-        overrides_builder.add('TEMPORARY CUSTODY ORDER', ChargeStatus.PENDING)
         overrides_builder.add('WRITTEN PROMISE TO APPEAR', BondType.NO_BOND)
 
         return overrides_builder.build()
