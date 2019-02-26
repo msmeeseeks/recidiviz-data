@@ -43,9 +43,15 @@ class UsPaGreeneScraper(JailTrackerScraper):
             UsPaGreeneScraper, self).get_enum_overrides().to_builder()
 
         overrides_builder.add('CASH SURETY', BondType.UNSECURED)
-        overrides_builder.add('NO BOND PERMITTED UNBONDABLE CHARGE',
+        overrides_builder.add(lambda s: s.startswith('NO BOND PERMITTED'),
                               BondType.NO_BOND)
+        # If sentenced appears in bond type, we ignore it here but note
+        # that we do not need to map it to a booking status because this region
+        # will have booking status set in addition to the overloaded bond type
+        # so we need only ignore it in the bond type.
+        overrides_builder.add('NO BOND (SENTENCED)', BondType.NO_BOND)
         overrides_builder.add('PERCENTAGE', BondType.CASH)
+        overrides_builder.add('COLLATERAL', BondType.CASH)
         overrides_builder.add('SENTENCED BY COMMONWEALTH',
                               ChargeStatus.SENTENCED)
         overrides_builder.add('STRAIGHT', BondType.CASH)

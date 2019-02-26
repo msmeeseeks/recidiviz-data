@@ -16,6 +16,8 @@
 # =============================================================================
 
 """Scraper implementation for us_nc_alamance."""
+from recidiviz.common.constants.bond import BondType
+from recidiviz.common.constants.enum_overrides import EnumOverrides
 from recidiviz.ingest.scrape.vendors.superion.superion_scraper import \
     SuperionScraper
 
@@ -24,3 +26,10 @@ class UsNcAlamanceScraper(SuperionScraper):
     """Scraper implementation for us_nc_alamance."""
     def __init__(self):
         super(UsNcAlamanceScraper, self).__init__('us_nc_alamance')
+
+    def get_enum_overrides(self) -> EnumOverrides:
+        overrides_builder = super(UsNcAlamanceScraper,
+                                  self).get_enum_overrides().to_builder()
+        # Is this correct?
+        overrides_builder.ignore('OTHER CUST ORDER', BondType)
+        return overrides_builder.build()

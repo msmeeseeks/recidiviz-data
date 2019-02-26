@@ -166,4 +166,6 @@ class DcnScraper(BaseScraper):
         overrides_builder.add('CASH OR SURETY BOND', BondType.UNSECURED)
         overrides_builder.add('DECLINED', BondType.NO_BOND)
         overrides_builder.add('PURGE', BondType.CASH)
+        overrides_builder.ignore('OTHER', BondType)
+        overrides_builder.ignore('DOC', BondType)
         return overrides_builder.build()
