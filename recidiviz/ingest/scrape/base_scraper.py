@@ -51,18 +51,18 @@ from recidiviz.ingest.models.scrape_key import ScrapeKey
 from recidiviz.ingest.scrape import constants, ingest_utils
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape.errors import ScraperFetchError, \
-    ScraperGetMoreTasksError, ScraperPopulateDataError, ScraperError
+    ScraperGetMoreTasksError, ScraperPopulateDataError
 from recidiviz.ingest.scrape.scraper import Scraper
 from recidiviz.ingest.scrape.task_params import QueueRequest, ScrapedData,\
-    Task, BatchMessage
-from recidiviz.persistence import persistence
-from recidiviz.utils import pubsub_helper
+    Task
+from recidiviz.persistence import batch_persistence, persistence
 
 
 class BaseScraper(Scraper):
     """Generic class for scrapers."""
 
-    PUBSUB_TYPE = 'scraper_batch'
+    # TODO 1055: Remove this when batch reader is complete.
+    BATCH_WRITES = False
 
     def __init__(self, region_name):
         super(BaseScraper, self).__init__(region_name)
@@ -249,43 +249,34 @@ class BaseScraper(Scraper):
                 metadata = IngestMetadata(self.region.region_code,
                                           request.scraper_start_time,
                                           self.get_enum_overrides())
-                # batch_message = BatchMessage(
-                #     scraper_start_time=request.scraper_start_time,
-                #     task=task,
-                #     ingest_info=scraped_data.ingest_info
-                # )
-                # scrape_key = ScrapeKey(
-                #     self.region.region_code, request.scrape_type)
-                # TODO 1055: Actually publish when the endpoint is correctly
-                #   set up
-                # self.publish_batch_message(batch_message, scrape_key)
-                persistence.write(
-                    ingest_utils.convert_ingest_info_to_proto(
-                        scraped_data.ingest_info), metadata)
+                if self.BATCH_WRITES:
+                    scrape_key = ScrapeKey(
+                        self.region.region_code, request.scrape_type)
+                    # TODO 1055: Actually publish when the endpoint is correctly
+                    #   set up
+                    batch_persistence.write(
+                        ingest_info=scraped_data.ingest_info,
+                        scraper_start_time=request.scraper_start_time,
+                        task=task,
+                        scrape_key=scrape_key,
+                    )
+                else:
+                    persistence.write(
+                        ingest_utils.convert_ingest_info_to_proto(
+                            scraped_data.ingest_info), metadata)
             return None
         except Exception as e:
-            scraper_errors = [
-                ScraperGetMoreTasksError,
-                ScraperPopulateDataError,
-                ScraperPopulateDataError
-            ]
-            # If we caught some other unexpected error, we want to catch it
-            # and remap it to our catch all scraper error.
-            error_type = type(e)
-            if error_type not in scraper_errors:
-                e = ScraperError(str(e))
-            # batch_message = BatchMessage(
-            #     scraper_start_time=request.scraper_start_time,
-            #     task=task,
-            #     error=type(e).__name__
-            # )
-            # scrape_key = ScrapeKey(
-            #     self.region.region_code, request.scrape_type)
-            # TODO 1055: Actually publish when the endpoint is correctly set up
-            # self.publish_batch_message(batch_message, scrape_key)
+            if self.USE_PUBSUB:
+                scrape_key = ScrapeKey(
+                    self.region.region_code, request.scrape_type)
+                # TODO 1055: Actually publish when the endpoint is correctly
+                #  set up
+                batch_persistence.write_error(
+                    error=type(e).__name__,
+                    task=task,
+                    scrape_key=scrape_key,
+                )
             raise e
-
-
 
     def is_initial_task(self, task_type):
         """Tells us if the task_type is initial task_type.
@@ -374,19 +365,3 @@ class BaseScraper(Scraper):
             task_type=constants.TaskType.INITIAL_AND_MORE,
             endpoint=self.get_region().base_url,
         )
-
-    def publish_batch_message(
-            self, batch_message: BatchMessage, scrape_key: ScrapeKey):
-        """Publishes the ingest info BatchMessage.
-
-        Args:
-            batch_message: Tahe BatchMessage to publish on the queue.
-            scrape_key: The ScrapeKey of the region
-        """
-        def inner():
-            serialized = batch_message.to_serializable()
-            return pubsub_helper.get_publisher().publish(
-                pubsub_helper.get_topic_path(scrape_key,
-                                             pubsub_type=self.PUBSUB_TYPE),
-                data=serialized)
-        pubsub_helper.retry_with_create(scrape_key, inner, self.PUBSUB_TYPE)
