@@ -190,7 +190,8 @@ class BaseScraper(Scraper):
                     if content == -1:
                         return -1
                 except Exception as e:
-                    raise ScraperFetchError(str(e))
+                    raise ScraperFetchError(str(e)).\
+                        with_traceback(e.__traceback__)
 
             scraped_data = None
             if self.should_scrape_data(task.task_type):
