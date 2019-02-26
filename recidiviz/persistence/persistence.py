@@ -29,6 +29,7 @@ from recidiviz import Session
 from recidiviz.common.constants.bond import BondStatus
 from recidiviz.common.constants.booking import CustodyStatus
 from recidiviz.common.constants.charge import ChargeStatus
+from recidiviz.common.constants.entity_enum import EnumParsingError
 from recidiviz.common.constants.person import PROTECTED_CLASSES
 from recidiviz.common.constants.hold import HoldStatus
 from recidiviz.common.constants.sentence import SentenceStatus
@@ -148,12 +149,15 @@ def _convert_and_count_errors(ingest_info, metadata):
     while ingest_info.people:
         try:
             people.append(ii_converter.convert_and_pop())
-        except Exception as e:
+        except EnumParsingError as e:
             logging.error(str(e))
             if e.entity_type in PROTECTED_CLASSES:
                 protected_class_errors += 1
             else:
                 enum_parsing_errors += 1
+        except Exception as e:
+            logging.error(str(e))
+            enum_parsing_errors += 1
     return people, enum_parsing_errors, protected_class_errors
 
 
