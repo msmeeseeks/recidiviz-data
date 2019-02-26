@@ -21,12 +21,12 @@ from typing import Optional
 
 import attr
 import cattr
-from flask import Blueprint
+from flask import Blueprint, request
 
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.models.scrape_key import ScrapeKey
 from recidiviz.ingest.scrape.task_params import Task
-from recidiviz.utils import pubsub_helper
+from recidiviz.utils import pubsub_helper, regions
 from recidiviz.utils.auth import authenticate_request
 
 PUBSUB_TYPE = 'scraper_batch'
@@ -112,10 +112,22 @@ def write_error(error, task, scrape_key):
     _publish_batch_message(batch_message, scrape_key)
 
 
-@batch_blueprint.route('/read_and_persist')
+@batch_blueprint.route('/read_and_persist', methods=['POST'])
 @authenticate_request
 def read_and_persist():
     """Reads all of the messages on the pubsub queue for a region and persists
     them to the database.
     """
+    json_data = request.get_data(as_text=True)
+    data = json.loads(json_data)
+
+    region = data['region']
+    scrape_type = data['scrape_type']
+
+    scraper = regions.get_region(region).get_scraper()
+    overrides = scraper.get_enum_overrides()
+    scrape_key = ScrapeKey(region, scrape_type)
+
+
+
 
