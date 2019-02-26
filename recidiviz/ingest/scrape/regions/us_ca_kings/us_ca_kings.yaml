@@ -1,0 +1,24 @@
+key_mappings:
+  Name: person.full_name
+  Sex: person.gender
+  Race: person.race
+  DOB: person.birthdate
+  "Person #": person.person_id
+  "Booking #": booking.booking_id
+
+  Arrest Date/Time: arrest.arrest_date
+  Agency: arrest.agency
+  Booking Date/Time: booking.admission_date
+  Scheduled Release: booking.projected_release_date
+  Actual Release: booking.release_date
+
+multi_key_mapping:
+  Charge: charge.statute
+  Description: charge.name
+  Bail: bond.amount
+  Classification: charge.charge_class
+  "Court Case #": charge.case_number
+
+keys_to_ignore:
+  - 'N/A' # TODO(1084): This is a date value that should be handled by converter
+  - 'ADA Accommodations' # TODO(1084)
