@@ -128,7 +128,7 @@ def _get_proto_from_messages(messages):
                 failed_tasks.remove(task_hash)
             task_proto = ingest_utils.convert_ingest_info_to_proto(
                 batch_message.ingest_info)
-            ingest_utils.append_to_proto(base_proto, task_proto)
+            _append_to_proto(base_proto, task_proto)
         else:
             # We only add to failed if we didn't see a successful one.  This is
             # because its possible a task ran 3 times before passing, meaning we
@@ -142,6 +142,16 @@ def _should_abort(failed_tasks):
     if len(failed_tasks) >= FAILED_TASK_THRESHOLD:
         return True
     return False
+
+
+def _append_to_proto(base, proto_to_append):
+    base.people.extend(proto_to_append.people)
+    base.bookings.extend(proto_to_append.bookings)
+    base.charges.extend(proto_to_append.charges)
+    base.arrests.extend(proto_to_append.arrests)
+    base.holds.extend(proto_to_append.holds)
+    base.bonds.extend(proto_to_append.bonds)
+    base.sentences.extend(proto_to_append.sentences)
 
 
 def write(ingest_info, task, scrape_key):
@@ -187,8 +197,7 @@ def read_and_persist():
     scrape_type = data['scrape_type']
     scraper_start_time = data['scraper_start_time']
 
-    scraper = regions.get_region(region).get_scraper()
-    overrides = scraper.get_enum_overrides()
+    overrides = regions.get_region(region).get_enum_overrides()
     scrape_key = ScrapeKey(region, scrape_type)
 
     messages = _get_batch_messages(scrape_key)

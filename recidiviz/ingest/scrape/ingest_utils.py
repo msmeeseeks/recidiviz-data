@@ -289,12 +289,3 @@ def ingest_info_from_serializable(serializable: Dict[Any, Any]) \
     proto = json_format.ParseDict(serializable, ingest_info_pb2.IngestInfo())
     return convert_proto_to_ingest_info(proto)
 
-
-def append_to_proto(base, proto_to_append):
-    base.people.extend(proto_to_append.people)
-    base.bookings.extend(proto_to_append.bookings)
-    base.charges.extend(proto_to_append.charges)
-    base.arrests.extend(proto_to_append.arrests)
-    base.holds.extend(proto_to_append.holds)
-    base.bonds.extend(proto_to_append.bonds)
-    base.sentences.extend(proto_to_append.sentences)
