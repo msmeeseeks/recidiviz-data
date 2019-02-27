@@ -25,7 +25,7 @@ from typing import List, Optional
 import datetime
 import attr
 
-from recidiviz.common.attr_annotations import buildable_attr, default_attr
+from recidiviz.common.attr_decorators import buildable_attr, default_attr
 from recidiviz.common.constants.bond import BondType, BondStatus
 from recidiviz.common.constants.booking import ReleaseReason, CustodyStatus, \
     Classification, AdmissionReason

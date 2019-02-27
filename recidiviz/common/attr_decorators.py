@@ -19,7 +19,7 @@ import attr
 
 
 def default_attr(cls):
-    """Annotation to add method to attr class to create object with default
+    """Decorator to add method to attr class to create object with default
     values set"""
 
     def new_with_defaults(**kwargs):
@@ -54,7 +54,7 @@ def default_attr(cls):
 
 
 def buildable_attr(cls):
-    """Annotation used to make attr object buildable"""
+    """Decorator used to make attr object buildable"""
 
     class Builder:
         """Builder used to build the specified |cls| Attr object."""

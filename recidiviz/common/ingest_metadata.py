@@ -19,7 +19,7 @@ from datetime import datetime
 
 import attr
 
-from recidiviz.common.attr_annotations import default_attr
+from recidiviz.common.attr_decorators import default_attr
 from recidiviz.common.constants.enum_overrides import EnumOverrides
 
 

@@ -20,7 +20,7 @@ import unittest
 
 import attr
 
-from recidiviz.common.attr_annotations import buildable_attr, BuilderException
+from recidiviz.common.attr_decorators import buildable_attr, BuilderException
 
 
 @buildable_attr
