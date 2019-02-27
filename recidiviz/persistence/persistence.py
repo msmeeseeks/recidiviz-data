@@ -30,8 +30,8 @@ from recidiviz.common.constants.bond import BondStatus
 from recidiviz.common.constants.booking import CustodyStatus
 from recidiviz.common.constants.charge import ChargeStatus
 from recidiviz.common.constants.entity_enum import EnumParsingError
-from recidiviz.common.constants.person import PROTECTED_CLASSES
 from recidiviz.common.constants.hold import HoldStatus
+from recidiviz.common.constants.person import PROTECTED_CLASSES
 from recidiviz.common.constants.sentence import SentenceStatus
 from recidiviz.common.ingest_metadata import IngestMetadata
 from recidiviz.ingest.scrape.constants import MAX_PEOPLE_TO_LOG
@@ -141,6 +141,10 @@ def _should_persist():
                 strtobool((os.environ.get('PERSIST_LOCALLY', 'false'))))
 
 
+# TODO 1094: Consider moving the error counting to the respective converter
+#   and entity matching code.
+
+
 def _convert_and_count_errors(ingest_info, metadata):
     people = []
     protected_class_errors = 0
@@ -186,7 +190,12 @@ def _abort_or_continue(
     if (enum_parsing_errors + entity_matching_errors +
             data_validation_errors) / total_people >= ERROR_THRESHOLD:
         raise PersistenceError(
-            'Aborting because we exceeded the error threshold')
+            'Aborting because we exceeded the error threshold of {} with {} '
+            'enum_parsing errors, {} entity_matching_errors, and {} '
+            'data_validation_errors'.format(ERROR_THRESHOLD,
+                                            enum_parsing_errors,
+                                            entity_matching_errors,
+                                            data_validation_errors))
 
 
 # Note: If we ever want to validate more than the existence of multiple open
@@ -224,10 +233,6 @@ def write(ingest_info, metadata):
         people, enum_parsing_errors, protected_class_errors =\
             _convert_and_count_errors(ingest_info, metadata)
         people, data_validation_errors = validate_one_open_booking(people)
-        logging.info(
-            'Successfully converted and validated proto with %d people.'
-            '(logging max %d people):',
-            len(people), MAX_PEOPLE_TO_LOG)
         logging.info('Converted %s people with %s enum_parsing_errors, %s'
                      ' protected_class_errors and %s data_validation_errors, '
                      '(logging max %d people):',
@@ -254,7 +259,7 @@ def write(ingest_info, metadata):
             entity_matching_errors = _entity_match_and_count_errors(
                 session, metadata.region, people)
             logging.info(
-                'Successfully completed entity matching with %s errors',
+                'Completed entity matching with %s errors',
                 entity_matching_errors)
             _abort_or_continue(
                 total_people=total_people,

@@ -51,8 +51,7 @@ class BatchMessage:
     # double count tasks that failed more than once.
     task: Task = attr.ib()
 
-    # In the case that a person's information is spread across multiple pages
-    # this is used to pass it along to the next page.
+    # The ingest info object that was batched up for a write.
     ingest_info: Optional[IngestInfo] = attr.ib(default=None)
 
     # The error type of the task if it ended in failure.
@@ -71,7 +70,7 @@ def _publish_batch_message(
     """Publishes the ingest info BatchMessage.
 
     Args:
-        batch_message: Tahe BatchMessage to publish on the queue.
+        batch_message: The BatchMessage to publish on the queue.
         scrape_key: The ScrapeKey of the region
     """
     def inner():
