@@ -16,7 +16,6 @@
 # =============================================================================
 
 """Utils file for ingest module"""
-
 import logging
 from datetime import tzinfo
 from typing import Any, Dict, List, Optional
@@ -119,6 +118,7 @@ def convert_ingest_info_to_proto(
     arrest_map: Dict[str, ingest_info.Arrest] = {}
     bond_map: Dict[str, ingest_info.Bond] = {}
     sentence_map: Dict[str, ingest_info.Sentence] = {}
+    id_to_generated: Dict[int, str] = {}
 
     def _populate_proto(proto_name, ingest_info_source, id_name, proto_map):
         """Populates all of the proto fields from an IngestInfo object.
@@ -138,7 +138,10 @@ def convert_ingest_info_to_proto(
         """
         obj_id = getattr(ingest_info_source, id_name)
         if not obj_id:
-            obj_id = common_utils.create_generated_id(ingest_info_source)
+            obj_id = id_to_generated.get(id(ingest_info_source)) or \
+                     common_utils.create_generated_id()
+            id_to_generated[id(ingest_info_source)] = obj_id
+
         # If we've already seen this id, we don't need to create it, we can
         # simply return it as is.  Not that we use this local in memory
         # proto map so as to avoid using the map provided in proto to make it
@@ -285,3 +288,13 @@ def ingest_info_from_serializable(serializable: Dict[Any, Any]) \
         -> ingest_info.IngestInfo:
     proto = json_format.ParseDict(serializable, ingest_info_pb2.IngestInfo())
     return convert_proto_to_ingest_info(proto)
+
+
+def append_to_proto(base, proto_to_append):
+    base.people.extend(proto_to_append.people)
+    base.bookings.extend(proto_to_append.bookings)
+    base.charges.extend(proto_to_append.charges)
+    base.arrests.extend(proto_to_append.arrests)
+    base.holds.extend(proto_to_append.holds)
+    base.bonds.extend(proto_to_append.bonds)
+    base.sentences.extend(proto_to_append.sentences)

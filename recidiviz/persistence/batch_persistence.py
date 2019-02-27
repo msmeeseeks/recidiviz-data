@@ -15,21 +15,28 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 """Contains logic for communicating with the batch persistence layer."""
-import datetime
 import json
+import logging
+from http import HTTPStatus
 from typing import Optional
 
 import attr
 import cattr
 from flask import Blueprint, request
 
+from recidiviz.common.ingest_metadata import IngestMetadata
+from recidiviz.ingest.models import ingest_info_pb2
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.models.scrape_key import ScrapeKey
+from recidiviz.ingest.scrape import ingest_utils
 from recidiviz.ingest.scrape.task_params import Task
+from recidiviz.persistence import persistence
 from recidiviz.utils import pubsub_helper, regions
 from recidiviz.utils.auth import authenticate_request
 
 PUBSUB_TYPE = 'scraper_batch'
+BATCH_READ_SIZE = 500
+FAILED_TASK_THRESHOLD = 1
 batch_blueprint = Blueprint('batch', __name__)
 
 
@@ -43,10 +50,6 @@ class BatchMessage:
     # That failed some number of times before finally passing, or to not
     # double count tasks that failed more than once.
     task: Task = attr.ib()
-
-    # The time at which this scraper was started, used to associate the entities
-    # ingested during throughout the scrape
-    scraper_start_time: Optional[datetime.datetime] = attr.ib()
 
     # In the case that a person's information is spread across multiple pages
     # this is used to pass it along to the next page.
@@ -80,18 +83,78 @@ def _publish_batch_message(
     pubsub_helper.retry_with_create(scrape_key, inner, PUBSUB_TYPE)
 
 
-def write(ingest_info, scraper_start_time, task, scrape_key):
+def _get_batch_messages(scrape_key):
+    """Reads all of the messages from pubsub"""
+    def inner():
+        return pubsub_helper.get_subscriber().pull(
+            pubsub_helper.get_subscription_path(scrape_key,
+                                                pubsub_type=PUBSUB_TYPE),
+            max_messages=BATCH_READ_SIZE,
+            return_immediately=True
+        )
+    messages = []
+    while True:
+        response = pubsub_helper.retry_with_create(
+            scrape_key, inner, pubsub_type=PUBSUB_TYPE)
+        if response.received_messages:
+            messages.extend(response.received_messages)
+        else:
+            break
+    return messages
+
+
+def _ack_messages(messages, scrape_key):
+    ack_ids = [message.ack_id for message in messages]
+    pubsub_helper.get_subscriber().acknowledge(
+        pubsub_helper.get_subscription_path(
+            scrape_key, pubsub_type=PUBSUB_TYPE), ack_ids)
+
+
+def _get_proto_from_messages(messages):
+    """Merges an ingest_info_proto from all of the batched messages"""
+    logging.info('Starting generation of proto')
+    base_proto = ingest_info_pb2.IngestInfo()
+    successful_tasks = set()
+    failed_tasks = set()
+    for message in messages:
+        batch_message = BatchMessage.from_serializable(message.message.data)
+        # We do this because dicts are not hashable in python and we want to
+        # avoid an n2 operation to see which tasks have been seen previously
+        # which can be on the order of a million operations.
+        task_hash = hash(json.dumps(batch_message.task.to_serializable(),
+                                    sort_keys=True))
+        if not batch_message.error:
+            successful_tasks.add(task_hash)
+            if task_hash in failed_tasks:
+                failed_tasks.remove(task_hash)
+            task_proto = ingest_utils.convert_ingest_info_to_proto(
+                batch_message.ingest_info)
+            ingest_utils.append_to_proto(base_proto, task_proto)
+        else:
+            # We only add to failed if we didn't see a successful one.  This is
+            # because its possible a task ran 3 times before passing, meaning we
+            # don't want to fail on that when we see the failed ones.
+            if task_hash not in successful_tasks:
+                failed_tasks.add(task_hash)
+    return base_proto, failed_tasks
+
+
+def _should_abort(failed_tasks):
+    if len(failed_tasks) >= FAILED_TASK_THRESHOLD:
+        return True
+    return False
+
+
+def write(ingest_info, task, scrape_key):
     """Batches up the writes using pubsub.
 
     Args:
         ingest_info: (IngestInfo) the ingest info object to batch.
-        scraper_start_time: (datetime) the start time
         task: (Task) the task which queued up this write
         scrape_key: (ScrapeKey) information on the region
     """
     batch_message = BatchMessage(
         ingest_info=ingest_info,
-        scraper_start_time=scraper_start_time,
         task=task,
     )
     _publish_batch_message(batch_message, scrape_key)
@@ -123,11 +186,26 @@ def read_and_persist():
 
     region = data['region']
     scrape_type = data['scrape_type']
+    scraper_start_time = data['scraper_start_time']
 
     scraper = regions.get_region(region).get_scraper()
     overrides = scraper.get_enum_overrides()
     scrape_key = ScrapeKey(region, scrape_type)
 
+    messages = _get_batch_messages(scrape_key)
+    proto, failed_tasks = _get_proto_from_messages(messages)
+    # Only acknowledge if the above code passed.
+    _ack_messages(messages, scrape_key)
 
+    if _should_abort(failed_tasks):
+        logging.info('Too many scraper tasks failed(%s), aborting write',
+                     len(failed_tasks))
+        return '', HTTPStatus.OK
 
+    metadata = IngestMetadata(
+        region=region, last_seen_time=scraper_start_time,
+        enum_overrides=overrides)
 
+    persistence.write(proto, metadata)
+    # TODO: queue up infer release before returning
+    return '', HTTPStatus.OK

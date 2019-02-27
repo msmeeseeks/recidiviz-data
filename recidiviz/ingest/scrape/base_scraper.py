@@ -254,7 +254,6 @@ class BaseScraper(Scraper):
                         self.region.region_code, request.scrape_type)
                     batch_persistence.write(
                         ingest_info=scraped_data.ingest_info,
-                        scraper_start_time=request.scraper_start_time,
                         task=task,
                         scrape_key=scrape_key,
                     )
