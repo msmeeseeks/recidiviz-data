@@ -23,8 +23,11 @@ from recidiviz.ingest.scrape.vendors import NewWorldScraper
 
 class UsFlNassauScraper(NewWorldScraper):
     """Scraper implementation for us_fl_nassau."""
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(UsFlNassauScraper, self).__init__('us_fl_nassau')
+
+    def get_region_code(self) -> str:
+        return 'nassau'
 
     def get_enum_overrides(self):
         overrides_builder = super(
