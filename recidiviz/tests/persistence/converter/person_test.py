@@ -33,7 +33,7 @@ class PersonConverterTest(unittest.TestCase):
     """Tests for converting people."""
 
     def setUp(self):
-        self.subject = entities.Person.builder()
+        self.subject = entities.Person.Builder()
 
     def testParsesPerson(self):
         # Arrange

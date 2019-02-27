@@ -25,7 +25,7 @@ from recidiviz.persistence.converter.converter_utils import fn, \
 
 def convert(proto, metadata: IngestMetadata) -> entities.Bond:
     """Converts an ingest_info proto Bond to a persistence entity."""
-    new = entities.Bond.builder()
+    new = entities.Bond.Builder()
 
     new.external_id = fn(parse_external_id, 'bond_id', proto)
     new.bond_agent = fn(normalize, 'bond_agent', proto)

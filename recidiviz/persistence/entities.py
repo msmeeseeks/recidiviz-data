@@ -25,7 +25,7 @@ from typing import List, Optional
 import datetime
 import attr
 
-from recidiviz.common.buildable_attr import BuildableAttr
+from recidiviz.common.attr_annotations import buildable_attr, default_attr
 from recidiviz.common.constants.bond import BondType, BondStatus
 from recidiviz.common.constants.booking import ReleaseReason, CustodyStatus, \
     Classification, AdmissionReason
@@ -46,8 +46,11 @@ class Entity:
             raise Exception('Abstract class cannot be instantiated')
         return super().__new__(cls)
 
+
+@default_attr
+@buildable_attr
 @attr.s
-class Person(Entity, BuildableAttr):
+class Person(Entity):
     full_name: Optional[str] = attr.ib()
     birthdate: Optional[datetime.date] = attr.ib()
     birthdate_inferred_from_age: Optional[bool] = attr.ib()
@@ -64,8 +67,10 @@ class Person(Entity, BuildableAttr):
     bookings: List['Booking'] = attr.ib(factory=list)
 
 
+@default_attr
+@buildable_attr
 @attr.s
-class Booking(Entity, BuildableAttr):
+class Booking(Entity):
     admission_date: Optional[datetime.date] = attr.ib()
     admission_reason: Optional[AdmissionReason] = attr.ib()
     admission_reason_raw_text: Optional[str] = attr.ib()
@@ -88,8 +93,10 @@ class Booking(Entity, BuildableAttr):
     charges: List['Charge'] = attr.ib(factory=list)
 
 
+@default_attr
+@buildable_attr
 @attr.s
-class Arrest(Entity, BuildableAttr):
+class Arrest(Entity):
     arrest_date: Optional[datetime.date] = attr.ib()
     location: Optional[str] = attr.ib()
     agency: Optional[str] = attr.ib()
@@ -99,8 +106,10 @@ class Arrest(Entity, BuildableAttr):
     arrest_id: Optional[int] = attr.ib(default=None)
 
 
+@default_attr
+@buildable_attr
 @attr.s
-class Charge(Entity, BuildableAttr):
+class Charge(Entity):
     offense_date: Optional[datetime.date] = attr.ib()
     statute: Optional[str] = attr.ib()
     name: Optional[str] = attr.ib()
@@ -126,8 +135,10 @@ class Charge(Entity, BuildableAttr):
     sentence: Optional['Sentence'] = attr.ib(default=None)
 
 
+@default_attr
+@buildable_attr
 @attr.s
-class Hold(Entity, BuildableAttr):
+class Hold(Entity):
     jurisdiction_name: Optional[str] = attr.ib()
     status: HoldStatus = attr.ib()  # non-nullable
     status_raw_text: Optional[str] = attr.ib()
@@ -135,8 +146,10 @@ class Hold(Entity, BuildableAttr):
     hold_id: Optional[int] = attr.ib(default=None)
 
 
+@default_attr
+@buildable_attr
 @attr.s
-class Bond(Entity, BuildableAttr):
+class Bond(Entity):
     amount_dollars: Optional[int] = attr.ib()
     bond_type: Optional[BondType] = attr.ib()
     bond_type_raw_text: Optional[str] = attr.ib()
@@ -148,8 +161,10 @@ class Bond(Entity, BuildableAttr):
     booking_id: Optional[int] = attr.ib(default=None)
 
 
+@default_attr
+@buildable_attr
 @attr.s
-class Sentence(Entity, BuildableAttr):
+class Sentence(Entity):
     sentencing_region: Optional[str] = attr.ib()
     status: SentenceStatus = attr.ib()  # non-nullable
     status_raw_text: Optional[str] = attr.ib()

@@ -32,7 +32,7 @@ class ChargeConverterTest(unittest.TestCase):
     """Tests for converting charges."""
 
     def setUp(self):
-        self.subject = entities.Charge.builder()
+        self.subject = entities.Charge.Builder()
 
     def testParseCharge(self):
         # Arrange
