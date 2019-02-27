@@ -23,5 +23,5 @@ from recidiviz.ingest.scrape.vendors.brooks_jeffrey.brooks_jeffrey_scraper \
 
 class UsAlPikeScraper(BrooksJeffreyScraper):
     """Scraper implementation for us_al_pike."""
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(UsAlPikeScraper, self).__init__('us_al_pike')
