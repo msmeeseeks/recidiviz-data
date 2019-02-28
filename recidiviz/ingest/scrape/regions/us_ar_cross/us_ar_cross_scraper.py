@@ -24,5 +24,5 @@ from recidiviz.ingest.scrape.vendors.brooks_jeffrey.brooks_jeffrey_scraper \
 class UsArCrossScraper(BrooksJeffreyScraper):
     """Scraper implementation for us_ar_cross."""
 
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(UsArCrossScraper, self).__init__('us_ar_cross')

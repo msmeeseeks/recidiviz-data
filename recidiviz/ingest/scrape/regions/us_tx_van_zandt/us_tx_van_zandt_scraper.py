@@ -21,5 +21,5 @@ from recidiviz.ingest.scrape.vendors import NetDataScraper
 
 class UsTxVanZandtScraper(NetDataScraper):
     """Scraper implementation for us_tx_van_zandt."""
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(UsTxVanZandtScraper, self).__init__('us_tx_van_zandt')

@@ -29,11 +29,9 @@ from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 class UsFlOsceolaScraper(BaseScraper):
     """Scraper implementation for us_fl_osceola."""
 
-    def __init__(self, mapping_filepath=None):
-        if not mapping_filepath:
-            mapping_filepath = os.path.join(
-                os.path.dirname(__file__), 'us_fl_osceola.yaml')
-        self.mapping_filepath = mapping_filepath
+    def __init__(self):
+        self.mapping_filepath = os.path.join(
+            os.path.dirname(__file__), 'us_fl_osceola.yaml')
 
         super(UsFlOsceolaScraper, self).__init__('us_fl_osceola')
 

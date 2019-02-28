@@ -24,7 +24,7 @@ from recidiviz.ingest.scrape.vendors.brooks_jeffrey.brooks_jeffrey_scraper \
 
 class UsArFaulknerScraper(BrooksJeffreyScraper):
     """Scraper implementation for us_ar_faulkner."""
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(UsArFaulknerScraper, self).__init__('us_ar_faulkner')
 
     def get_enum_overrides(self) -> EnumOverrides:
