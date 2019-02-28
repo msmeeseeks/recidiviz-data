@@ -99,4 +99,4 @@ def create_task(*, region_code, queue_name, url, body):
 def list_tasks(*, region_code: str, queue_name: str):
     """List tasks for the given region and queue"""
     return [task for task in client().list_tasks(format_queue_path(queue_name))
-            if task.name.startswith(region_code)]
+            if task['name'].startswith(region_code)]
