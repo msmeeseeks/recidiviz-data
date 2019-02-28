@@ -32,12 +32,11 @@ scraper_status = Blueprint('scraper_status', __name__)
 @scraper_status.route('/check_finished')
 @authenticate_request
 def check_for_finished_scrapers():
-    """Checks for any finished scrapers and kicks off next processes.
-    """
+    """Checks for any finished scrapers and kicks off next processes."""
 
     def _check_finished(region_code: str):
         if is_scraper_finished(region_code):
-            # TODO: close the session, launch batch write
+            # TODO: create task to stop scraper, kick off batch write
             logging.info('Region \'%s\' has completed.', region_code)
 
     region_codes = ingest_utils.validate_regions(
@@ -45,8 +44,7 @@ def check_for_finished_scrapers():
 
     threads = []
     for region_code in region_codes:
-        # If timezone wasn't provided, return all but if it was, only
-        # return regions that match the timezone.
+        # Kick off a check for each region
         thread = threading.Thread(
             target=_check_finished,
             args=region_code
@@ -54,8 +52,7 @@ def check_for_finished_scrapers():
         thread.start()
         threads.append(thread)
 
-    # Once everything is started, lets wait for everything to end before
-    # returning.
+    # Wait for all the checks to complete.
     for thread in threads:
         thread.join()
     return ('', HTTPStatus.OK)
