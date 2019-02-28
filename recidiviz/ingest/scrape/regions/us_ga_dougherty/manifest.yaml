@@ -1,0 +1,5 @@
+agency_name: Dougherty County Sheriff's Office
+agency_type: jail
+base_url: http://66.110.195.53/p2c_dcso
+timezone: America/New_York
+environment: staging

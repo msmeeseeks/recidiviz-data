@@ -1,0 +1,360 @@
+<!--P2CBasic-->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head><meta http-equiv="Page-Enter" content="Alpha(opacity=100)" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><link id="activeStylesheetLink" href="css/active.css" rel="Stylesheet" /><link id="commonStylesheet" href="css/p2cBase.css" rel="Stylesheet" /><link rel="Shortcut Icon" href="./images/favicon.ico" type="image/x-icon" /><script src="js/jquery-1.4.2.min.js" type="text/javascript"></script><script src="jqui/1.8/jquery-ui-1.8.custom.min.js" type="text/javascript"></script><link href="jqui/1.8/cupertino/jquery-ui.css" rel="Stylesheet" class="ui-theme" />
+
+
+    <script language="javascript" type="text/javascript">
+        // DO NOT REMOVE
+        // this function is used by the form builder
+        // to control tab index issues
+        function getASPElm(nm, tag) {
+            if ($get(nm)) { return $get(nm); }
+            if (!tag) { tag = '*'; }
+            var e = document.getElementsByTagName(tag);
+            for (var i = 0; i < e.length; i++) {
+                if (e[i].id) {
+                    if (e[i].id.indexOf(nm) != -1) {
+                        return e[i];
+                    }
+                }
+            }
+            return null;
+        }
+    </script>
+
+    <!-- JQuery Menu Helper Script -->
+
+    <!-- JQuery Menu Helper Script -->
+<title>
+  Columbia County Sheriffs Office P2C - provided by OSSI
+</title></head>
+
+<body class="Body" style="text-align:center;"  bottommargin="3" leftmargin="2" topmargin="2" rightmargin="2">
+    <form method="post" action="./InmateDetail.aspx?navid=636867951725089611" id="Form1" onsubmit="return(onsubmitEventsHandler());">
+<div class="aspNetHidden">
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__LASTFOCUS" id="__LASTFOCUS" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUKLTc4MjE0NTE1Ng9kFgJmD2QWAmYPZBYGAgEPZBYCAgUPZBYEZg8WAh4EVGV4dAVFPHNjcmlwdCBzcmM9ImpzL2pxdWVyeS0xLjQuMi5taW4uanMiIHR5cGU9InRleHQvamF2YXNjcmlwdCI+PC9zY3JpcHQ+ZAIBDxYCHwAFpQE8c2NyaXB0IHNyYz0ianF1aS8xLjgvanF1ZXJ5LXVpLTEuOC5jdXN0b20ubWluLmpzIiB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiPjwvc2NyaXB0PjxsaW5rIGhyZWY9ImpxdWkvMS44L2N1cGVydGluby9qcXVlcnktdWkuY3NzIiByZWw9IlN0eWxlc2hlZXQiIGNsYXNzPSJ1aS10aGVtZSIgLz5kAgMPZBYEAgMPFgIeBWFsaWduBQZjZW50ZXIWBgIBDxYCHgNzcmMFF34vaW1hZ2VzL0FnZW5jeU5hbWUuZ2lmZAIDDxYCHghkaXNhYmxlZGQWAmYPZBYEZg9kFgICAQ8PFgIfAAXVBCAgPGEgY2xhc3M9Ik1lbnVUZXh0IiBocmVmPSIuL21haW4uYXNweCI+SE9NRSB8PC9hPiAgPGEgY2xhc3M9Ik1lbnVUZXh0IiBocmVmPSIuL3N1bW1hcnkuYXNweCI+RVZFTlQgU0VBUkNIIHw8L2E+ICA8YSBjbGFzcz0iTWVudVRleHQiIGhyZWY9Ii4vYWNjaWRlbnRkZXRhaWwuYXNweCI+Q1JBU0ggUkVQT1JUUyB8PC9hPiAgPGEgY2xhc3M9Ik1lbnVUZXh0IiBocmVmPSIuL2phaWxpbm1hdGVzLmFzcHgiPklOTUFURSBJTlFVSVJZIHw8L2E+ICA8YSBjbGFzcz0iTWVudVRleHQiIGhyZWY9Ii4vY29tbXVuaXR5Y2FsZW5kYXIuYXNweCI+Q09NTVVOSVRZIENBTEVOREFSIHw8L2E+ICA8YSBjbGFzcz0iTWVudVRleHQiIGhyZWY9Ii4vYXJyZXN0cy5hc3B4Ij5BUlJFU1RTIHw8L2E+ICA8YSBjbGFzcz0iTWVudVRleHQiIGhyZWY9Ii4vd2FudGVkbGlzdC5hc3B4Ij5XQU5URUQgTElTVCB8PC9hPiAgPGEgY2xhc3M9Ik1lbnVUZXh0IiBocmVmPSIuL3NleG9mZmVuZGVycy5hc3B4Ij5TRVggT0ZGRU5ERVJTIHw8L2E+ICA8YSBjbGFzcz0iTWVudVRleHQiIGhyZWY9Ii4vU2V4T2ZmZW5kZXJTZWFyY2guYXNweCI+U0VYIE9GRkVOREVSIFNFQVJDSCB8PC9hPmRkAgEPZBYCAgEPZBYCZg8QDxYGHg1EYXRhVGV4dEZpZWxkBQR0ZXh0Hg5EYXRhVmFsdWVGaWVsZAUEbGluax4LXyFEYXRhQm91bmRnZBAVCQRIb21lDEV2ZW50IFNlYXJjaA1DcmFzaCBSZXBvcnRzDklubWF0ZSBJbnF1aXJ5EkNvbW11bml0eSBDYWxlbmRhcgdBcnJlc3RzC1dhbnRlZCBMaXN0DVNleCBPZmZlbmRlcnMTU2V4IE9mZmVuZGVyIFNlYXJjaBUJC34vbWFpbi5hc3B4Dn4vc3VtbWFyeS5hc3B4FX4vYWNjaWRlbnRkZXRhaWwuYXNweBJ+L2phaWxpbm1hdGVzLmFzcHgYfi9jb21tdW5pdHljYWxlbmRhci5hc3B4Dn4vYXJyZXN0cy5hc3B4EX4vd2FudGVkbGlzdC5hc3B4E34vc2V4b2ZmZW5kZXJzLmFzcHgYfi9TZXhPZmZlbmRlclNlYXJjaC5hc3B4FCsDCWdnZ2dnZ2dnZxYBZmQCBw9kFgJmD2QWAgIDDw8WAh8ABSpUaGVyZSBhcmUgY3VycmVudGx5IG5vIGl0ZW1zIGluIHlvdXIgY2FydC5kZAIHD2QWAgIFD2QWFAIDDw8WAh8ABRhBUkVWQUxPLCBKQUlNRSBGUkFOQ0lTQ09kZAIHDw8WAh8ABQwyMiBZRUFSUyBPTERkZAILDw8WAh8ABQVXSElURWRkAg0PDxYCHwAFBE1BTEVkZAIRDw8WAh8ABQoxMi8yMC8yMDE4ZGQCFQ8PFgIfAGVkZAIZDw8WAh8AZWRkAhsPDxYCHghJbWFnZVVybAUITXVnLmFzcHhkZAIdD2QWAgIBDzwrAAsBAA8WCh4QQ3VycmVudFBhZ2VJbmRleGYeCERhdGFLZXlzFgAeC18hSXRlbUNvdW50AgQeCVBhZ2VDb3VudAIBHhVfIURhdGFTb3VyY2VJdGVtQ291bnQCBGQWAmYPZBYIAgEPZBYIZg8PFgIfAAUgTUFSSUpVQU5BLVBPU1NFU1MgTEVTUyBUSEFOIDEgT1pkZAIBDw8WAh8ABQ5BV0FJVElORyBUUklBTGRkAgIPDxYCHwAFASBkZAIDDw8WAh8ABRVTRUNVUkUgQk9ORCAkMSwxMDAuMDBkZAICD2QWCGYPDxYCHwAFHlBPU1NFU1NJT04gT0YgU0NIRURVTEUgSSBEUlVHU2RkAgEPDxYCHwAFDkFXQUlUSU5HIFRSSUFMZGQCAg8PFgIfAAUBIGRkAgMPDxYCHwAFFVNFQ1VSRSBCT05EICQ3LDYwMC4wMGRkAgMPZBYIZg8PFgIfAAUsTk8gUFJPT0YgT0YgTUlOSU1VTSBJTlNVUkFOQ0UvTU9UT1IgVkVISUNMRVNkZAIBDw8WAh8ABQ5BV0FJVElORyBUUklBTGRkAgIPDxYCHwAFASBkZAIDDw8WAh8ABRVTRUNVUkUgQk9ORCAkMSwxMDAuMDBkZAIED2QWCGYPDxYCHwAFPEtOT1dMSU5HTFkgRFJJVklORyBNT1RPUiBWRUhJQ0xFIE9OIFNVU1BFTkRFRC9DQU5DRUxFRC9SRVZPS2RkAgEPDxYCHwAFDkFXQUlUSU5HIFRSSUFMZGQCAg8PFgIfAAUBIGRkAgMPDxYCHwAFFVNFQ1VSRSBCT05EICQxLDEwMC4wMGRkAiAPDxYCHwAFCiQxMCw5MDAuMDBkZAIFDxYCHwAFzgM8c2NyaXB0IHR5cGU9J3RleHQvamF2YXNjcmlwdCc+DQp2YXIgX2dhcSA9IF9nYXEgfHwgW107DQpfZ2FxLnB1c2goWydfc2V0QWNjb3VudCcsICdVQS0zMDg0NzQ5NS0xJ10pOw0KX2dhcS5wdXNoKFsnX3RyYWNrUGFnZXZpZXcnXSk7DQooZnVuY3Rpb24gKCkgew0KdmFyIGdhID0gZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnc2NyaXB0Jyk7IGdhLnR5cGUgPSAndGV4dC9qYXZhc2NyaXB0JzsgZ2EuYXN5bmMgPSB0cnVlOw0KIGdhLnNyYyA9ICgnaHR0cHM6JyA9PSBkb2N1bWVudC5sb2NhdGlvbi5wcm90b2NvbCA/ICdodHRwczovL3NzbCcgOiAnaHR0cDovL3d3dycpICsgJy5nb29nbGUtYW5hbHl0aWNzLmNvbS9nYS5qcyc7DQp2YXIgcyA9IGRvY3VtZW50LmdldEVsZW1lbnRzQnlUYWdOYW1lKCdzY3JpcHQnKVswXTsgcy5wYXJlbnROb2RlLmluc2VydEJlZm9yZShnYSwgcyk7DQp9KSgpOw0KPC9zY3JpcHQ+DQpkZFiq1+uckeR017sEVq6lBqkKRND41E9bDqRLc45mcB1H" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['Form1'];
+if (!theForm) {
+    theForm = document.Form1;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<div class="aspNetHidden">
+
+  <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="B6FD4AF1" />
+  <input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAAt29T7jzjqOntoNrIxm+NbgtIRHSVssgoJyyg3bWzoj7JzdObrOl2sY04oKRakIOJhZv40pKnbcPP0ZtNgplSLveXe+64FbXkMWDSEWwktwyqFHTVvBzW8GUqndGj/NCBZlrBtGjyPLQdCzTf6vt8KznrAHylkO4p7xW6ZR6KDB4dJdc4G90RtYBTd5a2MgMvqVtvBCDwLivoe2C3npPlPQ7Bz/CwNAsxEXDjqf0/DTWhQczIjHXnBfLkLZHv5M9CB9Qt1jXnobMjZED8v3kHFi" />
+</div>
+
+
+    <table class="MainTable" id="Table1" cellspacing="0" cellpadding="0">
+        <tr height="40px">
+            <td valign="bottom" align="left">
+                <div id="divHeader" class="Header" align="center">
+                    <img src="images/AgencyName.gif" id="imgAgencyBanner" /><br />
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td>
+                            <table id="classicmenu" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr style="line-height: 11px; padding: 1px 0 2px 0;">
+    <td class="Menu" bgcolor="#f5f5f5">
+                                        <font size="1" class="MainFont"><strong>
+                                            <span id="lblMenu">  <a class="MenuText" href="./main.aspx">HOME |</a>  <a class="MenuText" href="./summary.aspx">EVENT SEARCH |</a>  <a class="MenuText" href="./accidentdetail.aspx">CRASH REPORTS |</a>  <a class="MenuText" href="./jailinmates.aspx">INMATE INQUIRY |</a>  <a class="MenuText" href="./communitycalendar.aspx">COMMUNITY CALENDAR |</a>  <a class="MenuText" href="./arrests.aspx">ARRESTS |</a>  <a class="MenuText" href="./wantedlist.aspx">WANTED LIST |</a>  <a class="MenuText" href="./sexoffenders.aspx">SEX OFFENDERS |</a>  <a class="MenuText" href="./SexOffenderSearch.aspx">SEX OFFENDER SEARCH |</a></span></strong></font>
+                                    </td>
+    <td class="Menu" align="right" bgcolor="#f5f5f5">
+                                        <select name="ctl00$MasterPage$DDLSiteMap1$ddlQuickLinks" onchange="javascript:setTimeout(&#39;__doPostBack(\&#39;ctl00$MasterPage$DDLSiteMap1$ddlQuickLinks\&#39;,\&#39;\&#39;)&#39;, 0)" id="DDLSiteMap1_ddlQuickLinks" class="ShadowBoxDark" style="font-family:Microsoft Sans Serif;font-size:XX-Small;">
+      <option selected="selected" value="~/main.aspx">Home</option>
+      <option value="~/summary.aspx">Event Search</option>
+      <option value="~/accidentdetail.aspx">Crash Reports</option>
+      <option value="~/jailinmates.aspx">Inmate Inquiry</option>
+      <option value="~/communitycalendar.aspx">Community Calendar</option>
+      <option value="~/arrests.aspx">Arrests</option>
+      <option value="~/wantedlist.aspx">Wanted List</option>
+      <option value="~/sexoffenders.aspx">Sex Offenders</option>
+      <option value="~/SexOffenderSearch.aspx">Sex Offender Search</option>
+
+    </select>
+
+                                    </td>
+  </tr>
+</table>
+
+                           </td>
+                        </tr>
+                        <tr >
+                            <td class="ui-widget">
+                                <table id="superfishtb" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr style="padding: 0 0 0 0;">
+    <td style="font-size:1em;" class="ui-widget-header">
+                                            <!-- Use the Literal control below to store JQuery Menu scripts-->
+
+                                            <!-- Use the Literal control below to store JQuery Menu scripts-->
+                                        </td>
+  </tr>
+</table>
+
+                            </td>
+                        </tr>
+
+                    </table>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td valign="top">
+
+
+
+    <table cellpadding="0" cellspacing="0" style="width: 100%; height:100%;">
+
+        <tr>
+            <td class="LeftTable" style="width: 155px;" valign="top" align="center">
+
+                    <div style="padding: 40px 12px 12px 12px;">
+                        <div id="mainContent_LeftColumnContent_PnlLoadUC1" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_LeftColumnContent_PnlLoadUC3" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_LeftColumnContent_PnlLoadUC4" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_LeftColumnContent_PnlLoadUC5" style="margin-bottom: 20px;">
+
+</div>
+                    </div>
+
+            </td>
+            <td style="height: 248px; padding:10px;" valign="top" align="center">
+                <div style="text-align:center;">
+
+
+                    <div style="margin: 1em auto .2em auto; font-style: italic; font-family: Georgia, Arial; font-variant: small-caps; font-weight: bold; text-align: center;" class="MainFont">Inmate Detail</div>
+
+
+    <div style="text-align:center; width:482px; margin: 0 auto;">
+        <div class="shadowbox" style="padding:10px 0; margin-bottom:5px;">
+            <div>
+                <table id="Table4" cellspacing="0" cellpadding="0" border="0" width="100%">
+                    <tr>
+                        <td valign="top" align="left" style="padding-left:10px;">
+                            <table id="Table5" cellspacing="1" cellpadding="1" border="0">
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label1" class="ShadowBoxFont" style="font-weight:bold;">Name:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <p align="center">
+                                            <span id="mainContent_CenterColumnContent_lblName" class="ShadowBoxFont" style="font-weight:bold;">SIMPSON, BART Q</span></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label6" class="ShadowBoxFont" style="font-weight:bold;">Age:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <p align="center">
+                                            <span id="mainContent_CenterColumnContent_lblAge" class="ShadowBoxFont" style="font-weight:bold;">22 YEARS OLD</span></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label3" class="ShadowBoxFont" style="font-weight:bold;">Race / Sex:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <span id="mainContent_CenterColumnContent_lblRace" class="ShadowBoxFont" style="font-weight:bold;">WHITE</span><span id="mainContent_CenterColumnContent_Label9" class="ShadowBoxFont" style="font-weight:bold;"> / </span><span id="mainContent_CenterColumnContent_lblSex" class="ShadowBoxFont" style="font-weight:bold;">MALE</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label4" class="ShadowBoxFont" style="font-weight:bold;">Arrest Date:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <span id="mainContent_CenterColumnContent_lblArrestDate" class="ShadowBoxFont" style="font-weight:bold;">12/20/2018</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label7" class="ShadowBoxFont" style="font-weight:bold;">Release Date:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <span id="mainContent_CenterColumnContent_lblReleaseDate" class="ShadowBoxFont" style="font-weight:bold;"></span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="right">
+                                        <span id="mainContent_CenterColumnContent_Label5" class="ShadowBoxFont" style="font-weight:bold;">Next Court Date:&nbsp;</span>
+                                    </td>
+                                    <td align="center">
+                                        <span id="mainContent_CenterColumnContent_lblNextCourtDate" class="ShadowBoxFont" style="font-weight:bold;"></span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                        <td align="center" style="width:168px;">
+                            <img id="mainContent_CenterColumnContent_imgPhoto" src="Mug.aspx" style="width:138px;" />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <div id="mainContent_CenterColumnContent_Panel2">
+
+                <div style="font-size: x-small;" align="center">
+                    <table cellspacing="0" rules="all" border="1" id="mainContent_CenterColumnContent_dgMainResults" style="font-size:X-Small;width:100%;border-collapse:collapse;">
+    <tr style="color:White;background-color:DimGray;font-weight:bold;">
+      <td>Charge</td><td>Status</td><td>Docket #</td><td>Bond Amount</td>
+    </tr>
+    <tr>
+      <td>MARIJUANA-POSSESS LESS THAN 1 OZ</td><td>BOND REVOKED</td><td> </td><td align="right">BONDING COMAPNY</td>
+    </tr>
+    <tr>
+      <td>MARIJUANA-POSSESS LESS THAN 1 OZ</td><td>AWAITING TRIAL</td><td> </td><td align="right">PAYMENT</td>
+    </tr>
+  </table></div>
+
+</div>
+            <table border="0">
+                <tr>
+                    <td align="right">
+                        <span id="mainContent_CenterColumnContent_Label8" class="MainFont" style="font-weight:bold;font-size: x-small">Total Bond Amount:</span><span id="mainContent_CenterColumnContent_lblTotalBoundAmount" class="MainFont" style="font-weight:bold;font-size: x-small; padding-left:1em;">$10,900.00</span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+
+                        <div id="mainContent_AdminPanel_pnlAdmin" style="width:381px; margin: 0 auto;">
+
+</div>
+
+                </div>
+            </td>
+            <td class="RightTable" style="width: 155px" valign="top" align="center">
+
+                    <div style="padding: 40px 12px 12px 12px;">
+                        <div id="mainContent_RightColumnContent_PnlLoadUC12" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_RightColumnContent_PnlLoadUC13" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_RightColumnContent_PnlLoadUC14" style="margin-bottom: 20px;">
+
+</div>
+                        <div id="mainContent_RightColumnContent_PnlLoadUC15" style="margin-bottom: 20px;">
+
+</div>
+                    </div>
+
+            </td>
+        </tr>
+    </table>
+
+                <div id="pnlThemeSwitcher">
+
+</div>
+            </td>
+        </tr>
+        <tr>
+            <td class="Footer" align="center" style="font-size:10pt;">
+                <div style="margin:2px 0;">
+
+                    <span class="FooterText">powered by</span>
+                    <a href="http://www.sungardps.com/products/ossipublicsafetysolution.aspx" class="NoUnderLine">
+                        <span style="color:mediumblue;">Sungard Public Sector OSSI</span>
+                    </a>
+                    <span class="FooterText">'s P2C engine</span>
+                </div>
+            </td>
+        </tr>
+    </table>
+    <div id="_UniqueWaitControlID" style="visibility:hidden;height:10px;">
+  <TABLE width='100%' height='100%'>
+<TR><TD align='middle'>
+<span id="_WaitControlMessageID">Request in process, please wait...</span>
+</TD></TR>
+<TR><TD>&nbsp;</TD></TR>
+<TR><TD align='middle'>
+<IMG id='_UniqueWaitControlID_Image1' src='/images/progress1.gif' align='middle' name='Image1'>
+</TD></TR>
+<TR><TD align='middle'><a style='color:#3333cc;text-decoration:underline;' href='javascript:window.document.fireEvent("onstop"); void 0;'>Cancel</a></TD></TR>
+</TABLE>
+
+</div>
+<script language='javascript'>
+var ImgProgress = new Array(4);
+for (var i=0;i<ImgProgress.length;i++)
+{
+ImgProgress[i]=new Image(0,0);
+ImgProgress[i].src = '/images/progress' + (i+1) + '.gif';
+}
+function WaitALittleBit()
+{
+setTimeout('InProcessPleaseWait()',750);
+}
+function InProcessPleaseWait()
+{
+document.forms[0].style.visibility='hidden';
+_UniqueWaitControlID.style.left = (document.body.offsetWidth / 2) - (_UniqueWaitControlID.offsetWidth / 2);
+_UniqueWaitControlID.style.top = (document.body.offsetHeight / 2) - (_UniqueWaitControlID.offsetHeight / 2);
+_UniqueWaitControlID.style.position = 'absolute';
+_UniqueWaitControlID.style.visibility='visible';
+AnimationImage();
+}
+var ImgIndex=0;
+function AnimationImage()
+{
+window.document._UniqueWaitControlID_Image1.src=ImgProgress[ImgIndex%ImgProgress.length].src;
+ImgIndex++;
+if (document.readyState!='complete')
+{
+setTimeout('AnimationImage()',250);
+}
+else
+{
+document.forms[0].style.visibility='visible';
+_UniqueWaitControlID.style.visibility='hidden';
+}
+}
+</script>
+
+<script language="javascript">
+function onsubmitEventsHandler(){
+if(WaitALittleBit()==false){return false;}
+return true;}
+</script></form>
+    <script type='text/javascript'>
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-30847495-1']);
+_gaq.push(['_trackPageview']);
+(function () {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+
+
+</body>
+</html>

@@ -15,14 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper tests for ${region}."""
-import unittest
-
-from recidiviz.ingest.scrape.regions.${region}.${region}_scraper import ${class_name}Scraper
-from recidiviz.tests.ingest.vendors.superion.superion_scraper_test import \
-    SuperionScraperTest
-
-
-class Test${class_name}Scraper(SuperionScraperTest, unittest.TestCase):
-    def _get_scraper(self):
-        return ${class_name}Scraper()
+"""us_al_morgan specific regional functionality.
+"""
+from recidiviz.ingest.scrape.regions.us_al_morgan import us_al_morgan_scraper

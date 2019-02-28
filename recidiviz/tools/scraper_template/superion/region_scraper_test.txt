@@ -1,5 +1,5 @@
 # Recidiviz - a platform for tracking granular recidivism metrics in real time
-# Copyright (C) $year Recidiviz, Inc.
+# Copyright (C) 2019 Recidiviz, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,12 +15,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-"""Scraper implementation for $region."""
-from recidiviz.ingest.scrape.vendors.superion.superion_scraper import \
-    SuperionScraper
+"""Scraper tests for ${region}."""
+import unittest
+
+from recidiviz.ingest.scrape.region.${region}.${region}_scraper \
+    import ${class_name}Scraper
+from recidiviz.tests.ingest.scrape.vendors.superion.superion_scraper_test \
+    import SuperionScraperTest
 
 
-class ${class_name}Scraper(SuperionScraper):
-    """Scraper implementation for $region."""
-    def __init__(self):
-        super(${class_name}Scraper, self).__init__('$region')
+class Test${class_name}Scraper(SuperionScraperTest, unittest.TestCase):
+    def _get_scraper(self):
+        return ${class_name}Scraper()
