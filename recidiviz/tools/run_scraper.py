@@ -38,6 +38,7 @@ from datetime import datetime
 from functools import partial
 
 from recidiviz.ingest.scrape import constants
+from recidiviz.ingest.scrape.ingest_utils import validate_regions
 from recidiviz.ingest.scrape.task_params import QueueRequest
 from recidiviz.utils import regions
 
@@ -68,7 +69,9 @@ def run_scraper(args):
     if args.region == 'all':
         region_codes = [r.region_code for r in regions.get_supported_regions()]
     else:
-        region_codes = args.region.split(',')
+        region_codes = validate_regions(args.region.split(','))
+        if not region_codes:
+            exit()
     failed_regions = []
     for region_code in region_codes:
         logging.info('***')
