@@ -2,43 +2,54 @@ import numpy as np
 import pandas as pd
 import sys
 import tabula
+import us
 
-from recidiviz.ingest.aggregate import aggregate_ingest_utils
+from recidiviz.ingest.aggregate import aggregate_ingest_utils, fips
+from recidiviz.persistence.database.schema import TnFacilityAggregate
 
 
 def parse(filename):
 
-    tn_df = tabula.read_pdf(filename,
-                            pages=[2, 3, 4], multiple_tables=True)
+    table = tabula.read_pdf(filename,
+                            # pandas_options={'header': [0, 1, 2, 3]},
+                            # pages=[2, 3],
+                            pages=[2, 3, 4],
+                            multiple_tables=True
+    )
 
     formatted_dfs = []
-    for df in tn_df:
+    for df in table:
         formatted_dfs.append(format_table(df))
 
-    tn_df = pd.concat(formatted_dfs, reindex=True)
+    table = pd.concat(formatted_dfs, ignore_index=True)
 
-    #df.columns = df.iloc[0
+    # Discard 'TOTAL' row.
+    table = table.iloc[:-1]
 
-    tn_df.to_csv('/tmp/shit.csv')
+    table = fips.add_column_to_df(table, table['facility_name'], us.states.TN)
 
-    import ipdb; ipdb.set_trace()
+    table['report_date'] = _parse_date(filename)
+    table['report_granularity'] = enum_strings.monthly_granularity
 
+
+    return {
+        TnFacilityAggregate: table
+    }
+
+def _parse_date(filename):
+    return datetime.date(year=2019, month=1, day=31)
 
 def format_table(df):
-    import ipdb; ipdb.set_trace()
-    df.columns = pd.MultiIndex.from_frame(df.iloc[0:4])
+
+    # The first four rows are parsed containing the column names.
+    df.columns = df.iloc[:4].apply(lambda rows: ' '.join(rows.dropna()).strip())
     df = df.iloc[4:]
-
-    import ipdb; ipdb.set_trace()
-
-    df.columns = aggregate_ingest_utils.collapse_header(df.columns)
 
     rename = {
         r'FACILITY': 'facility_name',
         r'TDOC Backup.*': 'tdoc_backup_population',
         r'Local': 'local_felons_population',
-        r'Other .* Conv': 'other_convicted_felons_population',
-        r'Federal & Others': 'federal_and_other_population',
+        r'Other .* Conv.*': 'other_convicted_felons_population',
         r'Conv\. Misd\.': 'convicted_misdemeanor_population',
         r'Pre- trial Felony': 'pretrial_felony_population',
         r'Pre- trial Misd\.': 'pretrial_misdemeanor_population',
@@ -50,6 +61,13 @@ def format_table(df):
         df, rename, use_regex=True)
 
     df = df.dropna(how='all')
+
+    df['federal_and_other_population'] = df[
+        'other_convicted_felons_population'].map(
+            lambda element: element.split()[1])
+    df['other_convicted_felons_population'] = df[
+        'other_convicted_felons_population'].map(
+            lambda element: element.split()[0])
 
     return df
 

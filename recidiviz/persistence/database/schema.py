@@ -930,7 +930,7 @@ class PaFacilityPopAggregate(Base, _AggregateTableMixin):
     discharge = Column(Integer)
 
 
-class TnFacilityPopAggregate(Base, _AggregateTableMixin):
+class TnFacilityAggregate(Base, _AggregateTableMixin):
     """TN state-provided aggregate population statistics."""
     __tablename__ = 'tn_facility_pop_aggregate'
     __table_args__ = (
