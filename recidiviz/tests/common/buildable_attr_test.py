@@ -20,12 +20,11 @@ import unittest
 
 import attr
 
-from recidiviz.common.attr_decorators import buildable_attr, BuilderException
+from recidiviz.common.attr_mixins import BuilderException, BuildableAttr
 
 
-@buildable_attr
 @attr.s
-class FakeBuildableAttr:
+class FakeBuildableAttr(BuildableAttr):
     required_field = attr.ib()
     field_with_default = attr.ib(factory=list)
 
@@ -35,7 +34,7 @@ class BuildableAttrTests(unittest.TestCase):
 
     def testBuild_WithRequiredFields_BuildsAttr(self):
         # Arrange
-        subject = FakeBuildableAttr.Builder()
+        subject = FakeBuildableAttr.builder()
         subject.required_field = "TEST"
 
         # Act
@@ -51,7 +50,7 @@ class BuildableAttrTests(unittest.TestCase):
 
     def testBuild_MissingRequiredField_RaisesException(self):
         # Arrange
-        subject = FakeBuildableAttr.Builder()
+        subject = FakeBuildableAttr.builder()
 
         # Act + Assert
         with self.assertRaises(BuilderException):
@@ -59,7 +58,7 @@ class BuildableAttrTests(unittest.TestCase):
 
     def testBuild_ExtraField_RaisesException(self):
         # Arrange
-        subject = FakeBuildableAttr.Builder()
+        subject = FakeBuildableAttr.builder()
         subject.required_field = "TEST"
         subject.not_a_real_field = "TEST_2"
 

@@ -19,13 +19,12 @@ from datetime import datetime
 
 import attr
 
-from recidiviz.common.attr_decorators import default_attr
+from recidiviz.common.attr_mixins import DefaultAttr
 from recidiviz.common.constants.enum_overrides import EnumOverrides
 
 
-@default_attr
 @attr.s(frozen=True)
-class IngestMetadata:
+class IngestMetadata(DefaultAttr):
     """Metadata used to construct entity objects from ingest_info objects."""
 
     # The region that this ingest_info was scraped from.

@@ -57,7 +57,7 @@ class _Converter:
 
     def _convert_person(self, ingest_person):
         """Converts an ingest_info proto Person to a persistence entity."""
-        person_builder = entities.Person.Builder()
+        person_builder = entities.Person.builder()
 
         person.copy_fields_to_builder(
             person_builder, ingest_person, self.metadata)
@@ -76,7 +76,7 @@ class _Converter:
 
     def _convert_booking(self, ingest_booking):
         """Converts an ingest_info proto Booking to a persistence entity."""
-        booking_builder = entities.Booking.Builder()
+        booking_builder = entities.Booking.builder()
 
         booking.copy_fields_to_builder(booking_builder, ingest_booking,
                                        self.metadata)
@@ -124,7 +124,7 @@ class _Converter:
 
     def _convert_charge(self, ingest_charge):
         """Converts an ingest_info proto Charge to a persistence entity."""
-        charge_builder = entities.Charge.Builder()
+        charge_builder = entities.Charge.builder()
 
         charge.copy_fields_to_builder(charge_builder, ingest_charge,
                                       self.metadata)

@@ -32,7 +32,7 @@ class BookingConverterTest(unittest.TestCase):
     """Tests for converting bookings."""
 
     def setUp(self):
-        self.subject = entities.Booking.Builder()
+        self.subject = entities.Booking.builder()
 
     def testParseBooking(self):
         # Arrange

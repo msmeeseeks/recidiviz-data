@@ -73,7 +73,7 @@ def convert(src):
     if direction is _Direction.ENTITY_TO_SCHEMA:
         dst = schema_cls()
     else:
-        dst = entity_cls.Builder()
+        dst = entity_cls.builder()
 
     for field, attribute in attr.fields_dict(entity_cls).items():
         if field == 'bookings':

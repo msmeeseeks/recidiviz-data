@@ -24,7 +24,7 @@ from recidiviz.persistence.converter.converter_utils import normalize, \
 
 def convert(proto, metadata: IngestMetadata) -> entities.Sentence:
     """Converts an ingest_info proto Sentence to a persistence entity."""
-    new = entities.Sentence.Builder()
+    new = entities.Sentence.builder()
 
     new.external_id = fn(parse_external_id, 'sentence_id', proto)
     new.sentencing_region = fn(normalize, 'sentencing_region', proto)

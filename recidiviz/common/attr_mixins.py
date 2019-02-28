@@ -18,11 +18,11 @@
 import attr
 
 
-def default_attr(cls):
-    """Decorator to add method to attr class to create object with default
-    values set"""
+class DefaultAttr:
+    """Mixin to add method to attr class that creates default object"""
 
-    def new_with_defaults(**kwargs):
+    @classmethod
+    def new_with_defaults(cls, **kwargs):
         """Create a new object with default values if set, otherwise None.
 
         Note: This method should only be used in tests. In prod you should
@@ -49,17 +49,14 @@ def default_attr(cls):
 
         return cls(**kwargs)
 
-    cls.new_with_defaults = new_with_defaults
-    return cls
 
-
-def buildable_attr(cls):
-    """Decorator used to make attr object buildable"""
+class BuildableAttr:
+    """Mixin used to make attr object buildable"""
 
     class Builder:
         """Builder used to build the specified |cls| Attr object."""
 
-        def __init__(self):
+        def __init__(self, cls):
             # Directly set self.__dict__ to avoid invoking __setattr__
             self.__dict__['cls'] = cls
             self.__dict__['fields'] = {}
@@ -77,29 +74,28 @@ def buildable_attr(cls):
             """Builds the given Attr class after verifying that all fields
             without a default value are set and that no extra fields are set."""
             self._verify_has_all_and_only_required_fields()
-            return cls(**self.fields)
+            return self.cls(**self.fields)
 
         def _verify_has_all_and_only_required_fields(self):
             """Throws a |BuilderException| if:
                 1. Any field without a default/factory value is left unset
                 2. Any field is set that doesn't exist on the Attr
             """
-            required_fields = set(attr.fields_dict(cls).keys())
+            required_fields = set(attr.fields_dict(self.cls).keys())
 
             fields_provided = set(self.fields.keys())
             fields_with_defaults = {field for field, attribute in
-                                    attr.fields_dict(cls).items() if
+                                    attr.fields_dict(self.cls).items() if
                                     attribute.default is not attr.NOTHING}
             fields_with_value = fields_provided | fields_with_defaults
 
             if not required_fields == fields_with_value:
-                raise BuilderException(cls, required_fields, fields_with_value)
+                raise BuilderException(
+                    self.cls, required_fields, fields_with_value)
 
-    if not attr.has(cls):
-        raise TypeError('@buildable_attr must be used on an attr class')
-
-    cls.Builder = Builder
-    return cls
+    @classmethod
+    def builder(cls):
+        return cls.Builder(cls)
 
 
 class BuilderException(Exception):

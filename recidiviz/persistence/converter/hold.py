@@ -24,7 +24,7 @@ from recidiviz.persistence.converter.converter_utils import normalize, fn, \
 
 def convert(proto, metadata: IngestMetadata) -> entities.Hold:
     """Converts an ingest_info proto Hold to a persistence entity."""
-    new = entities.Hold.Builder()
+    new = entities.Hold.builder()
 
     new.external_id = fn(parse_external_id, 'hold_id', proto)
     new.jurisdiction_name = fn(normalize, 'jurisdiction_name', proto)
