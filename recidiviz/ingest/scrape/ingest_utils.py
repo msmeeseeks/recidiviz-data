@@ -288,4 +288,3 @@ def ingest_info_from_serializable(serializable: Dict[Any, Any]) \
         -> ingest_info.IngestInfo:
     proto = json_format.ParseDict(serializable, ingest_info_pb2.IngestInfo())
     return convert_proto_to_ingest_info(proto)
-

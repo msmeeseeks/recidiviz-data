@@ -40,6 +40,10 @@ FAILED_TASK_THRESHOLD = 1
 batch_blueprint = Blueprint('batch', __name__)
 
 
+class BatchPersistError(Exception):
+    """Raised when there was an error with batch persistence."""
+
+
 @attr.s(frozen=True)
 class BatchMessage:
     """A wrapper around a message to publish so we can batch up the writes.
@@ -75,10 +79,11 @@ def _publish_batch_message(
     """
     def inner():
         serialized = batch_message.to_serializable()
-        return pubsub_helper.get_publisher().publish(
+        response = pubsub_helper.get_publisher().publish(
             pubsub_helper.get_topic_path(scrape_key,
                                          pubsub_type=PUBSUB_TYPE),
             data=json.dumps(serialized).encode())
+        response.result()
     pubsub_helper.retry_with_create(scrape_key, inner, PUBSUB_TYPE)
 
 
@@ -116,7 +121,8 @@ def _get_proto_from_messages(messages):
     successful_tasks = set()
     failed_tasks = set()
     for message in messages:
-        batch_message = BatchMessage.from_serializable(message.message.data)
+        batch_message = BatchMessage.from_serializable(
+            json.loads(message.message.data.decode()))
         # We do this because dicts are not hashable in python and we want to
         # avoid an n2 operation to see which tasks have been seen previously
         # which can be on the order of a million operations.
@@ -184,6 +190,30 @@ def write_error(error, task, scrape_key):
     _publish_batch_message(batch_message, scrape_key)
 
 
+def persist_to_database(region, scrape_type, scraper_start_time):
+    """Reads all of the messages on the pubsub queue for a region and persists
+    them to the database.
+    """
+    overrides = regions.get_region(region).get_enum_overrides()
+    scrape_key = ScrapeKey(region, scrape_type)
+
+    messages = _get_batch_messages(scrape_key)
+    proto, failed_tasks = _get_proto_from_messages(messages)
+    # Only acknowledge if the above code passed.
+    _ack_messages(messages, scrape_key)
+
+    if _should_abort(failed_tasks):
+        raise BatchPersistError(
+            'Too many scraper tasks failed({}), aborting write'.format(
+                len(failed_tasks)))
+
+    metadata = IngestMetadata(
+        region=region, last_seen_time=scraper_start_time,
+        enum_overrides=overrides)
+
+    persistence.write(proto, metadata)
+
+
 @batch_blueprint.route('/read_and_persist', methods=['POST'])
 @authenticate_request
 def read_and_persist():
@@ -197,23 +227,7 @@ def read_and_persist():
     scrape_type = data['scrape_type']
     scraper_start_time = data['scraper_start_time']
 
-    overrides = regions.get_region(region).get_enum_overrides()
-    scrape_key = ScrapeKey(region, scrape_type)
+    persist_to_database(region, scrape_type, scraper_start_time)
 
-    messages = _get_batch_messages(scrape_key)
-    proto, failed_tasks = _get_proto_from_messages(messages)
-    # Only acknowledge if the above code passed.
-    _ack_messages(messages, scrape_key)
-
-    if _should_abort(failed_tasks):
-        logging.info('Too many scraper tasks failed(%s), aborting write',
-                     len(failed_tasks))
-        return '', HTTPStatus.OK
-
-    metadata = IngestMetadata(
-        region=region, last_seen_time=scraper_start_time,
-        enum_overrides=overrides)
-
-    persistence.write(proto, metadata)
     # TODO: queue up infer release before returning
     return '', HTTPStatus.OK
