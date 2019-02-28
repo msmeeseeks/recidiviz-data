@@ -43,6 +43,9 @@ from recidiviz.utils import regions
 
 
 # This function acts as a bound method to the scraper instance.
+from recidiviz.utils.regions import get_supported_regions
+
+
 def add_task(queue, _self, task_name, request):
     """Overwritten version of `add_task` which adds the task to an in-memory
     queue.
@@ -65,7 +68,10 @@ def start_scrape(queue, self, scrape_type):
 
 
 def run_scraper(args):
-    region_codes = args.region.split(',')
+    if args.region == 'all':
+        region_codes = [r.region_code for r in get_supported_regions()]
+    else:
+        region_codes = args.region.split(',')
     failed_regions = []
     for region_code in region_codes:
         logging.info('***')
@@ -134,7 +140,8 @@ def _create_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--region', required=True,
-                        help='The comma separated list of regions to test')
+                        help='The comma separated list of regions to test, or'
+                             '"all" to test all regions')
     parser.add_argument(
         '--num_tasks', required=False, default=5, type=int,
         help='The number of tasks to complete'
