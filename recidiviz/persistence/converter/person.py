@@ -54,15 +54,19 @@ def _parse_name(proto) -> Optional[str]:
     surname = fn(normalize, 'surname', proto)
     name_suffix = fn(normalize, 'name_suffix', proto)
 
-    _validate_names(
-        full_name=full_name, given_names=given_names, middle_names=middle_names,
-        surname=surname, name_suffix=name_suffix)
+    if full_name and any((given_names, middle_names, surname, name_suffix)):
+        raise ValueError(
+            'Cannot have full_name and surname/middle/given_names/name_suffix')
+
+    if any((middle_names, name_suffix)) and not any((given_names, surname)):
+        raise ValueError('Cannot set only middle_names/name_suffix.')
+
     return _combine_names(
         full_name=full_name, given_names=given_names, middle_names=middle_names,
         surname=surname, name_suffix=name_suffix)
 
 
-def _combine_names(**names: Optional[str]) -> str:
+def _combine_names(**names: Optional[str]) -> Optional[str]:
     """Writes the names out as a json string, skipping fields that are None.
 
     Note: We don't have any need for parsing these back into their parts, but
@@ -70,17 +74,8 @@ def _combine_names(**names: Optional[str]) -> str:
     to add fields in the future without changing the serialization of existing
     names.
     """
-    return json.dumps({k: v for k, v in names.items() if v}, sort_keys=True)
-
-
-def _validate_names(*, full_name: str, given_names: str, middle_names: str,
-                    surname: str, name_suffix: str):
-    if full_name and any((given_names, middle_names, surname, name_suffix)):
-        raise ValueError(
-            'Cannot have full_name and surname/middle/given_names/name_suffix')
-
-    if not any((full_name, given_names, surname)):
-        raise ValueError('full_name, given_names, or surname must be set.')
+    filled_names = {k: v for k, v in names.items() if v}
+    return json.dumps(filled_names, sort_keys=True) if filled_names else None
 
 
 def _parse_birthdate(proto):
