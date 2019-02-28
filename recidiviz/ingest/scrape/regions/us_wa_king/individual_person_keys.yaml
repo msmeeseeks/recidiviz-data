@@ -2,6 +2,7 @@ key_mappings:
   People.LastName: person.surname
   People.FirstName: person.given_names
   People.MiddleName: person.middle_names
+  People.JuniorSenior: person.name_suffix
   People.InCustody: booking.custody_status
   People.CurrentCustodyFacility: booking.facility
   People.Bookings.BA: booking.booking_id
@@ -21,7 +22,6 @@ key_mappings:
   People.Bookings.Charges.ChargeDate: charge.offense_date
 
 keys_to_ignore:
-- People.JuniorSenior  # TODO: use
 - People.CCN # Use the CCN from the top-level (they are different) 
 - People.BailOnCurrentBooking  # Use the `Bail` from individual charges
 - People.LatestBooking  # `Bookings` lists all the bookings, including latest

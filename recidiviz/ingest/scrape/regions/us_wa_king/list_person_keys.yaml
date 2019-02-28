@@ -2,6 +2,7 @@ key_mappings:
   LastName: person.surname
   FirstName: person.given_names
   MiddleName: person.middle_names
+  JuniorSenior: person.name_suffix
   CCN: person.person_id  # computer control number
   CurrentCustodyFacility: booking.facility
   LatestBooking.BA: booking.booking_id
@@ -10,7 +11,6 @@ key_mappings:
   LatestBooking.ChargesString: charge.name
   
 keys_to_ignore:
-- JuniorSenior  # TODO: use
 - BailOnCurrentBooking  # Not set
 - InCustody  # Not set
 - Bookings  # Not set
