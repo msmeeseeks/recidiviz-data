@@ -1,0 +1,5 @@
+agency_name: Escambia County Sheriff's Office
+agency_type: jail
+base_url: http://inmatelookup.myescambia.com/smartwebclient/jail.aspx
+timezone: America/New_York
+environment: staging
