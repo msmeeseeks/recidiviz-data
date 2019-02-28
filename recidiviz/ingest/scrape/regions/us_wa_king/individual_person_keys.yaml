@@ -1,0 +1,34 @@
+key_mappings:
+  People.LastName: person.surname
+  People.FirstName: person.given_names
+  People.MiddleName: person.middle_names
+  People.InCustody: booking.custody_status
+  People.CurrentCustodyFacility: booking.facility
+  People.Bookings.BA: booking.booking_id
+  People.Bookings.BookingDate: booking.admission_date
+  People.Bookings.ReleaseDate: booking.release_date
+  # We map this to `charging_entity` just to get it extracted so we can then
+  # append it to the end of the charge name. `charging_entity` is otherwise
+  # unused.
+  People.Bookings.Charges.NCICCode: charge.charging_entity
+  People.Bookings.Charges.Court: charge.court_type
+  People.Bookings.Charges.Cause: charge.case_number
+  People.Bookings.Charges.RCW: charge.statute
+  People.Bookings.Charges.Bail: bond.amount
+  People.Bookings.Charges.ChargeNarrative: charge.name
+  People.Bookings.Charges.ChargeReleaseReason: charge.status
+  People.Bookings.Charges.ChargeNumber: charge.charge_notes
+  People.Bookings.Charges.ChargeDate: charge.offense_date
+
+keys_to_ignore:
+- People.JuniorSenior  # TODO: use
+- People.CCN # Use the CCN from the top-level (they are different) 
+- People.BailOnCurrentBooking  # Use the `Bail` from individual charges
+- People.LatestBooking  # `Bookings` lists all the bookings, including latest
+- People.Bookings.CCN
+- People.Bookings.BookingDateParseError
+- People.Bookings.ReleaseDateParseError
+- People.Bookings.BailAmount # Use the `Bail` from individual charges
+- People.Bookings.CustodyStatus  # This never seems to be set, use current
+- People.Bookings.Charges.CourtORI
+- People.Bookings.Facility  # This seems to always say 'See Current'
