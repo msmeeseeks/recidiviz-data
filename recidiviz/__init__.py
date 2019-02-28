@@ -48,6 +48,10 @@ if environment.in_gae():
     Base.metadata.create_all(db_engine)
     Session.configure(bind=db_engine)
 
+
+# We want to add these globally because the serialization hooks are used in
+# ingest and persistence.
+
 cattr.register_unstructure_hook(datetime.datetime,
                                 datetime.datetime.isoformat)
 cattr.register_structure_hook(
