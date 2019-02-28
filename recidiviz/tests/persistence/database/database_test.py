@@ -194,8 +194,8 @@ class TestDatabase(TestCase):
         booking.charges = [charge_1, charge_2]
 
         persisted_person = database.write_person(
-            act_session, person, IngestMetadata(
-                "default_region", _LAST_SEEN_TIME, {}))
+            act_session, person,
+            IngestMetadata.new_with_defaults(last_seen_time=_LAST_SEEN_TIME))
         act_session.commit()
 
         person_id = persisted_person.person_id
@@ -327,8 +327,8 @@ class TestDatabase(TestCase):
         ingested_booking.charges = [ingested_charge]
 
         database.write_person(
-            act_session, ingested_person, IngestMetadata(
-                "default_region", _LAST_SEEN_TIME, {}))
+            act_session, ingested_person,
+            IngestMetadata.new_with_defaults(last_seen_time=_LAST_SEEN_TIME))
         act_session.commit()
         act_session.close()
 
@@ -446,8 +446,8 @@ class TestDatabase(TestCase):
         ingested_booking.charges = [ingested_charge]
 
         persisted_person = database.write_person(
-            act_session, ingested_person, IngestMetadata(
-                "default_region", _LAST_SEEN_TIME, {}))
+            act_session, ingested_person,
+            IngestMetadata.new_with_defaults(last_seen_time=_LAST_SEEN_TIME))
         act_session.commit()
 
         charge_id = persisted_person.bookings[0].charges[0].charge_id
@@ -507,7 +507,7 @@ class TestDatabase(TestCase):
             database.write_people,
             session,
             [person_1, person_2],
-            IngestMetadata("default_region", _LAST_SEEN_TIME, {}))
+            IngestMetadata.new_with_defaults(last_seen_time=_LAST_SEEN_TIME))
 
         session.close()
 
@@ -528,10 +528,8 @@ class TestDatabase(TestCase):
         charge.bond = bond
 
         persisted_person = database.write_person(
-            arrange_session, person, IngestMetadata(
-                "default_region",
-                datetime.datetime(year=2020, month=7, day=6),
-                {}))
+            arrange_session, person, IngestMetadata.new_with_defaults(
+                last_seen_time=datetime.datetime(year=2020, month=7, day=6)))
         arrange_session.commit()
         persisted_person_id = persisted_person.person_id
         persisted_booking_id = persisted_person.bookings[0].booking_id
@@ -546,10 +544,8 @@ class TestDatabase(TestCase):
         fetched_charge = fetched_person.bookings[0].charges[0]
         fetched_charge.bond = None
         database.write_person(
-            act_session, fetched_person, IngestMetadata(
-                "default_region",
-                datetime.datetime(year=2020, month=7, day=7),
-                {}))
+            act_session, fetched_person, IngestMetadata.new_with_defaults(
+                last_seen_time=datetime.datetime(year=2020, month=7, day=7)))
         act_session.commit()
         act_session.close()
 
@@ -582,10 +578,8 @@ class TestDatabase(TestCase):
         charge.sentence = sentence
 
         persisted_person = database.write_person(
-            arrange_session, person, IngestMetadata(
-                "default_region",
-                datetime.datetime(year=2020, month=7, day=6),
-                {}))
+            arrange_session, person, IngestMetadata.new_with_defaults(
+                last_seen_time=datetime.datetime(year=2020, month=7, day=6)))
         arrange_session.commit()
         persisted_person_id = persisted_person.person_id
         persisted_booking_id = persisted_person.bookings[0].booking_id
@@ -600,10 +594,8 @@ class TestDatabase(TestCase):
         fetched_charge = fetched_person.bookings[0].charges[0]
         fetched_charge.sentence = None
         database.write_person(
-            act_session, fetched_person, IngestMetadata(
-                "default_region",
-                datetime.datetime(year=2020, month=7, day=7),
-                {}))
+            act_session, fetched_person, IngestMetadata.new_with_defaults(
+                last_seen_time=datetime.datetime(year=2020, month=7, day=7)))
         act_session.commit()
         act_session.close()
 

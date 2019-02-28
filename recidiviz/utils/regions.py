@@ -46,6 +46,9 @@ class Region:
 
     Attributes:
         region_code: (string) Region code
+        jurisdiction_id: (string) Jurisdiction Id for the given region. If the
+            region contains information for several jurisdictions, this id
+            should be set to the largest of those jurisdictions (by bed size)
         agency_name: (string) Human-readable agency name
         agency_type: (string) 'prison' or 'jail'
         environment: (string) The environment the region is allowed to run in.
@@ -64,6 +67,7 @@ class Region:
     """
 
     region_code: str = attr.ib()
+    jurisdiction_id: str = attr.ib()
     agency_name: str = attr.ib()
     agency_type: str = attr.ib()
     environment: str = attr.ib()
@@ -102,6 +106,7 @@ class Region:
         return self.shared_queue if self.shared_queue \
             else '{}-scraper'.format(self.region_code.replace('_', '-'))
 
+
 # Cache of the `Region` objects.
 REGIONS: Dict[str, 'Region'] = {}
 def get_region(region_code: str) -> Region:
@@ -114,6 +119,7 @@ def get_region(region_code: str) -> Region:
 
 BASE_REGION_PATH = 'recidiviz/ingest/scrape/regions'
 MANIFEST_NAME = 'manifest.yaml'
+
 
 def get_region_manifest(region_code: str) -> Dict[str, Any]:
     """Gets manifest for a specific region

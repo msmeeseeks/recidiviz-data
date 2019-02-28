@@ -230,6 +230,7 @@ class BaseScraper(Scraper):
             logging.info('Last seen time of person being set as: %s',
                          request.scraper_start_time)
             metadata = IngestMetadata(self.region.region_code,
+                                      self.region.jurisdiction_id,
                                       request.scraper_start_time,
                                       self.get_enum_overrides())
             persistence.write(

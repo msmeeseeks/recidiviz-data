@@ -21,12 +21,13 @@ import io
 from typing import Optional, List
 
 from recidiviz.common.constants.person import Ethnicity, Race, Gender
+from recidiviz.persistence import entities
 from recidiviz.persistence.converter import converter_utils
 from recidiviz.persistence.converter.converter_utils import fn, normalize, \
     parse_date, calculate_birthdate_from_age, parse_external_id
 
 
-def copy_fields_to_builder(person_builder, proto, metadata):
+def copy_fields_to_builder(person_builder: entities.Person.Builder, proto, metadata):
     """Mutates the provided |person_builder| by converting an ingest_info proto
      Person.
 
@@ -46,6 +47,8 @@ def copy_fields_to_builder(person_builder, proto, metadata):
     new.place_of_residence = fn(normalize, 'place_of_residence', proto)
 
     new.region = metadata.region
+    new.jurisdiction_id = fn(normalize, 'jurisdiction_id', proto) \
+        if proto.jurisdiction_id else metadata.jurisdiction_id
 
 
 def _parse_name(proto) -> Optional[str]:

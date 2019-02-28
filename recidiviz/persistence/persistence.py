@@ -38,6 +38,7 @@ from recidiviz.persistence.converter import converter
 from recidiviz.persistence.database import database
 from recidiviz.persistence.errors import DataValidationError
 from recidiviz.utils import environment, monitoring
+from recidiviz.utils.regions import Region
 
 m_people = measure.MeasureInt("persistence/num_people",
                               "The number of people persisted", "1")
@@ -58,7 +59,9 @@ errors_persisted_view = view.View("recidiviz/persistence/num_errors",
 monitoring.register_views([people_persisted_view, errors_persisted_view])
 
 
-def infer_release_on_open_bookings(region, last_ingest_time, custody_status):
+def infer_release_on_open_bookings(
+        region_code: str, jurisdiction_id: str, last_ingest_time: datetime,
+        custody_status: CustodyStatus):
     """
    Look up all open bookings whose last_seen_time is earlier than the
    provided last_ingest_time in the provided region, update those
@@ -66,7 +69,8 @@ def infer_release_on_open_bookings(region, last_ingest_time, custody_status):
    last_ingest_time.
 
    Args:
-       region: the region
+       region_code: the region code for the region
+       jurisdiction_id: jurisdiction_id for the region
        last_ingest_time: The last time complete data was ingested for this
            region. In the normal ingest pipeline, this is the last start time
            of a background scrape for the region.
@@ -79,7 +83,7 @@ def infer_release_on_open_bookings(region, last_ingest_time, custody_status):
         logging.info('Reading all bookings that happened before %s',
                      last_ingest_time)
         people = database.read_people_with_open_bookings_scraped_before_time(
-            session, region, last_ingest_time)
+            session, region_code, last_ingest_time)
         logging.info(
             'Found %s people with bookings that will be inferred released',
             len(people))
@@ -87,7 +91,7 @@ def infer_release_on_open_bookings(region, last_ingest_time, custody_status):
             _infer_release_date_for_bookings(person.bookings, last_ingest_time,
                                              custody_status)
         database.write_people(session, people, IngestMetadata(
-            region, last_ingest_time, {}))
+            region_code, jurisdiction_id, last_ingest_time, {}))
         session.commit()
     except Exception:
         session.rollback()

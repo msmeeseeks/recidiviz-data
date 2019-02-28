@@ -227,6 +227,8 @@ class _PersonSharedColumns:
     ethnicity_raw_text = Column(String(255))
     place_of_residence = Column(String(255))
     region = Column(String(255), nullable=False, index=True)
+    # TODO(xxx): Make jurisdiction_id non nullable.
+    jurisdiction_id = Column(String(255))
 
 
 class Person(Base, DatabaseEntity, _PersonSharedColumns):

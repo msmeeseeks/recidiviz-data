@@ -36,6 +36,7 @@ app.config['TESTING'] = True
 _REGIONS = [
     regions.Region(
         region_code='us_ut',
+        jurisdiction_id='jid_ut',
         agency_name='agency_name',
         agency_type='jail',
         base_url='base_url',
@@ -44,6 +45,7 @@ _REGIONS = [
         environment='production'
     ), regions.Region(
         region_code='us_wy',
+        jurisdiction_id='jid_wy',
         agency_name='agency_name',
         agency_type='jail',
         base_url='base_url',
@@ -52,6 +54,7 @@ _REGIONS = [
         environment='production'
     ), regions.Region(
         region_code='us_nc',
+        jurisdiction_id='jid_nc',
         agency_name='agency_name',
         agency_type='prison',
         base_url='base_url',
@@ -86,5 +89,6 @@ class TestInferRelease(TestCase):
         response = self.client.get('/release', headers=headers)
         assert response.status_code == 200
         mock_infer_release.assert_has_calls(
-            [call('us_ut', time, CustodyStatus.INFERRED_RELEASE),
-             call('us_wy', time, CustodyStatus.UNKNOWN_REMOVED_FROM_SOURCE)])
+            [call('us_ut', 'jid_ut', time, CustodyStatus.INFERRED_RELEASE),
+             call('us_wy', 'jid_wy', time,
+                  CustodyStatus.UNKNOWN_REMOVED_FROM_SOURCE)])

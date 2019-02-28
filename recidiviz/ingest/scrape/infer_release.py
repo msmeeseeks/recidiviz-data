@@ -47,7 +47,8 @@ def infer_release():
                 'Got most recent completed session for %s with start time %s',
                 region.region_code, session.start)
             persistence.infer_release_on_open_bookings(
-                region.region_code, session.start, _get_custody_status(region))
+                region.region_code, region.jurisdiction_id, session.start,
+                _get_custody_status(region))
     return '', HTTPStatus.OK
 
 

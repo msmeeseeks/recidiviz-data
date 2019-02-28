@@ -72,9 +72,8 @@ SCRAPER_START_DATETIME = datetime(year=2018, month=8, day=6)
 SENTENCE_STATUS = 'SERVING'
 FULL_NAME_1 = 'TEST_FULL_NAME_1'
 FULL_NAME_2 = 'TEST_FULL_NAME_2'
-DEFAULT_METADATA = IngestMetadata("default_region",
-                                  datetime(year=1000, month=1, day=1),
-                                  EnumOverrides.empty())
+DEFAULT_METADATA = IngestMetadata.new_with_defaults()
+JURISDICTION_ID = 'JURISDICTION_ID'
 ID = 1
 ID_2 = 2
 ID_3 = 3
@@ -368,7 +367,8 @@ class TestPersistence(TestCase):
 
         # Act
         persistence.infer_release_on_open_bookings(
-            REGION_1, SCRAPER_START_DATETIME, CustodyStatus.INFERRED_RELEASE)
+            REGION_1, JURISDICTION_ID, SCRAPER_START_DATETIME,
+            CustodyStatus.INFERRED_RELEASE)
 
         # Assert
         people = database.read_people(Session())

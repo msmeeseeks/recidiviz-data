@@ -38,7 +38,8 @@ class TestConverter(unittest.TestCase):
 
     def testConvert_FullIngestInfo(self):
         # Arrange
-        metadata = IngestMetadata('REGION', _LAST_SEEN_TIME)
+        metadata = IngestMetadata.new_with_defaults(
+            region='REGION', last_seen_time=_LAST_SEEN_TIME)
 
         ingest_info = IngestInfo()
         ingest_info.people.add(person_id='PERSON_ID',
@@ -89,7 +90,8 @@ class TestConverter(unittest.TestCase):
 
     def testConvert_FullIngestInfo_GeneratedIds(self):
         # Arrange
-        metadata = IngestMetadata('REGION', _LAST_SEEN_TIME)
+        metadata = IngestMetadata.new_with_defaults(
+            region='REGION', last_seen_time=_LAST_SEEN_TIME)
 
         ingest_info = IngestInfo()
         ingest_info.people.add(person_id='PERSON_ID_GENERATE',

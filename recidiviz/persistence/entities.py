@@ -60,6 +60,7 @@ class Person(Entity, BuildableAttr, DefaultAttr):
     ethnicity: Optional[Ethnicity] = attr.ib()
     ethnicity_raw_text: Optional[str] = attr.ib()
     place_of_residence: Optional[str] = attr.ib()
+    jurisdiction_id: str = attr.ib()  # non-nullable
 
     person_id: Optional[int] = attr.ib(default=None)
     bookings: List['Booking'] = attr.ib(factory=list)

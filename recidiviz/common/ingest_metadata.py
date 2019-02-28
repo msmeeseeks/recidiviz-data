@@ -27,8 +27,11 @@ from recidiviz.common.constants.enum_overrides import EnumOverrides
 class IngestMetadata(DefaultAttr):
     """Metadata used to construct entity objects from ingest_info objects."""
 
-    # The region that this ingest_info was scraped from.
-    region: str = attr.ib()
+    # Region code for region in which data was ingested
+    region_code: str = attr.ib()
+
+    # Jurisdiction id for region in which data was ingested
+    jurisdiction_id: str = attr.ib()
 
     # The last time this ingest_info was seen from its data source. In the
     # normal ingest pipeline, this is the scraper_start_time.
