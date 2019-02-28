@@ -95,8 +95,8 @@ class PersonConverterTest(unittest.TestCase):
         # Assert
         expected_escaped_surname = '"UNESCAPED,SURNAME""WITH-CHARS"""'
         expected_result = entities.Person.new_with_defaults(
-            full_name='{},{},{}'.format('GIVEN_NAMES', 'MIDDLE_NAMES',
-                                        expected_escaped_surname),
+            full_name='{},{},{},'.format('GIVEN_NAMES', 'MIDDLE_NAMES',
+                                         expected_escaped_surname),
         )
 
         self.assertEqual(result, expected_result)

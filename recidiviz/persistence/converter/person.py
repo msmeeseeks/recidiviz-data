@@ -54,14 +54,17 @@ def _parse_name(proto) -> Optional[str]:
     given_names = fn(normalize, 'given_names', proto)
     middle_names = fn(normalize, 'middle_names', proto)
     surname = fn(normalize, 'surname', proto)
+    name_suffix = fn(normalize, 'name_suffix', proto)
 
-    if full_name and (given_names or middle_names or surname):
-        raise ValueError('Cannot have full_name and surname/middle/given_names')
+    if full_name and (given_names or middle_names or surname or name_suffix):
+        raise ValueError(
+            'Cannot have full_name and surname/middle/given_names/name_suffix')
 
     if full_name:
         return full_name
     if given_names or middle_names or surname:
-        return _to_csv([given_names, middle_names, surname])
+        # skip this if only `name_suffix` was set.
+        return _to_csv([given_names, middle_names, surname, name_suffix])
     return None
 
 
