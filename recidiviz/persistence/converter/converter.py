@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # ============================================================================
 """Converts scraped IngestInfo data to the persistence layer entity."""
+import copy
 from copy import deepcopy
 from typing import List
 
@@ -51,7 +52,7 @@ class _Converter:
     """Converts between ingest_info objects and persistence layer entity."""
 
     def __init__(self, ingest_info, metadata):
-        self.ingest_info = ingest_info
+        self.ingest_info = copy.deepcopy(ingest_info)
         self.metadata = metadata
 
         self.bookings = {b.booking_id: b for b in ingest_info.bookings}

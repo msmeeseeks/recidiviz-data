@@ -43,7 +43,7 @@ class BatchMessage:
 
     # The time at which this scraper was started, used to associate the entities
     # ingested during throughout the scrape
-    scraper_start_time: Optional[datetime.datetime] = attr.ib()
+    scraper_start_time: Optional[datetime.datetime] = attr.ib(default=None)
 
     # The ingest info object that was batched up for a write.
     ingest_info: Optional[IngestInfo] = attr.ib(default=None)
@@ -61,30 +61,19 @@ class BatchMessage:
 
 def _publish_batch_message(
         batch_message: BatchMessage, scrape_key: ScrapeKey):
-    """Publishes the ingest info BatchMessage.
-
-    Args:
-        batch_message: The BatchMessage to publish on the queue.
-        scrape_key: The ScrapeKey of the region
-    """
-    def inner():
+    """Publishes the ingest info BatchMessage."""
+    def publish():
         serialized = batch_message.to_serializable()
         return pubsub_helper.get_publisher().publish(
             pubsub_helper.get_topic_path(scrape_key,
                                          pubsub_type=PUBSUB_TYPE),
             data=json.dumps(serialized).encode())
-    pubsub_helper.retry_with_create(scrape_key, inner, PUBSUB_TYPE)
+    pubsub_helper.retry_with_create(scrape_key, publish, PUBSUB_TYPE)
 
 
-def write(ingest_info, scraper_start_time, task, scrape_key):
-    """Batches up the writes using pubsub
-
-    Args:
-        ingest_info: (IngestInfo) the ingest info object to batch.
-        scraper_start_time: (datetime) the start time
-        task: (Task) the task which queued up this write
-        scrape_key: (ScrapeKey) information on the region
-    """
+def write(ingest_info: IngestInfo, scraper_start_time: datetime.datetime,
+          task: Task, scrape_key: ScrapeKey):
+    """Batches up the writes using pubsub"""
     batch_message = BatchMessage(
         ingest_info=ingest_info,
         scraper_start_time=scraper_start_time,
@@ -93,14 +82,8 @@ def write(ingest_info, scraper_start_time, task, scrape_key):
     _publish_batch_message(batch_message, scrape_key)
 
 
-def write_error(error, task, scrape_key):
-    """Batches up the errors using pubsub
-
-    Args:
-        error: (str) the error that the scraper failed with.
-        task: (Task) the task which queued up this write
-        scrape_key: (ScrapeKey) information on the region
-    """
+def write_error(error: str, task: Task, scrape_key: ScrapeKey):
+    """Batches up the errors using pubsub"""
     batch_message = BatchMessage(
         error=error,
         task=task,
