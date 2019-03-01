@@ -80,7 +80,4 @@ class TestUsFlPutnamScraper(BaseScraperTest, unittest.TestCase):
                           custody_status='In Jail',
                           holds=[Hold(jurisdiction_name='ALACHUA')])
 
-        with self.assertWarns(UserWarning):
-            self.validate_and_return_populate_data(_PRINT_PAGE_HTML,
-                                                   expected_info)
-
+        self.validate_and_return_populate_data(_PRINT_PAGE_HTML, expected_info)

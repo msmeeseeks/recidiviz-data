@@ -16,11 +16,11 @@
 # =============================================================================
 """Scraper implementation for us_pa_dauphin."""
 
-from typing import List, Optional
+from typing import Optional
 
+from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
-from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
 
@@ -37,9 +37,6 @@ class UsPaDauphinScraper(BaseScraper):
             ingest_info.create_person(full_name=name.text)
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
-
-    def get_more_tasks(self, content, task: Task) -> List[Task]:
-        return []
 
     def get_initial_task(self) -> Task:
         return Task(task_type=constants.TaskType.SCRAPE_DATA,

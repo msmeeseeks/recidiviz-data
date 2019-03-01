@@ -76,5 +76,4 @@ class TestUsGaGwinnettScraper(BaseScraperTest, unittest.TestCase):
                           admission_date='01/25/2019 15:08:53',
                           custody_status='In Jail')
 
-        with self.assertWarns(UserWarning):
-            self.validate_and_return_populate_data(_PAGE, expected_info)
+        self.validate_and_return_populate_data(_PAGE, expected_info)
