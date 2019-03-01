@@ -150,7 +150,7 @@ def _convert_and_count_errors(ingest_info, metadata):
     protected_class_errors = 0
     enum_parsing_errors = 0
     ii_converter = converter.get_converter(ingest_info, metadata)
-    while ingest_info.people:
+    while not ii_converter.is_complete():
         try:
             people.append(ii_converter.convert_and_pop())
         except EnumParsingError as e:

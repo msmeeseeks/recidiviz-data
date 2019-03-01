@@ -68,6 +68,11 @@ class _Converter:
     def convert_and_pop(self):
         return self._convert_person(self.ingest_info.people.pop())
 
+    def is_complete(self):
+        if self.ingest_info.people:
+            return False
+        return True
+
     def _convert_person(self, ingest_person):
         """Converts an ingest_info proto Person to a persistence entity."""
         person_builder = entities.Person.builder()
