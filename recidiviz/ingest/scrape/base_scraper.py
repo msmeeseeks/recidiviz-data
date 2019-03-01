@@ -214,6 +214,7 @@ class BaseScraper(Scraper):
                     ingest_info_to_send = scraped_data.ingest_info
 
                 try:
+                    # pylint: disable=assignment-from-no-return
                     next_tasks = self.get_more_tasks(content, task)
                 except Exception as e:
                     raise ScraperGetMoreTasksError() from e
@@ -306,7 +307,6 @@ class BaseScraper(Scraper):
         """
         return task_type & constants.TaskType.SCRAPE_DATA
 
-    @abc.abstractmethod
     def get_more_tasks(self, content, task: Task) -> List[Task]:
         """
         Gets more tasks based on the content and task passed in.  This
@@ -322,6 +322,7 @@ class BaseScraper(Scraper):
         Returns:
             A list of Tasks containing endpoint and task_type at minimum
         """
+        raise NoMoreTasksError()
 
     @abc.abstractmethod
     def populate_data(self, content, task: Task,
@@ -360,3 +361,8 @@ class BaseScraper(Scraper):
             task_type=constants.TaskType.INITIAL_AND_MORE,
             endpoint=self.get_region().base_url,
         )
+
+
+class NoMoreTasksError(NotImplementedError):
+    """Raised if the scraper should get more tasks and get_more_tasks is not
+    implemented."""

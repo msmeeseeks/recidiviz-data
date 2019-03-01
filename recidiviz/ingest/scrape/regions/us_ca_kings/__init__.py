@@ -1,5 +1,5 @@
 # Recidiviz - a platform for tracking granular recidivism metrics in real time
-# Copyright (C) 2018 Recidiviz, Inc.
+# Copyright (C) 2019 Recidiviz, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,9 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # =============================================================================
 
-key_mappings:
-  Date of Birth: person.birthdate
-
-keys_to_ignore:
-  - Name
-  - Booking#
+"""us_ca_kings specific regional functionality.
+"""
+from recidiviz.ingest.scrape.regions.us_ca_kings import us_ca_kings_scraper

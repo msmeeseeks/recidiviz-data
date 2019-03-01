@@ -16,12 +16,19 @@
 # =============================================================================
 
 """Scraper implementation for us_mo_cape_girardeau."""
-
+from recidiviz.common.constants.enum_overrides import EnumOverrides
+from recidiviz.common.constants.person import Race
 from recidiviz.ingest.scrape.vendors.brooks_jeffrey.brooks_jeffrey_scraper \
     import BrooksJeffreyScraper
 
 
 class UsMoCapeGirardeauScraper(BrooksJeffreyScraper):
     """Scraper implementation for us_mo_cape_girardeau."""
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(UsMoCapeGirardeauScraper, self).__init__('us_mo_cape_girardeau')
+
+    def get_enum_overrides(self) -> EnumOverrides:
+        overrides_builder = super(UsMoCapeGirardeauScraper,
+                                  self).get_enum_overrides().to_builder()
+        overrides_builder.add('A', Race.ASIAN)
+        return overrides_builder.build()

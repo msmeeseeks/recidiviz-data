@@ -1,22 +1,8 @@
 key_mappings:
-  Name: person.full_name
-  Subject Number: person.person_id
-  Gender: person.gender
-  Race: person.race
-  Address: person.place_of_residence
-
   Booking: booking.booking_id
   Booking Date: booking.admission_date
   Release Date: booking.release_date
   Housing Facility: booking.facility
-  # Booking Origin:  arrest.agency
-
-keys_to_ignore:
-  - Total Bail Amount
-  - Total Bond Amount
-  - Prisoner Type # Admission Reason #536
-  - Booking Origin
-  - Sentence Date
 
 multi_key_mapping:
   Charge Description: charge.name
@@ -27,6 +13,6 @@ multi_key_mapping:
   Docket Number: charge.case_number
   Arresting Agency: charge.charging_entity
 
-  Bond Number: bond.bond_id
-  Bond Type: bond.bond_type
-  Bond Amount: bond.amount
+keys_to_ignore:
+  - Prisoner Type # Admission Reason #536
+  - No data

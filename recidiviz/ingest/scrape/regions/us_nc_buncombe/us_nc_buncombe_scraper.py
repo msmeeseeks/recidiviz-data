@@ -18,6 +18,7 @@
 """Scraper implementation for us_nc_buncombe."""
 
 from recidiviz.common.constants.bond import BondType
+from recidiviz.common.constants.charge import ChargeStatus
 from recidiviz.ingest.scrape.vendors.superion.superion_scraper import \
     SuperionScraper
 
@@ -33,7 +34,11 @@ class UsNcBuncombeScraper(SuperionScraper):
 
         overrides_builder.add('DOM VIO', BondType.NO_BOND)
         overrides_builder.add('INCLUDED W OTHER', BondType.EXTERNAL_UNKNOWN)
-        overrides_builder.ignore('OTHER', BondType)
+        # Publicly drunk and held without court order could mean they have a
+        # potentially pending charge.  Could possibly be no charge status?
+        overrides_builder.add(
+            'INEBRIATE HELD WITHOUT COURT ORDER', ChargeStatus.PENDING)
         overrides_builder.add('SECURED FTA PRIOR', BondType.NO_BOND)
+        overrides_builder.ignore('OTHER', BondType)
 
         return overrides_builder.build()

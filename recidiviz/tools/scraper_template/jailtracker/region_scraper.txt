@@ -24,7 +24,7 @@ from recidiviz.ingest.scrape.vendors.jailtracker.jailtracker_scraper import \
 
 class ${class_name}(JailTrackerScraper):
     """Scraper implementation for $region."""
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(${class_name}, self).__init__('$region')
 
     

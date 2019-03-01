@@ -23,7 +23,7 @@ from recidiviz.ingest.scrape.vendors.brooks_jeffrey.brooks_jeffrey_scraper \
 
 class ${class_name}Scraper(BrooksJeffreyScraper):
     """Scraper implementation for $region."""
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(${class_name}Scraper, self).__init__('$region')
 
     def get_enum_overrides(self) -> EnumOverrides:

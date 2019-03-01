@@ -22,9 +22,8 @@ from recidiviz.ingest.scrape.vendors.inmate_search.inmate_search_scraper \
 
 class UsFlGladesScraper(InmateSearchScraper):
     """Scraper implementation for us_fl_glades."""
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(UsFlGladesScraper, self).__init__(
             'us_fl_glades',
             "/INMATE_Results.php",
-            "/",
-            mapping_filepath)
+            "/")

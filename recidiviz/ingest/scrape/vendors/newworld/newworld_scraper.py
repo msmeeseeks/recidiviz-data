@@ -17,7 +17,9 @@
 
 """Scraper implementation for NewWorld vendor."""
 import os
+from abc import abstractmethod
 from typing import List, Optional
+from urllib.parse import urljoin
 
 from recidiviz.ingest.scrape import constants, scraper_utils
 from recidiviz.ingest.scrape.base_scraper import BaseScraper
@@ -25,74 +27,69 @@ from recidiviz.ingest.extractor.html_data_extractor import HtmlDataExtractor
 from recidiviz.ingest.models.ingest_info import IngestInfo
 from recidiviz.ingest.scrape.task_params import ScrapedData, Task
 
+# URL path component shared across regions.
+_NEWWORLD_INMATEINQUIRY = 'NewWorld.InmateInquiry'
+
 
 class NewWorldScraper(BaseScraper):
     """ NewWorld Vendor scraper """
-    def __init__(self, region_name, mapping_filepath=None):
-        if not mapping_filepath:
-            mapping_filepath = os.path.join(
-                os.path.dirname(__file__), 'newworld.yaml')
-        self.mapping_filepath = mapping_filepath
+
+    def __init__(self, region_name):
         super(NewWorldScraper, self).__init__(region_name)
+        self.roster_page_url = '/'.join((self.get_region().base_url,
+                                         _NEWWORLD_INMATEINQUIRY,
+                                         self.get_region_code()))
+
+    @abstractmethod
+    def get_region_code(self) -> str:
+        """The last component of the path of the search page, which looks like
+        http://<base_url>/NewWorld.InmateInquiry/<region_code>. For example,
+        Nassau, FL's roster is located at
+        https://dssinmate.nassauso.com/NewWorld.InmateInquiry/nassau, so the
+        UsFlNassauScraper should return `nassau` here."""
 
     def populate_data(self, content, task: Task,
                       ingest_info: IngestInfo) -> Optional[ScrapedData]:
-        # Bonds and charges are split in two tables. Merging them together
-        self._merge_charge_and_bonds(content)
+        yaml_template = os.path.join(os.path.dirname(__file__),
+                                     'newworld_{}.yaml')
 
-        data_extractor = HtmlDataExtractor(self.mapping_filepath)
-        ingest_info = data_extractor.extract_and_populate_data(content,
-                                                               ingest_info)
-        scraper_utils.one('person', ingest_info)
+        person_extractor = HtmlDataExtractor(yaml_template.format('person'))
+        booking_extractor = HtmlDataExtractor(yaml_template.format('booking'))
+        bond_extractor = HtmlDataExtractor(yaml_template.format('bond'))
 
-        for charge in ingest_info.get_all_charges():
-            if charge.offense_date == "No data":
-                charge.offense_date = None
-            if charge.bond and charge.bond.bond_id == "No data":
-                charge.bond = None
+        ingest_info = person_extractor.extract_and_populate_data(content,
+                                                                 ingest_info)
+        person = scraper_utils.one('person', ingest_info)
+        for booking_element in content.cssselect('.Booking'):
+            booking_info = booking_extractor.extract_and_populate_data(
+                booking_element)
+            bond_info = bond_extractor.extract_and_populate_data(
+                booking_element)
+
+            booking = scraper_utils.one('booking', booking_info)
+            bonds_with_dummy_charges = scraper_utils.one('booking',
+                                                         bond_info).charges
+
+            if bonds_with_dummy_charges and \
+                    bonds_with_dummy_charges[0].bond.bond_id != 'No data':
+                booking.charges.extend(bonds_with_dummy_charges)
+
+            person.bookings.append(booking)
 
         return ScrapedData(ingest_info=ingest_info, persist=True)
 
     def get_initial_task(self) -> Task:
-        return Task(
-            task_type=constants.TaskType.GET_MORE_TASKS,
-            endpoint=self.get_region().base_url
-            + "/NewWorld.InmateInquiry/nassau?Page=1",
-            post_data={
-                'page': '1'
-            }
-        )
+        return Task(task_type=constants.TaskType.GET_MORE_TASKS,
+                    endpoint=self.roster_page_url,
+                    params={'Page': '1'})
 
     def get_more_tasks(self, content, task: Task) -> List[Task]:
         tasks = []
-        post_data = task.post_data or {}
-        if post_data['page'] == '1':
+        params = task.params or {}
+        if params['Page'] == '1':
             tasks.extend(self._get_remaining_pages(content))
         tasks.extend(self._get_all_detail_pages(content))
         return tasks
-
-    def _merge_charge_and_bonds(self, content):
-        booking_elements = content.cssselect(".Booking")
-        for booking_element in booking_elements:
-            charge_table = booking_element.cssselect(".BookingCharges table")[0]
-            bonds_table = booking_element.cssselect(".BookingBonds table")[0]
-
-            # Merge header
-            for e in bonds_table.find('thead/tr'):
-                charge_table.find('thead/tr').append(e)
-
-            # Merge rows
-            charge_rows = charge_table.findall('tbody/tr')
-            bonds_rows = bonds_table.findall('tbody/tr')
-            if len(charge_rows) < len(bonds_rows):
-                raise Exception("Expected number of charges >= number of bonds"
-                                "but got %i charges and %i bonds" % \
-                                (len(charge_rows), len(bonds_rows)))
-
-            for c, b in zip(charge_rows, bonds_rows):
-                for e in b:
-                    c.append(e)
-
 
     def _get_remaining_pages(self, content) -> List[Task]:
         tasks = []
@@ -101,12 +98,8 @@ class NewWorldScraper(BaseScraper):
             page_num = page.text_content()
             tasks.append(Task(
                 task_type=constants.TaskType.GET_MORE_TASKS,
-                endpoint=self.get_region().base_url
-                +"/NewWorld.InmateInquiry/nassau?Page="+page_num,
-                post_data={
-                    'page': page_num
-                }
-            ))
+                endpoint=self.roster_page_url,
+                params={'Page': page_num}))
         return tasks
 
     def _get_all_detail_pages(self, content) -> List[Task]:
@@ -116,7 +109,8 @@ class NewWorldScraper(BaseScraper):
         for link in links:
             tasks.append(Task(
                 task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint=self.get_region().base_url+link.get('href'),
+                endpoint=urljoin(self.get_region().base_url,
+                                 link.get('href')),
             ))
 
         return tasks

@@ -70,6 +70,4 @@ class TestUsFlColumbiaScraper(BaseScraperTest, unittest.TestCase):
                           admission_date='01/01/2011 02:01 PM',
                           custody_status='In Jail')
 
-        with self.assertWarns(UserWarning):
-            self.validate_and_return_populate_data(_PRINT_PAGE_HTML,
-                                                   expected_info)
+        self.validate_and_return_populate_data(_PRINT_PAGE_HTML, expected_info)

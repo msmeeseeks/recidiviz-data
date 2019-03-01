@@ -71,20 +71,15 @@ class BatchMessage:
 
 def _publish_batch_message(
         batch_message: BatchMessage, scrape_key: ScrapeKey):
-    """Publishes the ingest info BatchMessage.
-
-    Args:
-        batch_message: The BatchMessage to publish on the queue.
-        scrape_key: The ScrapeKey of the region
-    """
-    def inner():
+    """Publishes the ingest info BatchMessage."""
+    def publish():
         serialized = batch_message.to_serializable()
         response = pubsub_helper.get_publisher().publish(
             pubsub_helper.get_topic_path(scrape_key,
                                          pubsub_type=PUBSUB_TYPE),
             data=json.dumps(serialized).encode())
         response.result()
-    pubsub_helper.retry_with_create(scrape_key, inner, PUBSUB_TYPE)
+    pubsub_helper.retry_with_create(scrape_key, publish, PUBSUB_TYPE)
 
 
 def _get_batch_messages(scrape_key):
@@ -160,14 +155,8 @@ def _append_to_proto(base, proto_to_append):
     base.sentences.extend(proto_to_append.sentences)
 
 
-def write(ingest_info, task, scrape_key):
-    """Batches up the writes using pubsub.
-
-    Args:
-        ingest_info: (IngestInfo) the ingest info object to batch.
-        task: (Task) the task which queued up this write
-        scrape_key: (ScrapeKey) information on the region
-    """
+def write(ingest_info: IngestInfo, task: Task, scrape_key: ScrapeKey):
+    """Batches up the writes using pubsub"""
     batch_message = BatchMessage(
         ingest_info=ingest_info,
         task=task,
@@ -175,14 +164,8 @@ def write(ingest_info, task, scrape_key):
     _publish_batch_message(batch_message, scrape_key)
 
 
-def write_error(error, task, scrape_key):
-    """Batches up the errors using pubsub
-
-    Args:
-        error: (str) the error that the scraper failed with.
-        task: (Task) the task which queued up this write
-        scrape_key: (ScrapeKey) information on the region
-    """
+def write_error(error: str, task: Task, scrape_key: ScrapeKey):
+    """Batches up the errors using pubsub"""
     batch_message = BatchMessage(
         error=error,
         task=task,

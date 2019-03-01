@@ -1,0 +1,5 @@
+agency_name: Kings County Jail
+agency_type: jail
+base_url: http://inmatelocator.countyofkings.com/Inmate/Index
+timezone: America/Los_Angeles
+environment: production

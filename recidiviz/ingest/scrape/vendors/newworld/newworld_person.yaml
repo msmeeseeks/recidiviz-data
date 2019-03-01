@@ -1,0 +1,6 @@
+key_mappings:
+  Name: person.full_name
+  Subject Number: person.person_id
+  Gender: person.gender
+  Race: person.race
+  Address: person.place_of_residence

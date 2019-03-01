@@ -16,10 +16,26 @@
 # =============================================================================
 
 """Scraper implementation for us_fl_nassau."""
+from recidiviz.common.constants.bond import BondType
+from recidiviz.common.constants.charge import ChargeClass
 from recidiviz.ingest.scrape.vendors import NewWorldScraper
 
 
 class UsFlNassauScraper(NewWorldScraper):
     """Scraper implementation for us_fl_nassau."""
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(UsFlNassauScraper, self).__init__('us_fl_nassau')
+
+    def get_region_code(self) -> str:
+        return 'nassau'
+
+    def get_enum_overrides(self):
+        overrides_builder = super(
+            UsFlNassauScraper, self).get_enum_overrides().to_builder()
+
+        overrides_builder.add('DELINQUENCY', ChargeClass.MISDEMEANOR)
+        overrides_builder.add('MOVING VIOLATION', ChargeClass.MISDEMEANOR)
+        overrides_builder.add('NO PC', BondType.CASH)
+        overrides_builder.ignore('DROP NOTICE', BondType)
+
+        return overrides_builder.build()
