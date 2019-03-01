@@ -16,7 +16,8 @@
 # =============================================================================
 
 """Tests for scraper_status.py"""
-from unittest import TestCase
+import logging
+import pytest
 
 from flask import Flask
 from mock import create_autospec, patch
@@ -24,38 +25,69 @@ from mock import create_autospec, patch
 from recidiviz.ingest.scrape import scraper_status
 from recidiviz.utils.regions import Region
 
-app = Flask(__name__)
-app.register_blueprint(scraper_status.scraper_status)
-app.config['TESTING'] = True
+# pylint: disable=redefined-outer-name
+@pytest.fixture
+def client():
+    app = Flask(__name__)
+    app.register_blueprint(scraper_status.scraper_status)
+    app.config['TESTING'] = True
 
-class TestScraperStatus(TestCase):
-    """Tests for requests to the Scraper Status API."""
+    yield app.test_client()
 
-    # noinspection PyAttributeOutsideInit
-    def setup_method(self, _test_method):
-        self.client = app.test_client()
+@patch("recidiviz.ingest.scrape.queues.list_tasks")
+@patch("recidiviz.ingest.scrape.ingest_utils.validate_regions")
+@patch("recidiviz.utils.regions.get_region")
+def test_check_for_finished_scrapers(
+        mock_region, mock_validate_regions, mock_list_tasks, client, caplog):
+    region_code = 'region_x'
 
-    @patch("recidiviz.ingest.scrape.ingest_utils.validate_regions")
-    @patch("recidiviz.utils.regions.get_region")
-    def test_check_for_finished_scrapers(
-            self, mock_region, mock_validate_regions):
-        region_code = 'us_ny'
+    fake_region = create_autospec(Region)
+    fake_region.region_code = region_code
+    fake_region.get_queue_name.return_value = 'queue'
+    mock_region.return_value = fake_region
+    mock_validate_regions.return_value = [region_code]
+    mock_list_tasks.return_value = []
 
-        fake_region = create_autospec(Region)
-        fake_region.region_code = region_code
-        fake_region.get_queue_name.return_value = 'queue'
-        mock_region.return_value = fake_region
-        mock_validate_regions.return_value = [region_code]
-        # mock queues
-
+    with caplog.at_level(logging.INFO):
         request_args = {'region': 'all'}
         headers = {'X-Appengine-Cron': "test-cron"}
-        response = self.client.get('/check_finished',
-                                   query_string=request_args,
-                                   headers=headers)
+        response = client.get('/check_finished',
+                              query_string=request_args,
+                              headers=headers)
         assert response.status_code == 200
+        assert caplog.record_tuples[-1] == \
+            ('root', logging.INFO, 'Region \'region_x\' has completed.')
 
-        mock_validate_regions.assert_called_with(['all'])
-        mock_region.assert_called_with('us_ny')
+    mock_validate_regions.assert_called_with(['all'])
+    mock_region.assert_called_with(region_code)
+    mock_list_tasks.assert_called_with(region_code=region_code,
+                                       queue_name='queue')
 
-        # assert logs?
+@patch("recidiviz.ingest.scrape.queues.list_tasks")
+@patch("recidiviz.ingest.scrape.ingest_utils.validate_regions")
+@patch("recidiviz.utils.regions.get_region")
+def test_check_for_finished_scrapers_not_done(
+        mock_region, mock_validate_regions, mock_list_tasks, client, caplog):
+    region_code = 'region_x'
+
+    fake_region = create_autospec(Region)
+    fake_region.region_code = region_code
+    fake_region.get_queue_name.return_value = 'queue'
+    mock_region.return_value = fake_region
+    mock_validate_regions.return_value = [region_code]
+    mock_list_tasks.return_value = ['fake_task']
+
+    with caplog.at_level(logging.INFO):
+        request_args = {'region': 'all'}
+        headers = {'X-Appengine-Cron': "test-cron"}
+        response = client.get('/check_finished',
+                              query_string=request_args,
+                              headers=headers)
+        assert response.status_code == 200
+        assert caplog.record_tuples[-1] != \
+            ('root', logging.INFO, 'Region \'region_x\' has completed.')
+
+    mock_validate_regions.assert_called_with(['all'])
+    mock_region.assert_called_with(region_code)
+    mock_list_tasks.assert_called_with(region_code=region_code,
+                                       queue_name='queue')

@@ -47,7 +47,7 @@ def check_for_finished_scrapers():
         # Kick off a check for each region
         thread = threading.Thread(
             target=_check_finished,
-            args=region_code
+            args=(region_code,)
         )
         thread.start()
         threads.append(thread)
