@@ -1,21 +1,24 @@
+import datetime
 import numpy as np
 import pandas as pd
 import sys
 import tabula
 import us
 
+import recidiviz.common.constants.enum_canonical_strings as enum_strings
 from recidiviz.ingest.aggregate import aggregate_ingest_utils, fips
 from recidiviz.persistence.database.schema import TnFacilityAggregate
 
 
+_MANUAL_FACILITY_TO_COUNTY_MAP = {
+    'Johnson City (F)': 'Washington',
+    'Kingsport City': 'Sullivan',
+}
+
+
 def parse(filename):
 
-    table = tabula.read_pdf(filename,
-                            # pandas_options={'header': [0, 1, 2, 3]},
-                            # pages=[2, 3],
-                            pages=[2, 3, 4],
-                            multiple_tables=True
-    )
+    table = tabula.read_pdf(filename, pages=[2, 3, 4], multiple_tables=True, pandas_options={'dtype': 'int64'})
 
     formatted_dfs = []
     for df in table:
@@ -26,11 +29,14 @@ def parse(filename):
     # Discard 'TOTAL' row.
     table = table.iloc[:-1]
 
-    table = fips.add_column_to_df(table, table['facility_name'], us.states.TN)
+    table = aggregate_ingest_utils.cast_columns_to_int(
+        table, ignore_columns={'facility_name'})
+
+    names = table.facility_name.apply(_pretend_facility_is_county)
+    table = fips.add_column_to_df(table, names, us.states.TN)
 
     table['report_date'] = _parse_date(filename)
     table['report_granularity'] = enum_strings.monthly_granularity
-
 
     return {
         TnFacilityAggregate: table
@@ -72,8 +78,24 @@ def format_table(df):
     return df
 
 
-def main(argv):
-    parse('~/q/vera/analysis/tn_aggregate/JailJanuary2019.pdf')
+def _pretend_facility_is_county(facility_name: str):
+    """Format facility_name like a county_name to match each to a fips."""
+    if facility_name in _MANUAL_FACILITY_TO_COUNTY_MAP:
+        return _MANUAL_FACILITY_TO_COUNTY_MAP[facility_name]
 
-if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    words_after_county_name = [
+        '-',
+        'Annex',
+        'Co. Det. Center',
+        'Det. Center',
+        'Det, Center',
+        'Extension',
+        'Jail',
+        'SCCC',
+        'Work Center',
+        'Workhouse',
+    ]
+    for delimiter in words_after_county_name:
+        facility_name = facility_name.split(delimiter)[0]
+
+    return facility_name
