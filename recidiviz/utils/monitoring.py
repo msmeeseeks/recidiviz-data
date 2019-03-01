@@ -17,7 +17,9 @@
 
 """Creates monitoring client for measuring and recording stats."""
 from contextlib import contextmanager
+import logging
 
+from opencensus.common.monitored_resource import monitored_resource
 from opencensus.tags import TagMap
 from opencensus.stats import stats as stats_module
 from opencensus.stats.exporters import stackdriver_exporter as stackdriver
@@ -27,6 +29,7 @@ from recidiviz.utils import environment, metadata
 _stats = None
 def stats():
     global _stats
+    logging.info('OpenCensus monitored resource: "%s"', monitored_resource.get_instance())
     if not _stats:
         new_stats = stats_module.Stats()
         # TODO(#59): When we want to test this, we will have to remove the
