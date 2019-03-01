@@ -17,15 +17,16 @@
 
 """Scraper tests for us_fl_nassau."""
 import unittest
+
 from lxml import html
 
-from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.models.ingest_info import IngestInfo
-from recidiviz.ingest.scrape.task_params import Task
+from recidiviz.ingest.scrape import constants
 from recidiviz.ingest.scrape.regions.us_fl_nassau.us_fl_nassau_scraper import \
     UsFlNassauScraper
-from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
+from recidiviz.ingest.scrape.task_params import Task
 from recidiviz.tests.ingest import fixtures
+from recidiviz.tests.utils.base_scraper_test import BaseScraperTest
 
 _SEARCH_RESULTS_HTML = html.fromstring(
     fixtures.as_string('us_fl_nassau', 'search_results.html'))
@@ -44,37 +45,22 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
         content = _SEARCH_RESULTS_HTML
         task = Task(
             task_type=constants.TaskType.GET_MORE_TASKS,
-            endpoint=self.scraper.get_region().base_url
-            + "/NewWorld.InmateInquiry/nassau?Page=1",
-            post_data={
-                'page': '1'
-            }
+            endpoint=self.scraper.roster_page_url,
+            params={'Page': '1'}
         )
         expected = [
-            Task(
-                task_type=constants.TaskType.GET_MORE_TASKS,
-                endpoint=self.scraper.get_region().base_url
-                + "/NewWorld.InmateInquiry/nassau?Page=2",
-                post_data={
-                    'page': '2'
-                }
-            ), Task(
-                task_type=constants.TaskType.GET_MORE_TASKS,
-                endpoint=self.scraper.get_region().base_url
-                + "/NewWorld.InmateInquiry/nassau?Page=3",
-                post_data={
-                    'page': '3'
-                }
-            ), Task(
-                task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint=self.scraper.get_region().base_url
-                + '/NewWorld.InmateInquiry/nassau/Inmate/Detail/-1',
-            ), Task(
-                task_type=constants.TaskType.SCRAPE_DATA,
-                endpoint=self.scraper.get_region().base_url
-                + '/NewWorld.InmateInquiry/nassau/Inmate/Detail/-2',
-            )
-
+            Task(task_type=constants.TaskType.GET_MORE_TASKS,
+                 endpoint=self.scraper.roster_page_url,
+                 params={'Page': '2'}),
+            Task(task_type=constants.TaskType.GET_MORE_TASKS,
+                 endpoint=self.scraper.roster_page_url,
+                 params={'Page': '3'}),
+            Task(task_type=constants.TaskType.SCRAPE_DATA,
+                 endpoint='/'.join((self.scraper.roster_page_url,
+                                    'Inmate/Detail/-1'))),
+            Task(task_type=constants.TaskType.SCRAPE_DATA,
+                 endpoint='/'.join((self.scraper.roster_page_url,
+                                    'Inmate/Detail/-2'))),
         ]
 
         self.validate_and_return_get_more_tasks(content, task, expected)
@@ -115,10 +101,6 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
             name="FELONY BATTERY",
             offense_date="5/19/2016 2:39 PM",
             charge_class="Felony"
-        ).create_bond(
-            bond_id="2015-00000001",
-            bond_type="No Bond",
-            amount="$0.00"
         )
         booking.create_charge(
             name="AGG ASSAULT",
@@ -129,6 +111,11 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
             name="VIOLATE DOM VIOL COND",
             offense_date="12/9/2015 4:50 PM",
             charge_class="Misdemeanor"
+        )
+        booking.create_charge().create_bond(
+            bond_id="2015-00000001",
+            bond_type="No Bond",
+            amount="$0.00"
         )
 
         # Booking 3
@@ -141,17 +128,20 @@ class TestUsFlNassauScraper(BaseScraperTest, unittest.TestCase):
             name="FEL BATT DOM W STRANGULATION",
             offense_date="11/15/2015 8:34 PM",
             charge_class="Felony"
-        ).create_bond(
-            bond_id="2015-00000001",
-            bond_type="Cash Bond",
-            amount="$3,002.00"
         )
 
         booking.create_charge(
             name="AGG ASSAULT W INT COMT FEL",
             offense_date="11/15/2015 8:34 PM",
             charge_class="Felony"
-        ).create_bond(
+        )
+
+        booking.create_charge().create_bond(
+            bond_id="2015-00000001",
+            bond_type="Cash Bond",
+            amount="$3,002.00"
+        )
+        booking.create_charge().create_bond(
             bond_id="2015-00000002",
             bond_type="Cash Bond",
             amount="$3,002.00"

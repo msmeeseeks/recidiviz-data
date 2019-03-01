@@ -1,0 +1,5 @@
+agency_name: Coweta County Sheriff's Office
+agency_type: jail
+base_url: https://p2c.coweta.ga.us/p2c
+timezone: America/New_York
+environment: staging

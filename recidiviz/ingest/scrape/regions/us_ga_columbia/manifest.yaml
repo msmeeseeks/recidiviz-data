@@ -1,0 +1,5 @@
+agency_name: Columbia County Sheriff's Office
+agency_type: jail
+base_url: http://p2c.columbiacountyso.org
+timezone: America/New_York
+environment: staging

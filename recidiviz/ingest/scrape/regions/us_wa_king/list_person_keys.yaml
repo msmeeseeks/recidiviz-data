@@ -1,0 +1,18 @@
+key_mappings:
+  LastName: person.surname
+  FirstName: person.given_names
+  MiddleName: person.middle_names
+  CCN: person.person_id  # computer control number
+  CurrentCustodyFacility: booking.facility
+  LatestBooking.BA: booking.booking_id
+  LatestBooking.BookingDate: booking.admission_date
+  LatestBooking.ReleaseDate: booking.release_date
+  LatestBooking.ChargesString: charge.name
+  
+keys_to_ignore:
+- JuniorSenior  # TODO: use
+- BailOnCurrentBooking  # Not set
+- InCustody  # Not set
+- Bookings  # Not set
+- VisitingSchedule
+- VinesToolTip

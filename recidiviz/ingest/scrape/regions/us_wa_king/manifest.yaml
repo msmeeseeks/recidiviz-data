@@ -1,0 +1,5 @@
+agency_name: King County Department of Adult & Juvenile Detention
+agency_type: jail
+base_url: https://ingress.kingcounty.gov/Public/JILS/default.aspx
+timezone: America/Los_Angeles
+environment: staging

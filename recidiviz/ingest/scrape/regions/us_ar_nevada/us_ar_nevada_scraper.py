@@ -23,5 +23,5 @@ from recidiviz.ingest.scrape.vendors.brooks_jeffrey.brooks_jeffrey_scraper \
 
 class UsArNevadaScraper(BrooksJeffreyScraper):
     """Scraper implementation for us_ar_nevada."""
-    def __init__(self, mapping_filepath=None):
+    def __init__(self):
         super(UsArNevadaScraper, self).__init__('us_ar_nevada')

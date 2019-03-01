@@ -196,7 +196,7 @@ class SuperionScraper(BaseScraper):
                     bond.status = BondStatus.POSTED.value
                     bond.bond_type = None
 
-        for booking in person.bookings:
+        for booking in ingest_info.get_all_bookings():
             # Test if the release date is a projected one
             if booking.release_date is not None and \
                    'ESTIMATED' in booking.release_date.upper():
@@ -204,10 +204,13 @@ class SuperionScraper(BaseScraper):
                     ' '.join(booking.release_date.split()[:-1])
                 booking.release_date = None
             for charge in booking.charges:
+
                 # Check for hold information in the charge.
                 hold_values = [
                     'FEDERAL',
+                    'FEDERAL CHARGES',
                     'FEDERAL INMATE',
+                    'HOLD FOR OTHER AGENCY',
                     'HOLD OTHER AGENCY',
                     'IMMIGRATION',
                     'INS DETAINER',

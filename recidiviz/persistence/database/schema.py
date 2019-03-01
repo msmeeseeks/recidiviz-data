@@ -238,7 +238,7 @@ class Person(Base, DatabaseEntity, _PersonSharedColumns):
     birthdate = Column(Date, index=True)
     birthdate_inferred_from_age = Column(Boolean)
 
-    bookings = relationship('Booking', back_populates='person', lazy='joined')
+    bookings = relationship('Booking', lazy='joined')
 
 
 class PersonHistory(Base, DatabaseEntity, _PersonSharedColumns):
@@ -293,12 +293,9 @@ class Booking(Base, DatabaseEntity, _BookingSharedColumns):
     person_id = Column(Integer, ForeignKey('person.person_id'), nullable=False)
     last_seen_time = Column(DateTime, nullable=False)
 
-    person = relationship('Person', back_populates='bookings')
-
-    holds = relationship('Hold', back_populates='booking', lazy='joined')
-    arrest = relationship('Arrest', uselist=False, back_populates='booking',
-                          lazy='joined')
-    charges = relationship('Charge', back_populates='booking', lazy='joined')
+    holds = relationship('Hold', lazy='joined')
+    arrest = relationship('Arrest', uselist=False, lazy='joined')
+    charges = relationship('Charge', lazy='joined')
 
 
 class BookingHistory(Base, DatabaseEntity, _BookingSharedColumns):
@@ -338,8 +335,6 @@ class Hold(Base, DatabaseEntity, _HoldSharedColumns):
     hold_id = Column(Integer, primary_key=True)
     booking_id = Column(
         Integer, ForeignKey('booking.booking_id'), nullable=False)
-
-    booking = relationship('Booking', back_populates='holds')
 
 
 class HoldHistory(Base, DatabaseEntity, _HoldSharedColumns):
@@ -381,8 +376,6 @@ class Arrest(Base, DatabaseEntity, _ArrestSharedColumns):
     arrest_id = Column(Integer, primary_key=True)
     booking_id = Column(
         Integer, ForeignKey('booking.booking_id'), nullable=False)
-
-    booking = relationship('Booking', back_populates='arrest')
 
 
 class ArrestHistory(Base, DatabaseEntity, _ArrestSharedColumns):
@@ -429,9 +422,13 @@ class Bond(Base, DatabaseEntity, _BondSharedColumns):
     # bonds. It does not have a corresponding SQLAlchemy relationship, to avoid
     # redundant relationships.
     booking_id = Column(
-        Integer, ForeignKey('booking.booking_id'), nullable=False)
-
-    charges = relationship('Charge', back_populates='bond')
+        Integer,
+        # Because this key does not correspond to a SQLAlchemy relationship, it
+        # needs to be manually set. To avoid raising an error during any
+        # transient invalid states during processing, the constraint must be
+        # deferred to only be checked at commit time.
+        ForeignKey('booking.booking_id', deferrable=True, initially='DEFERRED'),
+        nullable=False)
 
 
 class BondHistory(Base, DatabaseEntity, _BondSharedColumns):
@@ -485,9 +482,13 @@ class Sentence(Base, DatabaseEntity, _SentenceSharedColumns):
     # sentences. It does not have a corresponding SQLAlchemy relationship, to
     # avoid redundant relationships.
     booking_id = Column(
-        Integer, ForeignKey('booking.booking_id'), nullable=False)
-
-    charges = relationship('Charge', back_populates='sentence')
+        Integer,
+        # Because this key does not correspond to a SQLAlchemy relationship, it
+        # needs to be manually set. To avoid raising an error during any
+        # transient invalid states during processing, the constraint must be
+        # deferred to only be checked at commit time.
+        ForeignKey('booking.booking_id', deferrable=True, initially='DEFERRED'),
+        nullable=False)
 
     # Due to the SQLAlchemy requirement that both halves of an association pair
     # be represented by different relationships, a sentence must have two sets
@@ -622,9 +623,8 @@ class Charge(Base, DatabaseEntity, _ChargeSharedColumns):
     sentence_id = Column(
         Integer, ForeignKey('sentence.sentence_id'))
 
-    booking = relationship('Booking', back_populates='charges')
-    bond = relationship('Bond', back_populates='charges', lazy='joined')
-    sentence = relationship('Sentence', back_populates='charges', lazy='joined')
+    bond = relationship('Bond', lazy='joined')
+    sentence = relationship('Sentence', lazy='joined')
 
 
 class ChargeHistory(Base, DatabaseEntity, _ChargeSharedColumns):
@@ -789,7 +789,7 @@ class HiFacilityAggregate(Base, _AggregateTableMixin):
 
 class KyFacilityAggregate(Base, _AggregateTableMixin):
     """KY state-provided aggregate statistics."""
-    __tablename__ = 'ky_county_aggregate'
+    __tablename__ = 'ky_facility_aggregate'
     __table_args__ = (
         UniqueConstraint(
             'fips', 'facility_name', 'report_date', 'report_granularity'

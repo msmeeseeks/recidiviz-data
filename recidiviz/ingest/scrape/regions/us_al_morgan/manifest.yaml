@@ -1,0 +1,5 @@
+agency_name: Morgan County Sheriff's Office
+agency_type: jail
+base_url: http://97.82.20.116
+timezone: America/New_York
+environment: staging

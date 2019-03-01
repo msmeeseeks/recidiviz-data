@@ -30,11 +30,9 @@ from recidiviz.ingest.scrape.task_params import Task, ScrapedData
 class UsFlAlachuaScraper(Html5BaseScraper):
     """Scraper implementation for us_fl_alachua."""
 
-    def __init__(self, mapping_filepath=None):
-        if not mapping_filepath:
-            mapping_filepath = os.path.join(
-                os.path.dirname(__file__), 'us_fl_alachua.yaml')
-        self.mapping_filepath = mapping_filepath
+    def __init__(self):
+        self.mapping_filepath = os.path.join(
+            os.path.dirname(__file__), 'us_fl_alachua.yaml')
         super(UsFlAlachuaScraper, self).__init__('us_fl_alachua')
 
     def populate_data(self, content, task: Task,
