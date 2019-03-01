@@ -40,6 +40,9 @@ class NoAliasDumper(yaml.Dumper):
 
 def build_queues(environment: str):
     queues: List[Dict[str, Any]] = []
+    queues.append({'name': 'scraper-control',
+                   **BASE_QUEUE_CONFIG,
+                   'rate': '1/s'})
     for vendor in vendors.get_vendors():
         queue_params = vendors.get_vendor_queue_params(vendor)
         if queue_params is None:

@@ -20,7 +20,7 @@ from http import HTTPStatus
 import logging
 import threading
 
-from flask import Blueprint, request
+from flask import Blueprint, request, url_for
 
 from recidiviz.ingest.scrape import ingest_utils, queues
 from recidiviz.utils import regions
@@ -36,8 +36,10 @@ def check_for_finished_scrapers():
 
     def _check_finished(region_code: str):
         if is_scraper_finished(region_code):
-            # TODO: create task to stop scraper, kick off batch write
             logging.info('Region \'%s\' has completed.', region_code)
+            queues.create_control_task(
+                region_code=region_code,
+                url=url_for('scraper_control.scraper_stop'))
 
     region_codes = ingest_utils.validate_regions(
         get_values('region', request.args))

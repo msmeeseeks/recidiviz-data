@@ -96,6 +96,17 @@ def create_task(*, region_code, queue_name, url, body):
     queue_path = format_queue_path(queue_name)
     client().create_task(queue_path, task)
 
+def create_control_task(*, region_code, url):
+    task = {
+        'app_engine_http_request': {
+            'http_method': 'GET',
+            'relative_uri': '{url}?region={region_code}'.format(
+                url=url, region_code=region_code
+            ),
+        }
+    }
+    client().create_task(format_queue_path('scraper-control'), task)
+
 def list_tasks(*, region_code: str, queue_name: str):
     """List tasks for the given region and queue"""
     return [task for task in client().list_tasks(format_queue_path(queue_name))
