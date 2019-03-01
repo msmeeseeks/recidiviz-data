@@ -106,7 +106,7 @@ class TestConverter(unittest.TestCase):
         # Act
         ii_converter = converter.get_converter(ingest_info, metadata)
         result = []
-        while ingest_info.people:
+        while not ii_converter.is_complete():
             result.append(ii_converter.convert_and_pop())
 
         # Assert
