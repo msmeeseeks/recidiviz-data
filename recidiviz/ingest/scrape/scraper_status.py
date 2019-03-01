@@ -59,5 +59,5 @@ def check_for_finished_scrapers():
 
 def is_scraper_finished(region_code: str):
     region = regions.get_region(region_code)
-    return len(queues.list_tasks(region_code=region_code,
-                                 queue_name=region.get_queue_name())) == 0
+    return not queues.list_tasks(region_code=region_code,
+                                 queue_name=region.get_queue_name())
