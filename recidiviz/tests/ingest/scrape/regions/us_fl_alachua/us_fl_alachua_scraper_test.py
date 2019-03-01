@@ -170,5 +170,4 @@ class TestUsFlAlachuaScraper(BaseScraperTest, unittest.TestCase):
                     )
                 ]
             ), ])
-        with self.assertWarns(UserWarning):
-            self.validate_and_return_populate_data(_DETAILS_PERSON_HTML, expected_result, task=task)
+        self.validate_and_return_populate_data(_DETAILS_PERSON_HTML, expected_result, task=task)
