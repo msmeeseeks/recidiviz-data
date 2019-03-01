@@ -1,5 +1,7 @@
 import datetime
+import dateparser
 import numpy as np
+import os
 import pandas as pd
 import sys
 import tabula
@@ -18,7 +20,7 @@ _MANUAL_FACILITY_TO_COUNTY_MAP = {
 
 def parse(filename):
 
-    table = tabula.read_pdf(filename, pages=[2, 3, 4], multiple_tables=True, pandas_options={'dtype': 'int64'})
+    table = tabula.read_pdf(filename, pages=[2, 3, 4], multiple_tables=True)
 
     formatted_dfs = []
     for df in table:
@@ -42,8 +44,14 @@ def parse(filename):
         TnFacilityAggregate: table
     }
 
-def _parse_date(filename):
-    return datetime.date(year=2019, month=1, day=31)
+
+def _parse_date(filename: str) -> datetime.date:
+    base_filename = os.path.basename(filename)
+    end = base_filename.index('.pdf')
+    start = 4
+    d = dateparser.parse(base_filename[start:end]).date()
+    return aggregate_ingest_utils.on_last_day_of_month(d)
+
 
 def format_table(df):
 
