@@ -1,0 +1,11 @@
+key_mappings:
+  
+multi_key_mapping:
+  Name: person.full_name
+  DOB: person.birthdate
+  "Booking#": booking.booking_id
+  Commitment Date: booking.admission_date
+  Unit: booking.custody_status
+
+keys_to_ignore:
+  - "Click to register for notification on custody changes or click here to learn more"
