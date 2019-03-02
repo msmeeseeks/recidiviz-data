@@ -36,19 +36,10 @@ def convert(ingest_info, metadata):
     Returns:
         A list of entities.Person
     """
-    return _Converter(ingest_info, metadata).convert()
+    return Converter(ingest_info, metadata).convert()
 
 
-def get_converter(ingest_info, metadata):
-    """Returns a converter object.
-
-    Returns:
-        A _Converter object
-    """
-    return _Converter(ingest_info, metadata)
-
-
-class _Converter:
+class Converter:
     """Converts between ingest_info objects and persistence layer entity."""
 
     def __init__(self, ingest_info, metadata):

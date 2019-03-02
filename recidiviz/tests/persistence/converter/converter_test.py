@@ -104,7 +104,7 @@ class TestConverter(unittest.TestCase):
         ingest_info.sentences.add(sentence_id='SENTENCE_ID', is_life='True')
 
         # Act
-        ii_converter = converter.get_converter(ingest_info, metadata)
+        ii_converter = converter.Converter(ingest_info, metadata)
         result = []
         while not ii_converter.is_complete():
             result.append(ii_converter.convert_and_pop())
